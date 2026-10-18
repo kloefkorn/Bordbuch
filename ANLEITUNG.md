@@ -105,3 +105,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 3.0 | Besatzung: Skipper, Steuermann (mit Wechseln während der Fahrt), Personen an Bord; Tankknopf neben Start/Stop; Tankvorgang in der Liste löschen |
 | 3.1 | Personen an Bord standardmäßig 2 |
 | 3.2 | Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst |
+| 3.3 | Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen |

@@ -216,8 +216,8 @@ dialog h3{margin-top:0}
 /* Versionsnummer: kleine Änderungen +0.1 (1.1 → 1.2), größere/grundlegende Änderungen nächste ganze Zahl (1.2 → 2.0).
    Verlauf: 1.0 Erstversion · 1.1 Texte & metrische Einheiten · 1.2 Start/Stop-Design, Boot, Fahrtenfilter · 2.0 Tanken & Verbrauch
    · 3.0 Besatzung (Skipper, Steuermann, Personen an Bord), Tankknopf neben Start/Stop, Tankvorgang löschen
-   · 3.1 Pax standardmäßig 2 · 3.2 Datumsfelder im Filter einheitlich gestaltet */
-const APP_VERSION='3.2';
+   · 3.1 Pax standardmäßig 2 · 3.2 Datumsfelder im Filter einheitlich gestaltet · 3.3 zuverlässigere Updates */
+const APP_VERSION='3.3';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -418,6 +418,7 @@ async function stopTrip(){
   t.status='done';t.distance=trackDist(t.points);t.updatedAt=Date.now();
   await putTrip(t);releaseWake();rec=null;stopping=false;
   P=freshPre();saveP();
+  if(localStorage.getItem('bb_reload')){localStorage.removeItem('bb_reload');setTimeout(()=>location.reload(),2500);}
   renderHome();toast(`Fahrtende gespeichert: ${fmtTime(now)} · ${fmtKm(t.distance)}`);
   enrichAll().then(()=>syncNow(true));
 }
@@ -1149,6 +1150,8 @@ async function renderSettings(){
     <p class="hint">${n} Fahrt(en) und ${nf} Tankvorgang/-vorgänge auf diesem Gerät gespeichert.</p>
     <div class="row"><button class="btn ghost" id="enr">Orte &amp; Wetter jetzt nachladen</button></div>
     <p class="hint">Version ${APP_VERSION}</p>
+    <div class="row"><button class="btn ghost" id="updNow">Nach neuer Version suchen</button></div>
+    <p class="hint">Lädt die App neu aus dem Internet. Deine Fahrten und Tankvorgänge bleiben dabei erhalten.</p>
     <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap</p>
   </section>`;
   const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
@@ -1169,8 +1172,30 @@ async function renderSettings(){
   if($('#odSync'))$('#odSync').onclick=()=>syncNow(false);
   if($('#odOff'))$('#odOff').onclick=()=>{['bb_od','bb_od_on','bb_odmap'].forEach(k=>localStorage.removeItem(k));odTok=null;syncMsg='';renderSettings();};
   $('#exp').onclick=exportAll;
+  $('#updNow').onclick=forceUpdate;
   $('#imp').onchange=e=>{const f=e.target.files[0];if(f)importFile(f).then(renderSettings);};
   $('#enr').onclick=()=>{if(!navigator.onLine){toast('Keine Internetverbindung');return;}toast('Lade nach …');enrichAll();};
+}
+
+/* ================= App-Updates ================= */
+let swReg=null;
+function setupUpdates(){
+  navigator.serviceWorker.register('sw.js',{updateViaCache:'none'}).then(r=>{swReg=r;r.update().catch(()=>{});}).catch(e=>console.warn(e));
+  let reloading=false;
+  navigator.serviceWorker.addEventListener('controllerchange',()=>{
+    if(reloading)return;
+    if(rec){toast('Neue Version geladen – sie wird nach dem Ende der Fahrt aktiv');localStorage.setItem('bb_reload','1');return;}
+    reloading=true;location.reload();
+  });
+  document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&swReg)swReg.update().catch(()=>{});});
+}
+async function forceUpdate(){
+  if(rec){alert('Bitte erst die laufende Fahrt beenden.');return;}
+  if(!navigator.onLine){toast('Keine Internetverbindung');return;}
+  toast('Lade neueste Version …');
+  try{if(swReg)await swReg.update();}catch(e){}
+  try{for(const k of await caches.keys())if(k.startsWith('bordbuch-shell'))await caches.delete(k);}catch(e){}
+  location.reload();
 }
 
 /* ================= Start ================= */
@@ -1181,7 +1206,7 @@ setInterval(()=>{if(document.visibilityState==='visible')syncNow(true);},5*60*10
 
 document.addEventListener('DOMContentLoaded',async()=>{
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))
-    navigator.serviceWorker.register('sw.js').catch(e=>console.warn(e));
+    setupUpdates();
   await odHandleRedirect();
   const act=(await allTrips()).filter(t=>t.status==='active'&&!t.deleted).sort((a,b)=>b.start.t-a.start.t)[0];
   if(act){rec={trip:act,watch:null,wake:null,lastFix:null};beginWatch();keepAwake();toast('Laufende Fahrt wird fortgesetzt');}

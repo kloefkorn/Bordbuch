@@ -1,0 +1,710 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0b2239">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Bordbuch">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="icon-192.png">
+<link rel="icon" href="icon-192.png">
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css">
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" defer></script>
+<title>Bordbuch</title>
+<style>
+:root{--bg:#0b1a2b;--panel:#12263d;--panel2:#18324f;--text:#eaf2fb;--muted:#9fb4cc;--line:#244566;--accent:#4fb3ff;--go:#1f9d55;--stop:#d64545;--hl:#ff8c1a;}
+@media (prefers-color-scheme: light){:root{--bg:#f2f5f9;--panel:#ffffff;--panel2:#e7eef6;--text:#0d1b2a;--muted:#55687d;--line:#d3dde8;--accent:#0a6fc2;--hl:#e46f00;}}
+*{box-sizing:border-box}
+html,body{margin:0;min-height:100%}
+body{font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent}
+header{position:sticky;top:0;z-index:1500;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px;background:var(--panel);border-bottom:1px solid var(--line)}
+header h1{flex:1;font-size:17px;margin:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.icon{width:44px;height:44px;border:0;background:transparent;color:var(--text);font-size:26px;border-radius:10px;cursor:pointer}
+#menu{position:fixed;top:calc(env(safe-area-inset-top) + 56px);right:8px;z-index:1600;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-width:220px;overflow:hidden}
+#menu a{display:block;padding:14px 18px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--line)}
+#menu a:last-child{border-bottom:0}
+main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;margin:0 auto}
+.status{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 14px}
+.bigbtns{display:grid;gap:16px}
+.big{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:30vh;min-height:150px;border:0;border-radius:22px;color:#fff;font-size:20px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
+.big .abbr{font-size:46px;font-weight:800;letter-spacing:2px}
+.recording .big{height:19vh;min-height:110px}
+.big:disabled{opacity:.28;box-shadow:none}
+.ms{background:var(--go)} .mg{background:var(--stop)}
+.live{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
+.live .head{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted)}
+.rec{color:var(--stop);font-weight:700;animation:blink 1.6s infinite}
+@keyframes blink{50%{opacity:.35}}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin:12px 0}
+.grid div{background:var(--panel2);border-radius:12px;padding:10px}
+.grid small{display:block;color:var(--muted);font-size:12px}
+.grid b{font-size:20px}
+.btn{appearance:none;border:0;background:var(--accent);color:#fff;font:inherit;font-weight:600;padding:12px 16px;border-radius:12px;cursor:pointer}
+.btn.ghost{background:var(--panel2);color:var(--text)}
+.btn.danger{background:transparent;color:var(--stop);border:1px solid var(--stop)}
+.btn.full{width:100%}
+.btn:disabled{opacity:.4}
+.row{display:flex;gap:10px;flex-wrap:wrap;margin:10px 0}
+.hint{font-size:13px;color:var(--muted)}
+.empty{color:var(--muted);text-align:center;padding:40px 10px}
+.summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
+.summary div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
+.summary b{display:block;font-size:18px} .summary small{color:var(--muted);font-size:12px}
+.card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;color:var(--text);text-decoration:none}
+.card .c1{display:flex;justify-content:space-between;font-size:14px;color:var(--muted)}
+.card .c2{font-weight:600;margin:4px 0}
+.card .c3{font-size:14px;color:var(--muted)}
+.pending{color:var(--hl);font-size:12px}
+.route{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 14px}
+.route>div{display:grid;grid-template-columns:18px 1fr;column-gap:8px;padding:6px 0}
+.route small{grid-column:2;color:var(--muted);font-size:12px}
+.dot{width:12px;height:12px;border-radius:50%;margin-top:6px;border:2px solid #fff}
+.dot.g{background:var(--go)} .dot.r{background:var(--stop)}
+#map{height:52vh;min-height:280px;border-radius:14px;margin:12px 0;background:var(--panel2);z-index:1}
+.wx{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.wx div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;font-size:14px}
+.wx small{display:block;color:var(--muted)}
+h3{font-size:16px;margin:22px 0 8px}
+textarea,input[type=text],input[type=number],input[type=search]{width:100%;font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px}
+.wp{display:flex;gap:10px;align-items:flex-start;background:var(--panel);border:1px solid var(--line);border-left:4px solid var(--hl);border-radius:10px;padding:10px;margin-bottom:8px;cursor:pointer}
+.wp time{font-weight:700;white-space:nowrap}
+.tblwrap{overflow-x:auto;border:1px solid var(--line);border-radius:12px;margin:10px 0}
+.tbl{width:100%;border-collapse:collapse;font-size:14px;background:var(--panel)}
+.tbl th{text-align:left;background:var(--panel2);padding:8px;font-size:12px;color:var(--muted);position:sticky;top:0}
+.tbl td{padding:8px;border-top:1px solid var(--line);vertical-align:top}
+.tbl tr{cursor:pointer}
+.badge{display:inline-block;font-size:11px;padding:1px 6px;border-radius:6px;background:var(--panel2);color:var(--muted);margin-right:4px}
+.badge.wp{background:var(--hl);color:#fff}
+.panel{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 14px 12px;margin-bottom:14px}
+.panel label{display:block;margin:10px 0 4px;font-size:14px}
+.check{display:flex;gap:10px;align-items:center;margin:12px 0}
+.check input{width:22px;height:22px}
+code{background:var(--panel2);padding:2px 6px;border-radius:6px;font-size:13px;word-break:break-all}
+dialog{border:0;border-radius:16px;background:var(--panel);color:var(--text);width:min(92vw,420px);padding:16px}
+dialog::backdrop{background:rgba(0,0,0,.5)}
+dialog h3{margin-top:0}
+#toast{position:fixed;left:50%;bottom:calc(env(safe-area-inset-bottom) + 24px);transform:translateX(-50%);background:#000c;color:#fff;padding:10px 16px;border-radius:12px;font-size:14px;opacity:0;transition:opacity .3s;pointer-events:none;z-index:3000;max-width:90vw;text-align:center}
+#toast.show{opacity:1}
+.pp textarea{margin:6px 0;font-size:14px;min-width:200px}
+.pp .row{margin:4px 0}
+.pp .btn{padding:8px 12px;font-size:14px}
+.leaflet-popup-content-wrapper,.leaflet-popup-tip{background:var(--panel);color:var(--text)}
+</style>
+</head>
+<body>
+<header>
+  <button id="back" class="icon" aria-label="Zurück" style="visibility:hidden">‹</button>
+  <h1 id="title">Bordbuch</h1>
+  <button id="menuBtn" class="icon" aria-label="Menü">☰</button>
+</header>
+<nav id="menu" hidden>
+  <a href="#/">⚓ Start</a>
+  <a href="#/fahrten">🧭 Fahrten</a>
+  <a href="#/kommentare">📝 Kommentare</a>
+  <a href="#/einstellungen">⚙️ Einstellungen &amp; Sync</a>
+</nav>
+<main id="view"></main>
+<dialog id="dlg"><form method="dialog">
+  <h3 id="dlgT"></h3>
+  <textarea id="dlgTx" rows="4" placeholder="z. B. Schleuse, Manöver, technisches Ereignis"></textarea>
+  <div class="row" style="justify-content:flex-end"><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn">Speichern</button></div>
+</form></dialog>
+<div id="toast"></div>
+
+<script>
+'use strict';
+/* ================= Helfer ================= */
+const $=(s,r=document)=>r.querySelector(s);
+const view=$('#view');
+const esc=s=>String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
+let toastT;
+function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
+
+const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:''};
+let S=Object.assign({},DEF,JSON.parse(localStorage.getItem('bb_settings')||'{}'));
+const saveS=()=>localStorage.setItem('bb_settings',JSON.stringify(S));
+
+const fmtDate=t=>new Date(t).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
+const fmtDateS=t=>new Date(t).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
+const fmtTime=(t,sec)=>new Date(t).toLocaleTimeString('de-DE',sec?{hour:'2-digit',minute:'2-digit',second:'2-digit'}:{hour:'2-digit',minute:'2-digit'});
+const fmtDur=ms=>{const m=Math.max(0,Math.round(ms/60000));return `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} min`;};
+const num=(v,d=1)=>v.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
+const fmtKm=m=>num(m/1000)+' km';
+const fmtNm=m=>num(m/1852)+' sm';
+const kn=ms=>ms==null||isNaN(ms)?'–':num(ms*1.943844)+' kn';
+function dm(v,pos,neg,w){const h=v>=0?pos:neg;v=Math.abs(v);const d=Math.floor(v);const m=(v-d)*60;return `${String(d).padStart(w,'0')}°${m.toFixed(3).replace('.',',').padStart(6,'0')}′${h}`;}
+const fmtCoord=(lat,lon)=>lat==null?'Position unbekannt':dm(lat,'N','S',2)+' '+dm(lon,'E','W',3);
+
+function hav(a,b){const R=6371008.8,r=Math.PI/180;const dLa=(b.lat-a.lat)*r,dLo=(b.lon-a.lon)*r;
+  const x=Math.sin(dLa/2)**2+Math.cos(a.lat*r)*Math.cos(b.lat*r)*Math.sin(dLo/2)**2;return 2*R*Math.asin(Math.sqrt(x));}
+/* Segment zählt zur Strecke, wenn plausibel (<25 m/s) und keine Liegeplatz-Drift */
+function segCounts(a,b,d){const dt=(b.t-a.t)/1000;if(dt<=0)return false;const v=d/dt;return v<25&&(v>=0.3||d>=15);}
+function trackDist(pts){let s=0;for(let i=1;i<pts.length;i++){const d=hav(pts[i-1],pts[i]);if(segCounts(pts[i-1],pts[i],d))s+=d;}return s;}
+
+/* ================= Datenbank (IndexedDB) ================= */
+let dbp;
+function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',1);
+  r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('trips'))d.createObjectStore('trips',{keyPath:'id'});};
+  r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
+const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
+async function getTrip(id){return rq((await db()).transaction('trips').objectStore('trips').get(id));}
+async function allTrips(){return rq((await db()).transaction('trips').objectStore('trips').getAll());}
+async function putTrip(t){return rq((await db()).transaction('trips','readwrite').objectStore('trips').put(t));}
+async function liveTrips(){return (await allTrips()).filter(t=>!t.deleted).sort((a,b)=>b.start.t-a.start.t);}
+const curTripObj=async id=>(rec&&rec.trip.id===id)?rec.trip:await getTrip(id);
+
+/* ================= Wetter & Ort ================= */
+const WMO={0:['Klar / sonnig','☀️'],1:['Überwiegend sonnig','🌤️'],2:['Teilweise bewölkt','⛅'],3:['Bedeckt','☁️'],45:['Nebel','🌫️'],48:['Nebel mit Reif','🌫️'],
+51:['Leichter Nieselregen','🌦️'],53:['Nieselregen','🌦️'],55:['Starker Nieselregen','🌧️'],56:['Gefrierender Nieselregen','🌧️'],57:['Gefrierender Nieselregen','🌧️'],
+61:['Leichter Regen','🌦️'],63:['Regen','🌧️'],65:['Starker Regen','🌧️'],66:['Gefrierender Regen','🌧️'],67:['Gefrierender Regen','🌧️'],
+71:['Leichter Schneefall','🌨️'],73:['Schneefall','🌨️'],75:['Starker Schneefall','❄️'],77:['Schneegriesel','🌨️'],
+80:['Leichte Regenschauer','🌦️'],81:['Regenschauer','🌧️'],82:['Heftige Regenschauer','⛈️'],85:['Schneeschauer','🌨️'],86:['Starke Schneeschauer','🌨️'],
+95:['Gewitter','⛈️'],96:['Gewitter mit Hagel','⛈️'],99:['Schweres Gewitter mit Hagel','⛈️']};
+const DIRS=['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+const dirTxt=d=>d==null?'':DIRS[Math.round(d/22.5)%16];
+const bft=k=>{const l=[1,6,12,20,29,39,50,62,75,89,103,118];let b=0;while(b<12&&k>=l[b])b++;return b;};
+function wxTxt(w,short){
+  if(!w)return '<span class="pending">wird geladen, sobald online</span>';
+  if(short)return `${w.icon} ${num(w.temp,0)}°`;
+  return `${w.icon} ${esc(w.desc)}<br>🌡 ${num(w.temp)} °C<br>💨 ${w.dir} ${w.bft} Bft (${num(w.wind,0)} km/h${w.gust!=null?`, Böen ${num(w.gust,0)}`:''})`;
+}
+async function weatherAt(lat,lon,t){
+  const day=new Date(t).toISOString().slice(0,10);
+  const old=(Date.now()-t)/864e5>60;
+  const base=old?'https://archive-api.open-meteo.com/v1/archive':'https://api.open-meteo.com/v1/forecast';
+  const url=`${base}?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,weather_code,wind_speed_10m,wind_direction_10m,wind_gusts_10m&start_date=${day}&end_date=${day}&timezone=UTC&timeformat=unixtime&wind_speed_unit=kmh`;
+  const r=await fetch(url);const j=await r.json();
+  if(!r.ok||j.error)throw new Error(j.reason||'Wetter '+r.status);
+  const h=j.hourly;let bi=0,bd=Infinity;
+  h.time.forEach((s,i)=>{const d=Math.abs(s*1000-t);if(d<bd){bd=d;bi=i;}});
+  if(h.temperature_2m[bi]==null||h.weather_code[bi]==null)throw new Error('Wetter noch nicht verfügbar');
+  const c=h.weather_code[bi];const [desc,icon]=WMO[c]||['Unbekannt','🌡'];
+  const wind=h.wind_speed_10m[bi];
+  return {code:c,desc,icon,temp:h.temperature_2m[bi],wind,gust:h.wind_gusts_10m?.[bi]??null,dir:dirTxt(h.wind_direction_10m[bi]),bft:bft(wind),src:'Open-Meteo'};
+}
+async function placeName(lat,lon){
+  const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lon}&zoom=16&addressdetails=1&accept-language=de`);
+  if(!r.ok)throw new Error('Ortssuche '+r.status);
+  const j=await r.json();
+  if(j.error)return `${num(lat,4)}, ${num(lon,4)}`;
+  const a=j.address||{};
+  const town=a.city||a.town||a.village||a.municipality||a.hamlet||a.suburb||a.county||'';
+  const name=(j.name&&j.name!==town)?j.name:'';
+  return [name,town].filter(Boolean).join(', ')||(j.display_name||'').split(',').slice(0,2).join(',')||'Unbekannt';
+}
+let enriching=false;
+async function enrichAll(){
+  if(enriching||!navigator.onLine)return;enriching=true;let any=false;
+  try{
+    for(const t0 of await liveTrips()){
+      const jobs=[];
+      if(t0.start?.lat!=null){if(!t0.placeStart)jobs.push('placeStart');if(!t0.weatherStart)jobs.push('weatherStart');}
+      if(t0.status==='done'&&t0.end?.lat!=null){if(!t0.placeEnd)jobs.push('placeEnd');if(!t0.weatherEnd)jobs.push('weatherEnd');}
+      for(const job of jobs){
+        try{
+          const p=job.endsWith('Start')?t0.start:t0.end;
+          const val=job.startsWith('place')?await placeName(p.lat,p.lon):await weatherAt(p.lat,p.lon,p.t);
+          const t=await curTripObj(t0.id);
+          t[job]=val;t.updatedAt=Date.now();await putTrip(t);any=true;
+          if(job.startsWith('place'))await sleep(1100); // Nominatim: max. 1 Anfrage/Sekunde
+        }catch(e){console.warn(job,e);}
+      }
+    }
+  }finally{enriching=false;}
+  if(any){refreshView();syncSoon();}
+}
+
+/* ================= Aufzeichnung ================= */
+let rec=null; // {trip, watch, wake, lastFix}
+const getPos=(timeout=15000)=>new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout,maximumAge:5000}));
+function persist(){if(rec)putTrip(rec.trip).catch(e=>console.error(e));}
+
+async function startTrip(){
+  if(rec)return;
+  if(!('geolocation' in navigator)){alert('Dieses Gerät/dieser Browser bietet kein GPS.');return;}
+  const now=Date.now();
+  const trip={id:uid(),v:1,status:'active',createdAt:now,updatedAt:now,deleted:false,
+    start:{t:now,lat:null,lon:null,acc:null},end:null,points:[],distance:0,maxSpd:0,
+    placeStart:null,placeEnd:null,weatherStart:null,weatherEnd:null,note:'',notes:{}};
+  rec={trip,watch:null,wake:null,lastFix:null};
+  await putTrip(trip);
+  navigator.storage?.persist?.();
+  renderHome();toast('Fahrtbeginn (FB) geloggt: '+fmtTime(now));
+  beginWatch();keepAwake();
+  try{onPos(await getPos());}catch(e){toast('Warte auf GPS-Signal …');}
+}
+function beginWatch(){
+  rec.watch=navigator.geolocation.watchPosition(onPos,err=>{
+    if(err.code===1)alert('Standortzugriff wurde verweigert. Bitte in den Einstellungen des Geräts erlauben.');
+    updateLive();
+  },{enableHighAccuracy:true,maximumAge:0,timeout:30000});
+}
+function onPos(p){
+  if(!rec)return;const t=rec.trip,c=p.coords;
+  rec.lastFix={t:Date.now(),acc:c.accuracy};
+  const pt={t:Math.max(p.timestamp||0,t.start.t)||Date.now(),lat:+c.latitude.toFixed(6),lon:+c.longitude.toFixed(6),acc:Math.round(c.accuracy),
+    spd:(c.speed!=null&&c.speed>=0)?+c.speed.toFixed(2):null};
+  let startSet=false;
+  if(t.start.lat==null&&c.accuracy<=Math.max(S.maxAcc,100)){Object.assign(t.start,{lat:pt.lat,lon:pt.lon,acc:pt.acc});startSet=true;}
+  if(c.accuracy<=S.maxAcc){
+    const last=t.points[t.points.length-1];let ok=true;
+    if(last){
+      const d=hav(last,pt),dt=(pt.t-last.t)/1000;
+      if(pt.spd==null&&dt>=3&&d/dt<25)pt.spd=+(d/dt).toFixed(2);
+      if(dt<=0||d/dt>25)ok=false;
+      else if(d<S.minDist&&dt<S.maxInterval)ok=false;
+      if(ok&&segCounts(last,pt,d))t.distance+=d;
+    }
+    if(ok){if(pt.spd!=null)t.maxSpd=Math.max(t.maxSpd||0,pt.spd);t.points.push(pt);t.updatedAt=Date.now();persist();}
+  }
+  if(startSet){t.updatedAt=Date.now();persist();enrichAll();}
+  updateLive();
+}
+let stopping=false;
+async function stopTrip(){
+  if(!rec||stopping)return;
+  if(!confirm('Maschinen gestoppt – Fahrt jetzt beenden?'))return;
+  stopping=true;$('#bMG')&&($('#bMG').disabled=true);
+  const t=rec.trip,now=Date.now();
+  try{const p=await getPos(10000);onPos(p);}catch(e){}
+  navigator.geolocation.clearWatch(rec.watch);
+  const last=t.points[t.points.length-1];
+  t.end={t:now,lat:last?.lat??t.start.lat,lon:last?.lon??t.start.lon,acc:last?.acc??null};
+  t.status='done';t.distance=trackDist(t.points);t.updatedAt=Date.now();
+  await putTrip(t);releaseWake();rec=null;stopping=false;
+  renderHome();toast(`Fahrtende (FE) geloggt: ${fmtTime(now)} · ${fmtKm(t.distance)}`);
+  enrichAll().then(()=>syncNow(true));
+}
+async function keepAwake(){if(!S.wake||!rec||!('wakeLock' in navigator))return;try{rec.wake=await navigator.wakeLock.request('screen');}catch(e){}}
+function releaseWake(){try{rec?.wake?.release();}catch(e){}}
+
+function updateLive(){
+  if(!rec||!$('#lvDur'))return;const t=rec.trip;
+  $('#lvDur').textContent=fmtDur(Date.now()-t.start.t);
+  $('#lvDist').textContent=fmtKm(t.distance);
+  const last=t.points[t.points.length-1];
+  $('#lvSpd').textContent=last&&Date.now()-last.t<90000?kn(last.spd):'–';
+  const f=rec.lastFix;
+  $('#lvGps').textContent=!f?'suche …':(Date.now()-f.t>60000?'kein Signal':`±${Math.round(f.acc)} m`);
+  $('#lvPts').textContent=t.points.length;
+  $('#lvStart').textContent=`${fmtTime(t.start.t)} · ${t.placeStart||fmtCoord(t.start.lat,t.start.lon)}`;
+}
+setInterval(updateLive,1000);
+
+/* ================= Kommentare ================= */
+async function setNote(trip,key,text){
+  trip.notes=trip.notes||{};
+  if(text&&text.trim())trip.notes[key]={text:text.trim(),updatedAt:Date.now()};else delete trip.notes[key];
+  trip.updatedAt=Date.now();await putTrip(trip);syncSoon();
+}
+function ask(title,val){return new Promise(res=>{const d=$('#dlg');$('#dlgT').textContent=title;$('#dlgTx').value=val||'';d.returnValue='';
+  d.addEventListener('close',()=>res(d.returnValue==='ok'?$('#dlgTx').value:null),{once:true});d.showModal();});}
+
+/* ================= Navigation ================= */
+let navDepth=0;
+function setTitle(t,back){$('#title').textContent=t;$('#back').style.visibility=back?'visible':'hidden';}
+$('#back').onclick=()=>{if(navDepth>0){navDepth-=2;history.back();}else location.hash='#/';};
+$('#menuBtn').onclick=e=>{e.stopPropagation();$('#menu').hidden=!$('#menu').hidden;};
+document.addEventListener('click',()=>$('#menu').hidden=true);
+window.addEventListener('hashchange',()=>{navDepth++;route();});
+function route(){
+  $('#menu').hidden=true;destroyMap();window.scrollTo(0,0);
+  const h=location.hash.slice(1)||'/';const [path,q]=h.split('?');const parts=path.split('/');
+  if(parts[1]==='fahrten')return renderList();
+  if(parts[1]==='fahrt'&&parts[2])return renderTrip(decodeURIComponent(parts[2]),new URLSearchParams(q||'').get('p'));
+  if(parts[1]==='kommentare')return renderComments();
+  if(parts[1]==='einstellungen')return renderSettings();
+  renderHome();
+}
+function refreshView(){
+  const h=location.hash||'#/';
+  if(h==='#/'||h==='#'||h.startsWith('#/fahrten')||h.startsWith('#/kommentare'))route();
+  else if(h.startsWith('#/fahrt/'))refreshTripMeta();
+}
+
+/* ================= Startseite ================= */
+let syncMsg='';
+function statusLine(){
+  const on=navigator.onLine?'🟢 Online':'⚪ Offline';
+  const od=localStorage.getItem('bb_od_on')?(' · OneDrive: '+(syncMsg||'verbunden')):'';
+  return on+od;
+}
+function updateStatus(){const s=$('#stat');if(s)s.textContent=statusLine();}
+function renderHome(){
+  setTitle('Bordbuch',false);const r=!!rec;
+  view.innerHTML=`
+  <div class="status" id="stat">${esc(statusLine())}</div>
+  <div class="bigbtns ${r?'recording':''}">
+    <button class="big ms" id="bMS" ${r?'disabled':''}><span class="abbr">MS</span><span>Motoren gestartet</span></button>
+    <button class="big mg" id="bMG" ${r?'':'disabled'}><span class="abbr">MG</span><span>Maschinen gestoppt</span></button>
+  </div>
+  ${r?`<section class="live">
+    <div class="head"><span class="rec">● Aufzeichnung läuft</span><span id="lvPts">0</span></div>
+    <div class="hint" style="margin-top:6px">FB: <span id="lvStart"></span></div>
+    <div class="grid">
+      <div><small>Dauer</small><b id="lvDur">–</b></div>
+      <div><small>Strecke</small><b id="lvDist">–</b></div>
+      <div><small>Fahrt über Grund</small><b id="lvSpd">–</b></div>
+      <div><small>GPS</small><b id="lvGps">–</b></div>
+    </div>
+    <button class="btn ghost full" id="bNote">📝 Ereignis an aktueller Position notieren</button>
+    <p class="hint">Lass die App im Vordergrund geöffnet – das Display bleibt dafür an. Wird sie in den Hintergrund geschickt oder das Gerät gesperrt, pausiert der Browser das GPS; die Lücke wird als gerade Linie verbunden.</p>
+  </section>`:''}`;
+  $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;
+  if(r){$('#bNote').onclick=async()=>{
+    const t=rec.trip;const p=t.points[t.points.length-1];
+    if(!p){toast('Noch keine GPS-Position vorhanden');return;}
+    const txt=await ask(`Ereignis um ${fmtTime(Date.now())}`,'');
+    if(txt!=null&&rec){await setNote(rec.trip,p.t,txt);toast('Notiert');}
+  };updateLive();}
+}
+
+/* ================= Fahrtenliste ================= */
+async function renderList(){
+  setTitle('Fahrten',true);
+  const trips=await liveTrips();
+  if(!trips.length){view.innerHTML='<p class="empty">Noch keine Fahrten aufgezeichnet.<br>Starte mit „MS“ auf der Startseite.</p>';return;}
+  const done=trips.filter(t=>t.status==='done');
+  const km=done.reduce((s,t)=>s+(t.distance||0),0);
+  const ms=done.reduce((s,t)=>s+(t.end.t-t.start.t),0);
+  view.innerHTML=`<div class="summary">
+    <div><b>${done.length}</b><small>Fahrten</small></div>
+    <div><b>${num(km/1000,0)}</b><small>km gesamt</small></div>
+    <div><b>${num(ms/36e5)}</b><small>Motorstunden</small></div></div>`+
+  trips.map(t=>{
+    const n=Object.keys(t.notes||{}).length+(t.note?1:0);
+    const active=t.status!=='done';
+    const dur=(active?Date.now():t.end.t)-t.start.t;
+    const dist=active?trackDist(t.points):t.distance;
+    const pend=(!t.placeStart||(!active&&!t.placeEnd)||!t.weatherStart||(!active&&!t.weatherEnd));
+    return `<a class="card" href="#/fahrt/${encodeURIComponent(t.id)}">
+      <div class="c1"><span>${fmtDate(t.start.t)}</span><span>${fmtTime(t.start.t)} – ${active?'<span class="rec">läuft</span>':fmtTime(t.end.t)}</span></div>
+      <div class="c2">${esc(t.placeStart||'…')} → ${esc(active?'unterwegs':(t.placeEnd||'…'))}</div>
+      <div class="c3">${fmtKm(dist)} · ${fmtDur(dur)}${t.weatherStart?' · '+wxTxt(t.weatherStart,true):''}${n?` · 📝 ${n}`:''}</div>
+      ${pend&&!active?'<div class="pending">Ort/Wetter werden nachgeladen, sobald online</div>':''}
+    </a>`;}).join('');
+}
+
+/* ================= Fahrt-Detail mit Karte ================= */
+let map=null,cur=null;
+function destroyMap(){if(map){map.remove();map=null;}cur=null;}
+async function renderTrip(id,focusKey){
+  const t=await curTripObj(id);
+  if(!t||t.deleted){view.innerHTML='<p class="empty">Fahrt nicht gefunden.</p>';setTitle('Fahrt',true);return;}
+  setTitle(fmtDate(t.start.t),true);
+  const active=t.status!=='done';
+  const endT=active?Date.now():t.end.t;
+  const dist=active?trackDist(t.points):t.distance;
+  const secs=(endT-t.start.t)/1000;
+  view.innerHTML=`
+  <div class="route" id="routeBox"></div>
+  <div id="map"></div>
+  <div class="grid">
+    <div><small>Dauer</small><b>${fmtDur(endT-t.start.t)}</b></div>
+    <div><small>Strecke</small><b>${fmtKm(dist)}</b><small>${fmtNm(dist)}</small></div>
+    <div><small>Ø Fahrt</small><b>${secs>0?kn(dist/secs):'–'}</b></div>
+    <div><small>Max. Fahrt</small><b>${kn(t.maxSpd)}</b></div>
+  </div>
+  <div class="wx"><div><small>Wetter bei FB</small><span id="wxS"></span></div><div><small>Wetter bei FE</small><span id="wxE"></span></div></div>
+  <h3>Kommentar zur ganzen Fahrt</h3>
+  <textarea id="tripNote" rows="3" placeholder="z. B. Crew, Treibstoff, Besonderheiten">${esc(t.note)}</textarea>
+  <div class="row"><button class="btn" id="saveNote">Kommentar speichern</button></div>
+  <h3>Wegpunkt-Kommentare</h3>
+  <div id="wpList"></div>
+  <p class="hint">Tipp: In die Karte hineinzoomen – ab Zoomstufe 15 erscheinen die einzelnen Wegpunkte. Tippe auf einen Punkt oder die Linie, um Uhrzeit und Fahrt zu sehen und einen Kommentar zu setzen.</p>
+  <div class="row"><button class="btn ghost" id="gpx">GPX exportieren</button>${active?'':'<button class="btn danger" id="del">Fahrt löschen</button>'}</div>`;
+  cur={t};
+  fillMeta(t);
+  $('#saveNote').onclick=async()=>{t.note=$('#tripNote').value.trim();t.updatedAt=Date.now();await putTrip(t);syncSoon();toast('Gespeichert');};
+  $('#gpx').onclick=()=>saveFile(`bordbuch_${new Date(t.start.t).toISOString().slice(0,10)}.gpx`,toGpx(t),'application/gpx+xml');
+  if($('#del'))$('#del').onclick=async()=>{
+    if(!confirm('Diese Fahrt endgültig löschen (auch in der Cloud)?'))return;
+    Object.assign(t,{deleted:true,points:[],notes:{},note:'',updatedAt:Date.now()});await putTrip(t);syncSoon();location.hash='#/fahrten';
+  };
+  buildMap(t,focusKey);
+}
+function fillMeta(t){
+  const pend='<span class="pending">Ortsname folgt, sobald online</span>';
+  $('#routeBox').innerHTML=`
+    <div><span class="dot g"></span><b>${t.placeStart?esc(t.placeStart):pend}</b><small>FB ${fmtTime(t.start.t)} · ${fmtCoord(t.start.lat,t.start.lon)}</small></div>
+    <div><span class="dot r"></span><b>${t.status!=='done'?'Fahrt läuft':(t.placeEnd?esc(t.placeEnd):pend)}</b>${t.end?`<small>FE ${fmtTime(t.end.t)} · ${fmtCoord(t.end.lat,t.end.lon)}</small>`:''}</div>`;
+  $('#wxS').innerHTML=wxTxt(t.weatherStart);
+  $('#wxE').innerHTML=t.status!=='done'?'–':wxTxt(t.weatherEnd);
+}
+async function refreshTripMeta(){
+  if(!cur||!$('#routeBox'))return;const fresh=await curTripObj(cur.t.id);if(!fresh)return;
+  ['placeStart','placeEnd','weatherStart','weatherEnd'].forEach(k=>cur.t[k]=fresh[k]);fillMeta(cur.t);
+}
+function nearestIdx(pts,ll){let bi=0,bd=Infinity;const c=Math.cos(ll.lat*Math.PI/180);
+  pts.forEach((p,i)=>{const d=(p.lat-ll.lat)**2+((p.lon-ll.lng)*c)**2;if(d<bd){bd=d;bi=i;}});return bi;}
+function buildMap(t,focusKey){
+  if(!window.L){$('#map').innerHTML='<p class="empty">Karte nicht verfügbar (offline und noch nicht zwischengespeichert). Die Daten sind trotzdem gesichert.</p>';renderWp();return;}
+  map=L.map('map',{preferCanvas:true});
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  const sea=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenSeaMap'});
+  L.control.layers(null,{'Seezeichen (OpenSeaMap)':sea}).addTo(map);
+  map.createPane('hl').style.zIndex=650;
+  const ll=t.points.map(p=>[p.lat,p.lon]);
+  if(ll.length>1){
+    const line=L.polyline(ll,{color:'#1e88e5',weight:4}).addTo(map);
+    L.polyline(ll,{weight:24,opacity:0.001}).addTo(map).on('click',e=>openPoint(nearestIdx(t.points,e.latlng)));
+    map.fitBounds(line.getBounds(),{padding:[28,28]});
+  }else if(t.start.lat!=null)map.setView([t.start.lat,t.start.lon],15);
+  else map.setView([51.2,10.4],5);
+  if(t.start.lat!=null)L.circleMarker([t.start.lat,t.start.lon],{radius:8,color:'#fff',weight:2,fillColor:'#1f9d55',fillOpacity:1}).bindTooltip('FB '+fmtTime(t.start.t)).addTo(map);
+  if(t.end&&t.end.lat!=null)L.circleMarker([t.end.lat,t.end.lon],{radius:8,color:'#fff',weight:2,fillColor:'#d64545',fillOpacity:1}).bindTooltip('FE '+fmtTime(t.end.t)).addTo(map);
+  const ptLayer=L.layerGroup().addTo(map),hlLayer=L.layerGroup().addTo(map);
+  const drawPts=()=>{ptLayer.clearLayers();if(map.getZoom()<15)return;
+    const b=map.getBounds().pad(0.2);const idx=[];t.points.forEach((p,i)=>{if(b.contains([p.lat,p.lon]))idx.push(i);});
+    const step=Math.max(1,Math.ceil(idx.length/400));
+    for(let k=0;k<idx.length;k+=step){const i=idx[k],p=t.points[i];
+      L.circleMarker([p.lat,p.lon],{radius:6,color:'#fff',weight:1.5,fillColor:'#1e88e5',fillOpacity:1}).on('click',()=>openPoint(i)).addTo(ptLayer);}};
+  map.on('zoomend moveend',drawPts);
+  cur.drawHL=()=>{hlLayer.clearLayers();Object.entries(t.notes||{}).forEach(([k,n])=>{
+    const i=t.points.findIndex(p=>p.t==k);if(i<0)return;const p=t.points[i];
+    L.circleMarker([p.lat,p.lon],{pane:'hl',radius:10,color:'#fff',weight:3,fillColor:'#ff8c1a',fillOpacity:1})
+      .bindTooltip(`${fmtTime(p.t)} – ${esc(n.text.slice(0,40))}`).on('click',()=>openPoint(i)).addTo(hlLayer);});};
+  const openPoint=i=>{
+    const p=t.points[i];const note=t.notes?.[p.t]?.text||'';
+    const el=document.createElement('div');el.className='pp';
+    el.innerHTML=`<b>${fmtTime(p.t,true)} Uhr</b> · ${fmtDateS(p.t)}<br>Fahrt: ${kn(p.spd)} · ±${p.acc} m<br><small>${fmtCoord(p.lat,p.lon)}</small>
+      <textarea rows="3" placeholder="Kommentar (Schleuse, Manöver, Technik …)"></textarea>
+      <div class="row"><button class="btn sv">Speichern</button>${note?'<button class="btn ghost dl">Löschen</button>':''}</div>`;
+    $('textarea',el).value=note;
+    const done=async txt=>{await setNote(t,p.t,txt);cur.drawHL();renderWp();map.closePopup();toast(txt?'Kommentar gespeichert':'Kommentar gelöscht');};
+    $('.sv',el).onclick=()=>done($('textarea',el).value);
+    if($('.dl',el))$('.dl',el).onclick=()=>done('');
+    L.popup({maxWidth:280}).setLatLng([p.lat,p.lon]).setContent(el).openOn(map);
+  };
+  cur.openPoint=i=>{const p=t.points[i];map.setView([p.lat,p.lon],Math.max(map.getZoom(),16));setTimeout(()=>openPoint(i),250);window.scrollTo({top:$('#map').offsetTop-70,behavior:'smooth'});};
+  cur.drawHL();renderWp();
+  setTimeout(()=>{map&&map.invalidateSize();drawPts();
+    if(focusKey){const i=t.points.findIndex(p=>p.t==focusKey);if(i>=0)cur.openPoint(i);}},120);
+}
+function renderWp(){
+  const t=cur.t;const el=$('#wpList');if(!el)return;
+  const items=Object.entries(t.notes||{}).sort((a,b)=>a[0]-b[0]);
+  el.innerHTML=items.length?items.map(([k,n])=>`<div class="wp" data-k="${k}"><time>${fmtTime(+k)}</time><span>${esc(n.text)}</span></div>`).join('')
+    :'<p class="hint">Noch keine Wegpunkt-Kommentare.</p>';
+  el.querySelectorAll('.wp').forEach(d=>d.onclick=()=>{const i=t.points.findIndex(p=>p.t==d.dataset.k);if(i>=0&&cur.openPoint)cur.openPoint(i);});
+}
+function toGpx(t){
+  const x=s=>esc(s);
+  const wpts=Object.entries(t.notes||{}).map(([k,n])=>{const p=t.points.find(p=>p.t==k);if(!p)return'';
+    return `<wpt lat="${p.lat}" lon="${p.lon}"><time>${new Date(p.t).toISOString()}</time><name>${x(fmtTime(p.t))}</name><desc>${x(n.text)}</desc></wpt>`;}).join('\n');
+  const seg=t.points.map(p=>`<trkpt lat="${p.lat}" lon="${p.lon}"><time>${new Date(p.t).toISOString()}</time></trkpt>`).join('\n');
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.1" creator="Bordbuch" xmlns="http://www.topografix.com/GPX/1/1">
+<metadata><name>${x((t.placeStart||'')+' → '+(t.placeEnd||''))}</name><desc>${x(t.note)}</desc><time>${new Date(t.start.t).toISOString()}</time></metadata>
+${wpts}
+<trk><name>${x(fmtDate(t.start.t))}</name><trkseg>
+${seg}
+</trkseg></trk></gpx>`;
+}
+
+/* ================= Kommentar-Tabelle ================= */
+async function renderComments(){
+  setTitle('Kommentare',true);
+  const rows=[];
+  for(const t of await liveTrips()){
+    const label=`${t.placeStart||'?'} → ${t.status==='done'?(t.placeEnd||'?'):'läuft'}`;
+    if(t.note)rows.push({when:t.start.t,t,label,kind:'Fahrt',text:t.note,key:null});
+    for(const [k,n] of Object.entries(t.notes||{}))rows.push({when:+k,t,label,kind:'Wegpunkt',text:n.text,key:k});
+  }
+  rows.sort((a,b)=>b.when-a.when);
+  if(!rows.length){view.innerHTML='<p class="empty">Noch keine Kommentare erfasst.</p>';return;}
+  view.innerHTML=`<input type="search" id="q" placeholder="Kommentare durchsuchen …">
+  <div class="tblwrap"><table class="tbl"><thead><tr><th>Datum / Zeit</th><th>Fahrt</th><th>Kommentar</th></tr></thead><tbody id="tb"></tbody></table></div>
+  <button class="btn ghost" id="csv">Als CSV exportieren (Excel)</button>`;
+  const draw=()=>{const q=$('#q').value.toLowerCase();
+    $('#tb').innerHTML=rows.filter(r=>!q||(r.text+r.label).toLowerCase().includes(q)).map((r,i)=>
+      `<tr data-i="${rows.indexOf(r)}"><td>${fmtDateS(r.when)}<br><b>${r.kind==='Fahrt'?'–':fmtTime(r.when)}</b></td><td>${esc(r.label)}</td><td><span class="badge ${r.kind==='Wegpunkt'?'wp':''}">${r.kind}</span>${esc(r.text)}</td></tr>`).join('');
+    $('#tb').querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{const r=rows[tr.dataset.i];
+      location.hash=`#/fahrt/${encodeURIComponent(r.t.id)}${r.key?'?p='+r.key:''}`;});};
+  $('#q').oninput=draw;draw();
+  $('#csv').onclick=()=>{
+    const c=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
+    const lines=[['Datum','Uhrzeit','Art','Fahrt','Breite','Länge','Kommentar'].map(c).join(';')];
+    rows.forEach(r=>{const p=r.key?r.t.points.find(p=>p.t==r.key):null;
+      lines.push([fmtDateS(r.when),r.key?fmtTime(r.when,true):'',r.kind,r.label,p?p.lat:'',p?p.lon:'',r.text].map(c).join(';'));});
+    saveFile('bordbuch_kommentare.csv','\ufeff'+lines.join('\r\n'),'text/csv');
+  };
+}
+
+/* ================= Dateien / Sicherung ================= */
+async function saveFile(name,text,type){
+  const file=new File([text],name,{type});
+  if(navigator.canShare&&navigator.canShare({files:[file]})){
+    try{await navigator.share({files:[file],title:name});return;}catch(e){if(e.name==='AbortError')return;}
+  }
+  const a=document.createElement('a');a.href=URL.createObjectURL(file);a.download=name;document.body.appendChild(a);a.click();
+  setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
+}
+async function exportAll(){
+  const trips=(await allTrips()).filter(t=>t.status==='done');
+  saveFile(`bordbuch_sicherung_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:'bordbuch',version:1,exportedAt:Date.now(),trips}),'application/json');
+}
+async function importFile(file){
+  try{
+    const j=JSON.parse(await file.text());const list=Array.isArray(j)?j:j.trips;
+    if(!Array.isArray(list))throw new Error('Keine Bordbuch-Sicherung');
+    let n=0;
+    for(const t of list){if(!t||!t.id||!t.start)continue;const l=await getTrip(t.id);
+      if(!l||(t.updatedAt||0)>(l.updatedAt||0)){if(rec&&rec.trip.id===t.id)continue;await putTrip(t);n++;}}
+    toast(`${n} Fahrt(en) übernommen`);enrichAll();
+  }catch(e){alert('Import fehlgeschlagen: '+e.message);}
+}
+
+/* ================= OneDrive-Synchronisation ================= */
+const OD_AUTH='https://login.microsoftonline.com/common/oauth2/v2.0';
+const GRAPH='https://graph.microsoft.com/v1.0';
+const OD_SCOPE='Files.ReadWrite.AppFolder offline_access';
+const redirectUri=()=>location.origin+location.pathname;
+let odTok=JSON.parse(localStorage.getItem('bb_od')||'null');
+const saveTok=()=>odTok?localStorage.setItem('bb_od',JSON.stringify(odTok)):localStorage.removeItem('bb_od');
+const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
+function setSync(m){syncMsg=m;updateStatus();const e=$('#odState');if(e)e.textContent=m;}
+
+async function odLogin(silent){
+  if(!S.odClientId){alert('Bitte zuerst die Anwendungs-(Client-)ID eintragen – siehe Anleitung.');return;}
+  if(!crypto.subtle){alert('Die Anmeldung funktioniert nur über HTTPS.');return;}
+  const ver=b64u(crypto.getRandomValues(new Uint8Array(32)));
+  const ch=b64u(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ver)));
+  const state=b64u(crypto.getRandomValues(new Uint8Array(16)));
+  localStorage.setItem('bb_od_pkce',JSON.stringify({ver,state,silent:!!silent,hash:location.hash}));
+  const q=new URLSearchParams({client_id:S.odClientId,response_type:'code',redirect_uri:redirectUri(),response_mode:'query',
+    scope:OD_SCOPE,state,code_challenge:ch,code_challenge_method:'S256',prompt:silent?'none':'select_account'});
+  location.href=`${OD_AUTH}/authorize?${q}`;
+}
+async function odHandleRedirect(){
+  const p=new URLSearchParams(location.search);const code=p.get('code'),err=p.get('error');
+  if(!code&&!err)return;
+  const pk=JSON.parse(localStorage.getItem('bb_od_pkce')||'null');localStorage.removeItem('bb_od_pkce');
+  history.replaceState(null,'',redirectUri()+(pk?.hash||''));
+  if(err){if(pk?.silent){setSync('bitte neu verbinden');return;}alert('OneDrive-Anmeldung fehlgeschlagen: '+(p.get('error_description')||err));return;}
+  if(!pk||pk.state!==p.get('state')){alert('Anmeldung ungültig – bitte erneut versuchen.');return;}
+  try{await odTokenReq({grant_type:'authorization_code',code,redirect_uri:redirectUri(),code_verifier:pk.ver});
+    localStorage.setItem('bb_od_on','1');if(!pk.silent)toast('Mit OneDrive verbunden');}
+  catch(e){alert('Token-Abruf fehlgeschlagen: '+e.message);}
+}
+async function odTokenReq(params){
+  const r=await fetch(`${OD_AUTH}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
+    body:new URLSearchParams({client_id:S.odClientId,scope:OD_SCOPE,...params})});
+  const j=await r.json();if(!r.ok)throw new Error(j.error_description||j.error||r.status);
+  odTok={access:j.access_token,refresh:j.refresh_token||odTok?.refresh,exp:Date.now()+(j.expires_in-120)*1000};saveTok();
+}
+async function odAccess(){
+  if(odTok&&Date.now()<odTok.exp)return odTok.access;
+  if(odTok?.refresh){try{await odTokenReq({grant_type:'refresh_token',refresh_token:odTok.refresh});return odTok.access;}catch(e){}}
+  odTok=null;saveTok();const e=new Error('Anmeldung abgelaufen');e.relogin=true;throw e;
+}
+async function g(path,opts={}){const tok=await odAccess();
+  return fetch(path.startsWith('http')?path:GRAPH+path,{...opts,headers:{...(opts.headers||{}),Authorization:'Bearer '+tok}});}
+
+let syncing=false,syncTimer;
+function syncSoon(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(true),4000);}
+async function syncNow(quiet,allowSilentLogin){
+  if(!localStorage.getItem('bb_od_on')){if(!quiet)toast('OneDrive ist nicht verbunden');return;}
+  if(syncing||!navigator.onLine)return;syncing=true;setSync('synchronisiere …');
+  const map=JSON.parse(localStorage.getItem('bb_odmap')||'{}');let down=0,up=0;
+  try{
+    const remote=[];let url='/me/drive/special/approot:/trips:/children?$top=200';
+    while(url){const r=await g(url);if(r.status===404)break;if(!r.ok)throw new Error('Liste '+r.status);
+      const j=await r.json();remote.push(...j.value.filter(f=>f.name.endsWith('.json')));url=j['@odata.nextLink']||null;}
+    for(const f of remote){
+      const id=f.name.slice(0,-5),m=map[id];
+      if(m&&m.remoteMod===f.lastModifiedDateTime)continue;
+      if(rec&&rec.trip.id===id)continue;
+      const dl=f['@microsoft.graph.downloadUrl'];
+      const r=dl?await fetch(dl):await g(`/me/drive/items/${f.id}/content`);if(!r.ok)throw new Error('Download '+r.status);
+      const rt=await r.json();const local=await getTrip(id);
+      if(!local||(rt.updatedAt||0)>(local.updatedAt||0)){await putTrip(rt);down++;map[id]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt};}
+      else map[id]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt===local.updatedAt?local.updatedAt:(m?.localUpd||0)};
+    }
+    for(const t of await allTrips()){
+      if(t.status!=='done')continue;const m=map[t.id];if(m&&m.localUpd>=t.updatedAt)continue;
+      const r=await g(`/me/drive/special/approot:/trips/${t.id}.json:/content`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
+      if(!r.ok)throw new Error('Upload '+r.status);const j=await r.json();
+      map[t.id]={remoteMod:j.lastModifiedDateTime,localUpd:t.updatedAt};up++;
+    }
+    localStorage.setItem('bb_lastsync',Date.now());
+    setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:''));
+    if(down){refreshView();enrichAll();}
+    if(!quiet)toast('Synchronisation abgeschlossen');
+  }catch(e){
+    if(e.relogin){
+      const last=+localStorage.getItem('bb_silent')||0;
+      if(allowSilentLogin&&!rec&&Date.now()-last>6*36e5){localStorage.setItem('bb_silent',Date.now());syncing=false;odLogin(true);return;}
+      setSync('bitte neu verbinden');
+    }else setSync('Fehler: '+e.message);
+    if(!quiet)toast('Sync: '+e.message);
+  }finally{localStorage.setItem('bb_odmap',JSON.stringify(map));syncing=false;}
+}
+
+/* ================= Einstellungen ================= */
+async function renderSettings(){
+  setTitle('Einstellungen',true);
+  const n=(await liveTrips()).length;const on=!!localStorage.getItem('bb_od_on');
+  view.innerHTML=`
+  <section class="panel"><h3>Aufzeichnung</h3>
+    <label>Mindestabstand zwischen Wegpunkten (m)</label><input type="number" id="sMin" min="1" value="${S.minDist}">
+    <label>Spätestens alle … Sekunden ein Wegpunkt</label><input type="number" id="sInt" min="5" value="${S.maxInterval}">
+    <label>GPS-Positionen ungenauer als … m verwerfen</label><input type="number" id="sAcc" min="5" value="${S.maxAcc}">
+    <div class="check"><input type="checkbox" id="sWake" ${S.wake?'checked':''}><span>Display während der Fahrt anlassen (empfohlen)</span></div>
+  </section>
+  <section class="panel"><h3>OneDrive – automatische Synchronisation</h3>
+    <p class="hint">Status: <b id="odState">${on?esc(syncMsg||'verbunden'):'nicht verbunden'}</b></p>
+    <label>Anwendungs-(Client-)ID aus der Azure-App-Registrierung</label>
+    <input type="text" id="sCid" value="${esc(S.odClientId)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocapitalize="off" autocomplete="off">
+    <p class="hint">Umleitungs-URI für die Registrierung (Plattform „Single-Page-Anwendung“):<br><code>${esc(redirectUri())}</code></p>
+    <div class="row">
+      <button class="btn" id="odCon">${on?'Neu anmelden':'Mit OneDrive verbinden'}</button>
+      ${on?'<button class="btn ghost" id="odSync">Jetzt synchronisieren</button><button class="btn danger" id="odOff">Trennen</button>':''}
+    </div>
+    <p class="hint">Die Fahrten liegen in deinem OneDrive unter <i>Apps › Bordbuch › trips</i>. Jedes Gerät mit derselben Client-ID und demselben Microsoft-Konto sieht dieselben Fahrten.</p>
+  </section>
+  <section class="panel"><h3>iCloud &amp; Datensicherung</h3>
+    <p class="hint">Eine Web-App darf nicht selbstständig in iCloud schreiben. Mit „Sicherung exportieren“ öffnet sich das Teilen-Menü – dort „In Dateien sichern“ → iCloud Drive wählen. Auf einem anderen Gerät importierst du die Datei hier wieder; vorhandene Fahrten werden zusammengeführt, nicht doppelt angelegt.</p>
+    <div class="row"><button class="btn" id="exp">Sicherung exportieren</button><label class="btn ghost" style="margin:0">Sicherung importieren<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
+  </section>
+  <section class="panel"><h3>Daten</h3>
+    <p class="hint">${n} Fahrt(en) auf diesem Gerät gespeichert.</p>
+    <div class="row"><button class="btn ghost" id="enr">Orte &amp; Wetter jetzt nachladen</button></div>
+    <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap</p>
+  </section>`;
+  const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
+  setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
+  $('#sWake').onchange=e=>{S.wake=e.target.checked;saveS();};
+  $('#sCid').onchange=e=>{S.odClientId=e.target.value.trim();saveS();};
+  $('#odCon').onclick=()=>{S.odClientId=$('#sCid').value.trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};
+  if($('#odSync'))$('#odSync').onclick=()=>syncNow(false);
+  if($('#odOff'))$('#odOff').onclick=()=>{['bb_od','bb_od_on','bb_odmap'].forEach(k=>localStorage.removeItem(k));odTok=null;syncMsg='';renderSettings();};
+  $('#exp').onclick=exportAll;
+  $('#imp').onchange=e=>{const f=e.target.files[0];if(f)importFile(f).then(renderSettings);};
+  $('#enr').onclick=()=>{if(!navigator.onLine){toast('Keine Internetverbindung');return;}toast('Lade nach …');enrichAll();};
+}
+
+/* ================= Start ================= */
+window.addEventListener('online',()=>{updateStatus();enrichAll();syncSoon();});
+window.addEventListener('offline',updateStatus);
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(rec)keepAwake();updateStatus();enrichAll();syncSoon();}});
+setInterval(()=>{if(document.visibilityState==='visible')syncNow(true);},5*60*1000);
+
+document.addEventListener('DOMContentLoaded',async()=>{
+  if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))
+    navigator.serviceWorker.register('sw.js').catch(e=>console.warn(e));
+  await odHandleRedirect();
+  const act=(await allTrips()).filter(t=>t.status==='active'&&!t.deleted).sort((a,b)=>b.start.t-a.start.t)[0];
+  if(act){rec={trip:act,watch:null,wake:null,lastFix:null};beginWatch();keepAwake();toast('Laufende Fahrt wird fortgesetzt');}
+  route();
+  enrichAll();
+  syncNow(true,true);
+});
+</script>
+</body>
+</html>

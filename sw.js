@@ -1,5 +1,5 @@
 // Bordbuch Service Worker – macht die App offline-fähig
-const SHELL='bordbuch-shell-v2', TILES='bordbuch-tiles-v1';
+const SHELL='bordbuch-shell-v3', TILES='bordbuch-tiles-v1';
 const ASSETS=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png',
   'https://unpkg.com/leaflet@1.9.4/dist/leaflet.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];
 self.addEventListener('install',e=>{e.waitUntil(caches.open(SHELL).then(c=>Promise.allSettled(ASSETS.map(a=>c.add(a)))).then(()=>self.skipWaiting()));});

@@ -30,16 +30,17 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 
 - **iPhone:** Adresse in **Safari** öffnen → Teilen-Symbol → „Zum Home-Bildschirm“. Danach immer über das Icon starten. Nur so bleiben die Daten dauerhaft gespeichert.
 - **Android:** In Chrome öffnen → Menü ⋮ → „App installieren“.
-- Beim ersten Tippen auf „Motoren gestartet“ den Standortzugriff erlauben. Unter iOS: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“ + „Genauer Standort“.
+- Beim ersten Tippen auf „Start“ den Standortzugriff erlauben. Unter iOS: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“ + „Genauer Standort“.
 - Einmal mit Internet öffnen, damit Karte und App-Dateien zwischengespeichert werden.
 
 ## 3. Bedienung
 
-- **Motoren gestartet:** speichert den Fahrtbeginn (Datum, Uhrzeit, GPS-Position) und startet die Aufzeichnung der Strecke.
-- **Motoren ausgeschaltet:** speichert das Fahrtende und beendet die Aufzeichnung (mit Sicherheitsabfrage).
+- **Start (Motor gestartet):** speichert den Fahrtbeginn (Datum, Uhrzeit, GPS-Position) und startet die Aufzeichnung der Strecke.
+- **Stop (Motor ausgeschaltet):** speichert das Fahrtende und beendet die Aufzeichnung (mit Sicherheitsabfrage).
 - Während der Fahrt: **„Ereignis notieren“** setzt einen Kommentar an die aktuelle Position (Schleuse, Manöver …).
 - Sobald Internet da ist, werden automatisch nachgeladen: Ortsnamen von Fahrtbeginn und Fahrtende (OpenStreetMap) und das Wetter zum jeweiligen Zeitpunkt (Open-Meteo: Beschreibung, Temperatur in °C, Wind mit Richtung und Böen in km/h).
-- **Menü ☰ → Fahrten:** Übersicht mit Gesamt-km und Motorstunden. In einer Fahrt: Karte mit Track, Dauer, Strecke in km, Durchschnitts- und Höchstgeschwindigkeit in km/h, Wetter, Fahrtkommentar. In die Karte zoomen und auf Punkt oder Linie tippen zeigt Uhrzeit, Geschwindigkeit und ein Kommentarfeld. Kommentierte Punkte werden orange hervorgehoben. Ebenen-Schalter: Seezeichen von OpenSeaMap einblenden.
+- **Boot:** In der Kopfzeile steht Bootsbezeichnung und Bootsname (Standard: Sessa C42 HT „Blue Moon“). Antippen zum Ändern – das Boot wird bei jeder neuen Fahrt mitgespeichert.
+- **Menü ☰ → Fahrten:** Filter nach Boot (Standard „Blue Moon“, oder „Alle Boote“) und Zeitraum von/bis. Für die Auswahl werden Anzahl, Gesamtstrecke und Gesamtdauer angezeigt. In einer Fahrt: Karte mit Track, Dauer, Strecke in km, Durchschnitts- und Höchstgeschwindigkeit in km/h, Wetter, Fahrtkommentar. In die Karte zoomen und auf Punkt oder Linie tippen zeigt Uhrzeit, Geschwindigkeit und ein Kommentarfeld. Kommentierte Punkte werden orange hervorgehoben. Ebenen-Schalter: Seezeichen von OpenSeaMap einblenden.
 - **Menü ☰ → Kommentare:** alle Kommentare als Tabelle, durchsuchbar, Tipp auf eine Zeile springt zur Stelle in der Karte. CSV-Export für Excel.
 - Pro Fahrt: **GPX-Export** (zum Beispiel für Navionics, OpenCPN, Google Earth).
 

@@ -21,19 +21,45 @@
 html,body{margin:0;min-height:100%}
 body{font:16px/1.45 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;background:var(--bg);color:var(--text);-webkit-tap-highlight-color:transparent}
 header{position:sticky;top:0;z-index:1500;display:flex;align-items:center;gap:6px;padding:calc(env(safe-area-inset-top) + 6px) 8px 6px;background:var(--panel);border-bottom:1px solid var(--line)}
-header h1{flex:1;font-size:17px;margin:0;text-align:center;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#hdr{flex:1;min-width:0;text-align:center;line-height:1.2}
+#hdr h1{font-size:17px;margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#boatBtn{display:block;max-width:100%;margin:2px auto 0;border:0;background:transparent;color:var(--muted);font:inherit;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;cursor:pointer;padding:0 4px}
+#boatBtn .pen{opacity:.7;margin-left:4px}
 .icon{width:44px;height:44px;border:0;background:transparent;color:var(--text);font-size:26px;border-radius:10px;cursor:pointer}
-#menu{position:fixed;top:calc(env(safe-area-inset-top) + 56px);right:8px;z-index:1600;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-width:220px;overflow:hidden}
+#menu{position:fixed;top:calc(env(safe-area-inset-top) + 64px);right:8px;z-index:1600;background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:0 10px 30px rgba(0,0,0,.35);min-width:220px;overflow:hidden}
 #menu a{display:block;padding:14px 18px;color:var(--text);text-decoration:none;border-bottom:1px solid var(--line)}
 #menu a:last-child{border-bottom:0}
 main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;margin:0 auto}
 .status{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 14px}
-.bigbtns{display:grid;gap:16px}
-.big{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:30vh;min-height:150px;border:0;border-radius:22px;color:#fff;font-size:20px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.big .lbl{font-size:30px;font-weight:800;line-height:1.15;text-align:center;padding:0 12px}
-.recording .big{height:19vh;min-height:110px}
-.big:disabled{opacity:.28;box-shadow:none}
-.ms{background:var(--go)} .mg{background:var(--stop)}
+.bigbtns{display:flex;flex-direction:column;align-items:center;gap:22px;padding:6px 0}
+.bigbtns.recording{flex-direction:row;justify-content:center;gap:18px}
+/* Start/Stop-Knopf im Stil moderner Pkw */
+.ssb{--d:min(62vw,31vh);--led:#3b4148;position:relative;width:var(--d);height:var(--d);border:0;padding:0;border-radius:50%;cursor:pointer;
+  background:conic-gradient(from 210deg,#f7f9fb,#8e979f 12%,#ffffff 25%,#79828b 40%,#eef1f4 55%,#9aa2ab 70%,#ffffff 85%,#f7f9fb);
+  box-shadow:0 14px 28px rgba(0,0,0,.45),0 3px 6px rgba(0,0,0,.3),inset 0 1px 1px #fff;transition:transform .08s,filter .2s,opacity .2s;-webkit-user-select:none;user-select:none}
+.recording .ssb{--d:min(40vw,22vh)}
+.ssb::before{content:"";position:absolute;inset:5.5%;border-radius:50%;background:#1d2126;box-shadow:inset 0 2px 4px rgba(0,0,0,.8)}
+.ssb::after{content:"";position:absolute;inset:9.5%;border-radius:50%;
+  background:radial-gradient(circle at 38% 28%,#ffffff 0%,#eef1f4 22%,#cfd5db 55%,#b3bac2 80%,#9ea6ae 100%);
+  box-shadow:0 0 0 3px var(--led),0 0 14px 1px var(--led),inset 0 3px 5px rgba(255,255,255,.95),inset 0 -6px 12px rgba(0,0,0,.22)}
+.ssb .face{position:absolute;inset:9.5%;z-index:1;display:flex;flex-direction:column;align-items:center;justify-content:center;border-radius:50%;
+  background:repeating-radial-gradient(circle at 50% 50%,rgba(255,255,255,.07) 0 1px,rgba(0,0,0,.035) 1px 2px)}
+.ssb .main{font-size:calc(var(--d)*.2);font-weight:800;letter-spacing:.03em;line-height:1;text-shadow:0 1px 0 rgba(255,255,255,.9),0 -1px 0 rgba(0,0,0,.15)}
+.ssb .sub{margin-top:calc(var(--d)*.04);font-size:max(11px,calc(var(--d)*.064));font-weight:600;color:#4b545d;text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.ssb.start .main{color:#15934a} .ssb.stop .main{color:#c62828}
+.ssb.start:not(:disabled){--led:#22c55e}
+.ssb.stop:not(:disabled){--led:#ef4444;animation:led 1.8s ease-in-out infinite}
+@keyframes led{50%{--led:#7f1d1d}}
+.ssb:not(:disabled):active{transform:scale(.965)}
+.ssb:not(:disabled):active::after{box-shadow:0 0 0 3px var(--led),0 0 18px 2px var(--led),inset 0 5px 10px rgba(0,0,0,.25)}
+.ssb:disabled{cursor:default;filter:grayscale(1) brightness(.85);opacity:.5;box-shadow:0 6px 12px rgba(0,0,0,.3)}
+@property --led{syntax:'<color>';inherits:true;initial-value:#3b4148}
+.filters{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:10px 12px;margin-bottom:12px}
+.filters .fr{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.filters label{display:block;font-size:12px;color:var(--muted);margin:6px 0 3px}
+.filters select,.filters input[type=date]{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;min-height:40px}
+.filters .reset{margin-top:8px;background:none;border:0;color:var(--accent);font:inherit;font-size:14px;padding:4px 0;cursor:pointer}
+.boatTag{display:inline-block;font-size:12px;color:var(--muted);background:var(--panel2);border-radius:6px;padding:0 6px;margin-left:6px}
 .live{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
 .live .head{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted)}
 .rec{color:var(--stop);font-weight:700;animation:blink 1.6s infinite}
@@ -52,7 +78,7 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .empty{color:var(--muted);text-align:center;padding:40px 10px}
 .summary{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:14px}
 .summary div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px;text-align:center}
-.summary b{display:block;font-size:18px} .summary small{color:var(--muted);font-size:12px}
+.summary b{display:block;font-size:17px} .summary small{color:var(--muted);font-size:12px}
 .card{display:block;background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 14px;margin-bottom:10px;color:var(--text);text-decoration:none}
 .card .c1{display:flex;justify-content:space-between;font-size:14px;color:var(--muted)}
 .card .c2{font-weight:600;margin:4px 0}
@@ -97,7 +123,7 @@ dialog h3{margin-top:0}
 <body>
 <header>
   <button id="back" class="icon" aria-label="Zurück" style="visibility:hidden">‹</button>
-  <h1 id="title">Bordbuch</h1>
+  <div id="hdr"><h1 id="title">Bordbuch</h1><button id="boatBtn" aria-label="Boot bearbeiten"></button></div>
   <button id="menuBtn" class="icon" aria-label="Menü">☰</button>
 </header>
 <nav id="menu" hidden>
@@ -110,6 +136,15 @@ dialog h3{margin-top:0}
 <dialog id="dlg"><form method="dialog">
   <h3 id="dlgT"></h3>
   <textarea id="dlgTx" rows="4" placeholder="zum Beispiel Schleuse, Manöver, technisches Ereignis"></textarea>
+  <div class="row" style="justify-content:flex-end"><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn">Speichern</button></div>
+</form></dialog>
+<dialog id="boatDlg"><form method="dialog">
+  <h3>Boot</h3>
+  <div class="panel" style="border:0;padding:0;background:none">
+    <label for="bdType">Bootsbezeichnung</label><input type="text" id="bdType" placeholder="zum Beispiel Sessa C42 HT">
+    <label for="bdName">Bootsname</label><input type="text" id="bdName" placeholder="zum Beispiel Blue Moon">
+  </div>
+  <p class="hint">Wird bei jeder neuen Fahrt mitgespeichert. Bereits aufgezeichnete Fahrten behalten ihr Boot.</p>
   <div class="row" style="justify-content:flex-end"><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn">Speichern</button></div>
 </form></dialog>
 <div id="toast"></div>
@@ -125,9 +160,29 @@ const uid=()=>Date.now().toString(36)+Math.random().toString(36).slice(2,8);
 let toastT;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
 
-const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:''};
+const DEFAULT_BOAT_TYPE='Sessa C42 HT',DEFAULT_BOAT_NAME='Blue Moon';
+const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME};
 let S=Object.assign({},DEF,JSON.parse(localStorage.getItem('bb_settings')||'{}'));
 const saveS=()=>localStorage.setItem('bb_settings',JSON.stringify(S));
+/* Boot einer Fahrt (ältere Fahrten ohne Angabe gehören zur Blue Moon) */
+const tripBoat=t=>t.boat||{type:DEFAULT_BOAT_TYPE,name:DEFAULT_BOAT_NAME};
+const boatLabel=b=>[b.type,b.name?`„${b.name}“`:''].filter(Boolean).join(' ');
+function renderBoatHeader(){
+  const b=rec?tripBoat(rec.trip):{type:S.boatType,name:S.boatName};
+  $('#boatBtn').innerHTML=`${esc(boatLabel(b)||'Boot festlegen')}<span class="pen">✎</span>`;
+}
+async function editBoat(){
+  const d=$('#boatDlg');$('#bdType').value=S.boatType||'';$('#bdName').value=S.boatName||'';d.returnValue='';
+  d.addEventListener('close',async()=>{
+    if(d.returnValue!=='ok')return;
+    S.boatType=$('#bdType').value.trim();S.boatName=$('#bdName').value.trim();saveS();
+    if(rec&&confirm('Soll die laufende Fahrt ebenfalls diesem Boot zugeordnet werden?')){
+      rec.trip.boat={type:S.boatType,name:S.boatName};rec.trip.updatedAt=Date.now();persist();
+    }
+    renderBoatHeader();refreshView();toast('Boot gespeichert');
+  },{once:true});
+  d.showModal();
+}
 
 const fmtDate=t=>new Date(t).toLocaleDateString('de-DE',{weekday:'short',day:'2-digit',month:'2-digit',year:'numeric'});
 const fmtDateS=t=>new Date(t).toLocaleDateString('de-DE',{day:'2-digit',month:'2-digit',year:'2-digit'});
@@ -229,7 +284,8 @@ async function startTrip(){
   const now=Date.now();
   const trip={id:uid(),v:1,status:'active',createdAt:now,updatedAt:now,deleted:false,
     start:{t:now,lat:null,lon:null,acc:null},end:null,points:[],distance:0,maxSpd:0,
-    placeStart:null,placeEnd:null,weatherStart:null,weatherEnd:null,note:'',notes:{}};
+    placeStart:null,placeEnd:null,weatherStart:null,weatherEnd:null,note:'',notes:{},
+    boat:{type:S.boatType,name:S.boatName}};
   rec={trip,watch:null,wake:null,lastFix:null};
   await putTrip(trip);
   navigator.storage?.persist?.();
@@ -268,7 +324,7 @@ function onPos(p){
 let stopping=false;
 async function stopTrip(){
   if(!rec||stopping)return;
-  if(!confirm('Motoren ausgeschaltet – Fahrt jetzt beenden?'))return;
+  if(!confirm('Motor ausgeschaltet – Fahrt jetzt beenden?'))return;
   stopping=true;$('#bMG')&&($('#bMG').disabled=true);
   const t=rec.trip,now=Date.now();
   try{const p=await getPos(10000);onPos(p);}catch(e){}
@@ -307,7 +363,8 @@ function ask(title,val){return new Promise(res=>{const d=$('#dlg');$('#dlgT').te
 
 /* ================= Navigation ================= */
 let navDepth=0;
-function setTitle(t,back){$('#title').textContent=t;$('#back').style.visibility=back?'visible':'hidden';}
+function setTitle(t,back){$('#title').textContent=t;$('#back').style.visibility=back?'visible':'hidden';renderBoatHeader();}
+$('#boatBtn').onclick=e=>{e.stopPropagation();editBoat();};
 $('#back').onclick=()=>{if(navDepth>0){navDepth-=2;history.back();}else location.hash='#/';};
 $('#menuBtn').onclick=e=>{e.stopPropagation();$('#menu').hidden=!$('#menu').hidden;};
 document.addEventListener('click',()=>$('#menu').hidden=true);
@@ -340,8 +397,8 @@ function renderHome(){
   view.innerHTML=`
   <div class="status" id="stat">${esc(statusLine())}</div>
   <div class="bigbtns ${r?'recording':''}">
-    <button class="big ms" id="bMS" ${r?'disabled':''}><span class="lbl">Motoren gestartet</span></button>
-    <button class="big mg" id="bMG" ${r?'':'disabled'}><span class="lbl">Motoren ausgeschaltet</span></button>
+    <button class="ssb start" id="bMS" ${r?'disabled':''} aria-label="Start – Motor gestartet"><span class="face"><span class="main">Start</span><span class="sub">Motor gestartet</span></span></button>
+    <button class="ssb stop" id="bMG" ${r?'':'disabled'} aria-label="Stop – Motor ausgeschaltet"><span class="face"><span class="main">Stop</span><span class="sub">Motor ausgeschaltet</span></span></button>
   </div>
   ${r?`<section class="live">
     <div class="head"><span class="rec">● Aufzeichnung läuft</span><span id="lvPts">0</span></div>
@@ -365,29 +422,51 @@ function renderHome(){
 }
 
 /* ================= Fahrtenliste ================= */
+const F={boat:DEFAULT_BOAT_NAME,from:'',to:''}; // Filter; beim App-Start immer „Blue Moon“
+const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 async function renderList(){
   setTitle('Fahrten',true);
   const trips=await liveTrips();
-  if(!trips.length){view.innerHTML='<p class="empty">Noch keine Fahrten aufgezeichnet.<br>Starte mit „Motoren gestartet“ auf der Startseite.</p>';return;}
-  const done=trips.filter(t=>t.status==='done');
-  const km=done.reduce((s,t)=>s+(t.distance||0),0);
-  const ms=done.reduce((s,t)=>s+(t.end.t-t.start.t),0);
-  view.innerHTML=`<div class="summary">
-    <div><b>${done.length}</b><small>Fahrten</small></div>
-    <div><b>${num(km/1000,0)}</b><small>km gesamt</small></div>
-    <div><b>${num(ms/36e5)}</b><small>Motorstunden</small></div></div>`+
-  trips.map(t=>{
-    const n=Object.keys(t.notes||{}).length+(t.note?1:0);
-    const active=t.status!=='done';
-    const dur=(active?Date.now():t.end.t)-t.start.t;
-    const dist=active?trackDist(t.points):t.distance;
-    const pend=(!t.placeStart||(!active&&!t.placeEnd)||!t.weatherStart||(!active&&!t.weatherEnd));
-    return `<a class="card" href="#/fahrt/${encodeURIComponent(t.id)}">
-      <div class="c1"><span>${fmtDate(t.start.t)}</span><span>${fmtTime(t.start.t)} – ${active?'<span class="rec">läuft</span>':fmtTime(t.end.t)}</span></div>
-      <div class="c2">${esc(t.placeStart||'…')} → ${esc(active?'unterwegs':(t.placeEnd||'…'))}</div>
-      <div class="c3">${fmtKm(dist)} · ${fmtDur(dur)}${t.weatherStart?' · '+wxTxt(t.weatherStart,true):''}${n?` · 📝 ${n}`:''}</div>
-      ${pend&&!active?'<div class="pending">Ort/Wetter werden nachgeladen, sobald online</div>':''}
-    </a>`;}).join('');
+  if(!trips.length){view.innerHTML='<p class="empty">Noch keine Fahrten aufgezeichnet.<br>Starte mit „Start“ auf der Startseite.</p>';return;}
+  const boats=[...new Set([DEFAULT_BOAT_NAME,S.boatName,...trips.map(t=>tripBoat(t).name)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+  if(F.boat!=='*'&&!boats.includes(F.boat))boats.push(F.boat);
+  view.innerHTML=`<section class="filters">
+    <label for="fBoat">Boot</label>
+    <select id="fBoat"><option value="*">Alle Boote</option>${boats.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}</select>
+    <div class="fr">
+      <div><label for="fFrom">Von</label><input type="date" id="fFrom"></div>
+      <div><label for="fTo">Bis</label><input type="date" id="fTo"></div>
+    </div>
+    <button class="reset" id="fReset">Filter zurücksetzen</button>
+  </section>
+  <div class="summary" id="sum"></div>
+  <div id="res"></div>`;
+  $('#fBoat').value=F.boat;$('#fFrom').value=F.from;$('#fTo').value=F.to;
+  const draw=()=>{
+    const sel=trips.filter(t=>(F.boat==='*'||tripBoat(t).name===F.boat)&&(!F.from||dayKey(t.start.t)>=F.from)&&(!F.to||dayKey(t.start.t)<=F.to));
+    let km=0,ms=0;
+    sel.forEach(t=>{const active=t.status!=='done';km+=active?trackDist(t.points):(t.distance||0);ms+=(active?Date.now():t.end.t)-t.start.t;});
+    $('#sum').innerHTML=`<div><b>${sel.length}</b><small>${sel.length===1?'Fahrt':'Fahrten'}</small></div>
+      <div><b>${fmtKm(km)}</b><small>Gesamtstrecke</small></div>
+      <div><b>${fmtDur(ms)}</b><small>Gesamtdauer</small></div>`;
+    $('#res').innerHTML=sel.length?sel.map(t=>{
+      const n=Object.keys(t.notes||{}).length+(t.note?1:0);
+      const active=t.status!=='done';
+      const dur=(active?Date.now():t.end.t)-t.start.t;
+      const dist=active?trackDist(t.points):t.distance;
+      const pend=(!t.placeStart||(!active&&!t.placeEnd)||!t.weatherStart||(!active&&!t.weatherEnd));
+      return `<a class="card" href="#/fahrt/${encodeURIComponent(t.id)}">
+        <div class="c1"><span>${fmtDate(t.start.t)}${F.boat==='*'?`<span class="boatTag">${esc(tripBoat(t).name)}</span>`:''}</span><span>${fmtTime(t.start.t)} – ${active?'<span class="rec">läuft</span>':fmtTime(t.end.t)}</span></div>
+        <div class="c2">${esc(t.placeStart||'…')} → ${esc(active?'unterwegs':(t.placeEnd||'…'))}</div>
+        <div class="c3">${fmtKm(dist)} · ${fmtDur(dur)}${t.weatherStart?' · '+wxTxt(t.weatherStart,true):''}${n?` · 📝 ${n}`:''}</div>
+        ${pend&&!active?'<div class="pending">Ort und Wetter werden nachgeladen, sobald online</div>':''}
+      </a>`;}).join(''):'<p class="empty">Keine Fahrten für diese Auswahl.</p>';
+  };
+  $('#fBoat').onchange=e=>{F.boat=e.target.value;draw();};
+  $('#fFrom').onchange=e=>{F.from=e.target.value;if(F.to&&F.from>F.to){F.to=F.from;$('#fTo').value=F.to;}draw();};
+  $('#fTo').onchange=e=>{F.to=e.target.value;if(F.from&&F.to<F.from){F.from=F.to;$('#fFrom').value=F.from;}draw();};
+  $('#fReset').onclick=()=>{F.boat=DEFAULT_BOAT_NAME;F.from='';F.to='';$('#fBoat').value=F.boat;$('#fFrom').value='';$('#fTo').value='';draw();};
+  draw();
 }
 
 /* ================= Fahrt-Detail mit Karte ================= */
@@ -402,6 +481,7 @@ async function renderTrip(id,focusKey){
   const dist=active?trackDist(t.points):t.distance;
   const secs=(endT-t.start.t)/1000;
   view.innerHTML=`
+  <p class="hint" style="margin:0 0 8px;text-align:center">⛵ ${esc(boatLabel(tripBoat(t)))}</p>
   <div class="route" id="routeBox"></div>
   <div id="map"></div>
   <div class="grid">
@@ -500,7 +580,7 @@ function toGpx(t){
   const seg=t.points.map(p=>`<trkpt lat="${p.lat}" lon="${p.lon}"><time>${new Date(p.t).toISOString()}</time></trkpt>`).join('\n');
   return `<?xml version="1.0" encoding="UTF-8"?>
 <gpx version="1.1" creator="Bordbuch" xmlns="http://www.topografix.com/GPX/1/1">
-<metadata><name>${x((t.placeStart||'')+' → '+(t.placeEnd||''))}</name><desc>${x(t.note)}</desc><time>${new Date(t.start.t).toISOString()}</time></metadata>
+<metadata><name>${x(boatLabel(tripBoat(t))+': '+(t.placeStart||'')+' → '+(t.placeEnd||''))}</name><desc>${x(t.note)}</desc><time>${new Date(t.start.t).toISOString()}</time></metadata>
 ${wpts}
 <trk><name>${x(fmtDate(t.start.t))}</name><trkseg>
 ${seg}
@@ -512,9 +592,9 @@ async function renderComments(){
   setTitle('Kommentare',true);
   const rows=[];
   for(const t of await liveTrips()){
-    const label=`${t.placeStart||'?'} → ${t.status==='done'?(t.placeEnd||'?'):'läuft'}`;
-    if(t.note)rows.push({when:t.start.t,t,label,kind:'Fahrt',text:t.note,key:null});
-    for(const [k,n] of Object.entries(t.notes||{}))rows.push({when:+k,t,label,kind:'Wegpunkt',text:n.text,key:k});
+    const label=`${t.placeStart||'?'} → ${t.status==='done'?(t.placeEnd||'?'):'läuft'}`;const boat=tripBoat(t).name;
+    if(t.note)rows.push({when:t.start.t,t,label,boat,kind:'Fahrt',text:t.note,key:null});
+    for(const [k,n] of Object.entries(t.notes||{}))rows.push({when:+k,t,label,boat,kind:'Wegpunkt',text:n.text,key:k});
   }
   rows.sort((a,b)=>b.when-a.when);
   if(!rows.length){view.innerHTML='<p class="empty">Noch keine Kommentare erfasst.</p>';return;}
@@ -523,15 +603,15 @@ async function renderComments(){
   <button class="btn ghost" id="csv">Als CSV exportieren (Excel)</button>`;
   const draw=()=>{const q=$('#q').value.toLowerCase();
     $('#tb').innerHTML=rows.filter(r=>!q||(r.text+r.label).toLowerCase().includes(q)).map((r,i)=>
-      `<tr data-i="${rows.indexOf(r)}"><td>${fmtDateS(r.when)}<br><b>${r.kind==='Fahrt'?'–':fmtTime(r.when)}</b></td><td>${esc(r.label)}</td><td><span class="badge ${r.kind==='Wegpunkt'?'wp':''}">${r.kind}</span>${esc(r.text)}</td></tr>`).join('');
+      `<tr data-i="${rows.indexOf(r)}"><td>${fmtDateS(r.when)}<br><b>${r.kind==='Fahrt'?'–':fmtTime(r.when)}</b></td><td>${esc(r.label)}<br><small class="hint">${esc(r.boat)}</small></td><td><span class="badge ${r.kind==='Wegpunkt'?'wp':''}">${r.kind}</span>${esc(r.text)}</td></tr>`).join('');
     $('#tb').querySelectorAll('tr').forEach(tr=>tr.onclick=()=>{const r=rows[tr.dataset.i];
       location.hash=`#/fahrt/${encodeURIComponent(r.t.id)}${r.key?'?p='+r.key:''}`;});};
   $('#q').oninput=draw;draw();
   $('#csv').onclick=()=>{
     const c=s=>'"'+String(s??'').replace(/"/g,'""')+'"';
-    const lines=[['Datum','Uhrzeit','Art','Fahrt','Breite','Länge','Kommentar'].map(c).join(';')];
+    const lines=[['Datum','Uhrzeit','Boot','Art','Fahrt','Breite','Länge','Kommentar'].map(c).join(';')];
     rows.forEach(r=>{const p=r.key?r.t.points.find(p=>p.t==r.key):null;
-      lines.push([fmtDateS(r.when),r.key?fmtTime(r.when,true):'',r.kind,r.label,p?p.lat:'',p?p.lon:'',r.text].map(c).join(';'));});
+      lines.push([fmtDateS(r.when),r.key?fmtTime(r.when,true):'',r.boat,r.kind,r.label,p?p.lat:'',p?p.lon:'',r.text].map(c).join(';'));});
     saveFile('bordbuch_kommentare.csv','\ufeff'+lines.join('\r\n'),'text/csv');
   };
 }
@@ -651,6 +731,11 @@ async function renderSettings(){
   setTitle('Einstellungen',true);
   const n=(await liveTrips()).length;const on=!!localStorage.getItem('bb_od_on');
   view.innerHTML=`
+  <section class="panel"><h3>Boot</h3>
+    <label>Bootsbezeichnung</label><input type="text" id="sBType" value="${esc(S.boatType)}">
+    <label>Bootsname</label><input type="text" id="sBName" value="${esc(S.boatName)}">
+    <p class="hint">Wird bei jeder neuen Fahrt mitgespeichert. Auch über einen Tipp auf die Bootsangabe in der Kopfzeile änderbar.</p>
+  </section>
   <section class="panel"><h3>Aufzeichnung</h3>
     <label>Mindestabstand zwischen Wegpunkten (m)</label><input type="number" id="sMin" min="1" value="${S.minDist}">
     <label>Spätestens alle … Sekunden ein Wegpunkt</label><input type="number" id="sInt" min="5" value="${S.maxInterval}">
@@ -679,6 +764,8 @@ async function renderSettings(){
   </section>`;
   const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
   setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
+  $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();};
+  $('#sBName').onchange=e=>{S.boatName=e.target.value.trim();saveS();renderBoatHeader();};
   $('#sWake').onchange=e=>{S.wake=e.target.checked;saveS();};
   $('#sCid').onchange=e=>{S.odClientId=e.target.value.trim();saveS();};
   $('#odCon').onclick=()=>{S.odClientId=$('#sCid').value.trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};

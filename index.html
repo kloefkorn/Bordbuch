@@ -31,13 +31,12 @@ header{position:sticky;top:0;z-index:1500;display:flex;align-items:center;gap:6p
 #menu a:last-child{border-bottom:0}
 main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;margin:0 auto}
 .status{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 14px}
-.bigbtns{display:flex;flex-direction:column;align-items:center;gap:18px;padding:4px 0}
-.bigbtns.recording{flex-direction:row;justify-content:center;gap:18px}
+.bigbtns{position:relative;display:flex;flex-direction:column;align-items:center;gap:16px;padding:4px 0;width:100%;max-width:430px;margin:0 auto}
 /* Start/Stop-Knopf im Stil moderner Pkw */
-.ssb{--d:min(58vw,28vh);--led:#3b4148;position:relative;width:var(--d);height:var(--d);border:0;padding:0;border-radius:50%;cursor:pointer;
+.ssb{--d:min(54vw,25vh);--led:#3b4148;position:relative;width:var(--d);height:var(--d);border:0;padding:0;border-radius:50%;cursor:pointer;
   background:conic-gradient(from 210deg,#f7f9fb,#8e979f 12%,#ffffff 25%,#79828b 40%,#eef1f4 55%,#9aa2ab 70%,#ffffff 85%,#f7f9fb);
   box-shadow:0 14px 28px rgba(0,0,0,.45),0 3px 6px rgba(0,0,0,.3),inset 0 1px 1px #fff;transition:transform .08s,filter .2s,opacity .2s;-webkit-user-select:none;user-select:none}
-.recording .ssb{--d:min(40vw,22vh)}
+.recording .ssb{--d:min(38vw,17.5vh)}
 .ssb::before{content:"";position:absolute;inset:5.5%;border-radius:50%;background:#1d2126;box-shadow:inset 0 2px 4px rgba(0,0,0,.8)}
 .ssb::after{content:"";position:absolute;inset:9.5%;border-radius:50%;
   background:radial-gradient(circle at 38% 28%,#ffffff 0%,#eef1f4 22%,#cfd5db 55%,#b3bac2 80%,#9ea6ae 100%);
@@ -59,12 +58,34 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .filters label{display:block;font-size:12px;color:var(--muted);margin:6px 0 3px}
 .filters select,.filters input[type=date]{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;min-height:40px}
 .filters .reset{margin-top:8px;background:none;border:0;color:var(--accent);font:inherit;font-size:14px;padding:4px 0;cursor:pointer}
-.ssb.fuel{--d:min(21vw,11.5vh);--led:#3b4148}
+.bigbtns .ssb.fuel,.recording .ssb.fuel{--d:min(19vw,10vh);--led:#3b4148}
 .ssb.fuel:not(:disabled){--led:#f59e0b55}
 .ssb.fuel .face svg{width:52%;height:52%;color:#f28c0f;filter:drop-shadow(0 1px 0 rgba(255,255,255,.85)) drop-shadow(0 -1px 0 rgba(0,0,0,.18))}
-.fuelWrap{display:flex;flex-direction:column;align-items:center;margin-top:14px}
+.fuelWrap{position:absolute;right:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center}
+.crewbar{display:grid;grid-template-columns:1fr 1fr 66px;gap:8px;width:100%;max-width:430px;margin:16px auto 0}
+.msel{position:relative;display:block;border-radius:16px;padding:3px;
+  background:conic-gradient(from 210deg,#f7f9fb,#8e979f 12%,#ffffff 25%,#79828b 40%,#eef1f4 55%,#9aa2ab 70%,#ffffff 85%,#f7f9fb);
+  box-shadow:0 6px 14px rgba(0,0,0,.35),0 2px 3px rgba(0,0,0,.25)}
+.msel .in{display:block;border-radius:13px;padding:6px 20px 6px 9px;position:relative;
+  background:radial-gradient(ellipse at 40% 20%,#ffffff 0%,#e9edf0 35%,#c9cfd5 80%,#b5bcc3 100%);
+  box-shadow:inset 0 2px 3px rgba(255,255,255,.95),inset 0 -3px 6px rgba(0,0,0,.18)}
+.msel .in::after{content:"";position:absolute;right:8px;top:50%;width:7px;height:7px;margin-top:-5px;border-right:2px solid #4b545d;border-bottom:2px solid #4b545d;transform:rotate(45deg)}
+.msel small{display:block;font-size:10px;font-weight:700;letter-spacing:.06em;text-transform:uppercase;color:#5b646d;text-shadow:0 1px 0 rgba(255,255,255,.8)}
+.msel select{appearance:none;-webkit-appearance:none;width:100%;border:0;background:transparent;font:inherit;font-size:13.5px;letter-spacing:-.01em;font-weight:700;color:#1b2229;padding:1px 0;outline:none;text-overflow:ellipsis;cursor:pointer}
+.msel.locked{filter:grayscale(1) brightness(.92);opacity:.8}
+.msel.locked .in::after{display:none}
+.msel.locked select{cursor:default}
+.crewInfo{max-width:430px;margin:8px auto 0;text-align:center;font-size:12px;color:var(--muted)}
+.crewInfo a{color:var(--accent)}
+.gdlg input[type=text]{margin-bottom:8px}
+.crewList{list-style:none;margin:6px 0;padding:0}
+.crewList li{padding:6px 0;border-bottom:1px solid var(--line);display:flex;justify-content:space-between;gap:8px}
+.crewList li small{color:var(--muted)}
+.helmTbl td:last-child,.helmTbl th:last-child{text-align:right}
+.delBtn{border:0;background:none;color:var(--stop);font-size:18px;padding:4px 6px;cursor:pointer}
 .fuelWrap small{color:var(--muted);font-size:12px;margin-top:6px}
-.ver{position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom) + 6px);font-size:10px;color:var(--muted);opacity:.75;z-index:5;pointer-events:none}
+.home{display:flex;flex-direction:column;min-height:calc(100dvh - env(safe-area-inset-top) - env(safe-area-inset-bottom) - 100px)}
+.ver{margin-top:auto;padding-top:18px;font-size:10px;color:var(--muted);opacity:.75}
 .kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
 .kpis div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
 .kpis b{display:block;font-size:18px} .kpis small{color:var(--muted);font-size:12px}
@@ -185,8 +206,10 @@ dialog h3{margin-top:0}
 <script>
 'use strict';
 /* Versionsnummer: kleine Änderungen +0.1 (1.1 → 1.2), größere/grundlegende Änderungen nächste ganze Zahl (1.2 → 2.0).
-   Verlauf: 1.0 Erstversion · 1.1 Texte & metrische Einheiten · 1.2 Start/Stop-Design, Boot, Fahrtenfilter · 2.0 Tanken & Verbrauch */
-const APP_VERSION='2.0';
+   Verlauf: 1.0 Erstversion · 1.1 Texte & metrische Einheiten · 1.2 Start/Stop-Design, Boot, Fahrtenfilter · 2.0 Tanken & Verbrauch
+   · 3.0 Besatzung (Skipper, Steuermann, Personen an Bord), Tankknopf neben Start/Stop, Tankvorgang löschen
+   · 3.1 Pax standardmäßig 2 */
+const APP_VERSION='3.1';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -197,12 +220,14 @@ let toastT;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
 
 const DEFAULT_BOAT_TYPE='Sessa C42 HT',DEFAULT_BOAT_NAME='Blue Moon';
-const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin']};
+const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin'],skippers:['Arne Klöfkorn','Anja Klöfkorn'],helms:['Arne Klöfkorn','Anja Klöfkorn']};
 let S=Object.assign({},DEF,JSON.parse(localStorage.getItem('bb_settings')||'{}'));
 const saveS=()=>localStorage.setItem('bb_settings',JSON.stringify(S));
 const BUILTIN_FUELS=['Diesel','Benzin'];
 if(!Array.isArray(S.fuelTypes))S.fuelTypes=[...BUILTIN_FUELS];
 BUILTIN_FUELS.forEach(f=>{if(!S.fuelTypes.includes(f))S.fuelTypes.unshift(f);});
+const BUILTIN_PEOPLE=['Arne Klöfkorn','Anja Klöfkorn'],DEFAULT_PERSON='Arne Klöfkorn';
+['skippers','helms'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[...BUILTIN_PEOPLE];BUILTIN_PEOPLE.slice().reverse().forEach(n=>{if(!S[k].includes(n))S[k].unshift(n);});});
 /* Boot einer Fahrt (ältere Fahrten ohne Angabe gehören zur Blue Moon) */
 const tripBoat=t=>t.boat||{type:DEFAULT_BOAT_TYPE,name:DEFAULT_BOAT_NAME};
 const boatLabel=b=>[b.type,b.name?`„${b.name}“`:''].filter(Boolean).join(' ');
@@ -334,7 +359,9 @@ async function startTrip(){
   const trip={id:uid(),v:1,status:'active',createdAt:now,updatedAt:now,deleted:false,
     start:{t:now,lat:null,lon:null,acc:null},end:null,points:[],distance:0,maxSpd:0,
     placeStart:null,placeEnd:null,weatherStart:null,weatherEnd:null,note:'',notes:{},
-    boat:{type:S.boatType,name:S.boatName}};
+    boat:{type:S.boatType,name:S.boatName},
+    skipper:P.skipper,helms:[{t:now,name:P.helm}],
+    crew:{pax:Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length),guests:P.guests.filter(g=>g&&g!==P.skipper&&g!==P.helm)}};
   rec={trip,watch:null,wake:null,lastFix:null};
   await putTrip(trip);
   navigator.storage?.persist?.();
@@ -382,6 +409,7 @@ async function stopTrip(){
   t.end={t:now,lat:last?.lat??t.start.lat,lon:last?.lon??t.start.lon,acc:last?.acc??null};
   t.status='done';t.distance=trackDist(t.points);t.updatedAt=Date.now();
   await putTrip(t);releaseWake();rec=null;stopping=false;
+  P=freshPre();saveP();
   renderHome();toast(`Fahrtende gespeichert: ${fmtTime(now)} · ${fmtKm(t.distance)}`);
   enrichAll().then(()=>syncNow(true));
 }
@@ -434,6 +462,121 @@ function refreshView(){
   else if(h.startsWith('#/fahrt/'))refreshTripMeta();
 }
 
+
+/* ================= Besatzung ================= */
+const uniq=a=>[...new Set(a.filter(Boolean))];
+const DEFAULT_PAX=2;
+const freshPre=()=>({skipper:DEFAULT_PERSON,helm:DEFAULT_PERSON,pax:DEFAULT_PAX,guests:[],v:2});
+let P=Object.assign(freshPre(),JSON.parse(localStorage.getItem('bb_pre')||'{}'));
+if(P.v!==2){P.pax=Math.max(P.pax||0,DEFAULT_PAX);P.v=2;}
+const saveP=()=>localStorage.setItem('bb_pre',JSON.stringify(P));
+const tripHelms=t=>Array.isArray(t.helms)?t.helms:[];
+const curHelm=t=>{const h=tripHelms(t);return h.length?h[h.length-1].name:'';};
+const autoCrew=(skipper,helmNames)=>{const out=[];
+  uniq([skipper,...helmNames]).forEach(n=>{const r=[];if(n===skipper)r.push('Skipper');if(helmNames.includes(n))r.push('Steuermann');out.push({name:n,role:r.join(' und ')});});return out;};
+const tripAuto=t=>autoCrew(t.skipper||'',tripHelms(t).map(h=>h.name));
+const tripPax=t=>t.crew?.pax||tripAuto(t).length||0;
+const tripGuests=t=>(t.crew?.guests||[]).filter(Boolean);
+/* Verlauf der Steuerleute mit Strecke und Dauer je Abschnitt */
+function helmSegments(t){
+  const H=tripHelms(t);if(!H.length)return [];
+  const endT=t.status==='done'?t.end.t:Date.now();
+  const seg=H.map((h,i)=>({name:h.name,from:h.t,to:i+1<H.length?H[i+1].t:endT,km:0}));
+  const at=tt=>{let k=0;for(let i=0;i<seg.length;i++)if(tt>=seg[i].from)k=i;return k;};
+  const pts=t.points||[];
+  for(let i=1;i<pts.length;i++){const d=hav(pts[i-1],pts[i]);if(segCounts(pts[i-1],pts[i],d))seg[at(pts[i-1].t)].km+=d;}
+  return seg;
+}
+/* Allgemeiner Dialog */
+function modal(inner,setup){return new Promise(res=>{
+  const d=document.createElement('dialog');d.className='gdlg';d.innerHTML=`<form method="dialog">${inner}</form>`;document.body.appendChild(d);
+  setup&&setup(d);d.addEventListener('close',()=>{const v=d.returnValue;res({v,d});setTimeout(()=>d.remove(),0);},{once:true});d.showModal();});}
+async function askName(title,label){
+  const {v,d}=await modal(`<h3>${esc(title)}</h3><label class="hint">${esc(label)}</label><input type="text" id="gName" autocomplete="name" autocapitalize="words">
+    <div class="row" style="justify-content:flex-end"><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn" id="gOk">Übernehmen</button></div>`,
+    d=>{setTimeout(()=>$('#gName',d).focus(),50);$('#gOk',d).onclick=e=>{if(!$('#gName',d).value.trim()){e.preventDefault();toast('Bitte einen Namen eingeben');}};});
+  return v==='ok'?$('#gName',d).value.trim().replace(/\s+/g,' '):null;
+}
+async function askLater(){
+  const {v}=await modal(`<h3>Namen der Personen an Bord</h3><p>Möchtest du die Namen jetzt eingeben oder später unter der Fahrt im Reiter „Fahrten“ nachtragen?</p>
+    <div class="row" style="justify-content:flex-end"><button value="later" class="btn ghost">Später</button><button value="now" class="btn">Jetzt eingeben</button></div>`);
+  return v==='now';
+}
+function allKnownNames(trips){return uniq([...S.skippers,...S.helms,...(trips||[]).flatMap(t=>[t.skipper,...tripHelms(t).map(h=>h.name),...tripGuests(t)])]).sort((a,b)=>a.localeCompare(b,'de'));}
+/* Namen und Anzahl der Personen an Bord bearbeiten; liefert {pax,guests} oder null */
+async function editCrew(auto,pax,guests){
+  const trips=await liveTrips().catch(()=>[]);const known=allKnownNames(trips).filter(n=>!auto.some(a=>a.name===n));
+  const {v,d}=await modal(`<h3>Personen an Bord</h3>
+    <label class="hint" for="gPax">Anzahl Personen (1 bis 12)</label>
+    <select id="gPax" style="width:100%;font:inherit;padding:10px;border-radius:10px;background:var(--panel);color:var(--text);border:1px solid var(--line);margin-bottom:8px"></select>
+    <ul class="crewList">${auto.map(a=>`<li><span>${esc(a.name)}</span><small>${esc(a.role)}</small></li>`).join('')}</ul>
+    <div id="gGuests"></div>
+    <datalist id="gKnown">${known.map(n=>`<option value="${esc(n)}">`).join('')}</datalist>
+    <p class="hint">Skipper und Steuerleute werden automatisch als Personen an Bord gezählt. Leere Felder kannst du später nachtragen.</p>
+    <div class="row" style="justify-content:flex-end"><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn">Speichern</button></div>`,
+    d=>{const sel=$('#gPax',d);const min=Math.max(1,auto.length);
+      sel.innerHTML=Array.from({length:12},(_,i)=>i+1).filter(n=>n>=min).map(n=>`<option value="${n}">${n} ${n===1?'Person':'Personen'}</option>`).join('');
+      sel.value=String(Math.min(12,Math.max(min,pax)));
+      const draw=()=>{const vals=[...d.querySelectorAll('.gG')].map(i=>i.value);const n=+sel.value-auto.length;
+        $('#gGuests',d).innerHTML=Array.from({length:n},(_,i)=>`<input type="text" class="gG" list="gKnown" placeholder="Person ${auto.length+i+1}" value="${esc(vals[i]??guests[i]??'')}" autocapitalize="words">`).join('');};
+      sel.onchange=draw;draw();});
+  if(v!=='ok')return null;
+  return {pax:+$('#gPax',d).value,guests:[...d.querySelectorAll('.gG')].map(i=>i.value.trim())};
+}
+/* Auswahlfeld mit „Weiterer …“ */
+function personOptions(list,sel,otherLabel){
+  const names=uniq([...list,sel]);
+  return names.map(n=>`<option value="${esc(n)}" ${n===sel?'selected':''}>${esc(n)}</option>`).join('')+`<option value="__new">${otherLabel} …</option>`;
+}
+async function pickPerson(selEl,listKey,title,label,prev){
+  if(selEl.value!=='__new')return selEl.value;
+  const n=await askName(title,label);
+  if(!n){selEl.value=prev;return null;}
+  if(!S[listKey].includes(n)){S[listKey].push(n);saveS();}
+  return n;
+}
+function crewBarHtml(){
+  const r=!!rec,t=rec?.trip;
+  const sk=r?(t.skipper||'–'):P.skipper,hl=r?(curHelm(t)||DEFAULT_PERSON):P.helm,px=r?tripPax(t):Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length);
+  const min=r?Math.max(1,tripAuto(t).length):Math.max(1,autoCrew(P.skipper,[P.helm]).length);
+  const paxOpts=Array.from({length:12},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===px?'selected':''} ${n<min?'disabled':''}>${n}</option>`).join('');
+  const named=r?tripAuto(t).length+tripGuests(t).length:autoCrew(P.skipper,[P.helm]).length+P.guests.filter(Boolean).length;
+  return `<div class="crewbar">
+    <label class="msel ${r?'locked':''}"><span class="in"><small>Skipper</small><select id="cSk" ${r?'disabled':''}>${r?`<option>${esc(sk)}</option>`:personOptions(S.skippers,sk,'Weiterer Skipper')}</select></span></label>
+    <label class="msel"><span class="in"><small>Steuermann</small><select id="cHl">${personOptions(S.helms,hl,'Weiterer Steuermann')}</select></span></label>
+    <label class="msel"><span class="in"><small>Pax</small><select id="cPx" aria-label="Personen an Bord">${paxOpts}</select></span></label>
+  </div>
+  <div class="crewInfo">Personen an Bord: ${px} · ${named<px?`${px-named} ohne Namen · `:''}<a href="#" id="cNames">Namen ${named>1||px>1?'bearbeiten':'eingeben'}</a></div>`;
+}
+function bindCrewBar(){
+  const sk=$('#cSk'),hl=$('#cHl'),px=$('#cPx');
+  if(!rec)sk.onchange=async()=>{const n=await pickPerson(sk,'skippers','Weiterer Skipper','Name des Skippers',P.skipper);if(!n)return;
+    P.skipper=n;P.pax=Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length);saveP();renderHome();};
+  hl.onchange=async()=>{
+    const prev=rec?curHelm(rec.trip):P.helm;
+    const n=await pickPerson(hl,'helms','Weiterer Steuermann','Name des Steuermanns',prev);if(!n||n===prev){renderHome();return;}
+    if(rec){const t=rec.trip;t.helms=tripHelms(t);t.helms.push({t:Date.now(),name:n});
+      t.crew=t.crew||{pax:1,guests:[]};const need=tripAuto(t).length;
+      t.crew.guests=(t.crew.guests||[]).filter(g=>g!==n);
+      if(t.crew.pax<need){t.crew.pax=need;toast(`Steuermann: ${n} ab ${fmtTime(Date.now())} – Personen an Bord auf ${need} erhöht`);}
+      else toast(`Steuermann: ${n} ab ${fmtTime(Date.now())} Uhr`);
+      t.updatedAt=Date.now();persist();}
+    else{P.helm=n;P.guests=P.guests.filter(g=>g!==n);P.pax=Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length);saveP();}
+    renderHome();};
+  const names=async()=>{
+    const auto=rec?tripAuto(rec.trip):autoCrew(P.skipper,[P.helm]);
+    const cur=rec?{pax:tripPax(rec.trip),guests:rec.trip.crew?.guests||[]}:{pax:P.pax,guests:P.guests};
+    const res=await editCrew(auto,+px.value||cur.pax,cur.guests);if(!res){renderHome();return;}
+    if(rec){rec.trip.crew=res;rec.trip.updatedAt=Date.now();persist();}else{P.pax=res.pax;P.guests=res.guests;saveP();}
+    renderHome();};
+  px.onchange=async()=>{
+    const n=+px.value;
+    if(rec){rec.trip.crew=Object.assign(rec.trip.crew||{guests:[]},{pax:n});rec.trip.updatedAt=Date.now();persist();}else{P.pax=n;saveP();}
+    const auto=rec?tripAuto(rec.trip):autoCrew(P.skipper,[P.helm]);
+    if(n>auto.length&&await askLater())await names();else renderHome();};
+  $('#cNames').onclick=e=>{e.preventDefault();names();};
+}
+
 /* ================= Startseite ================= */
 let syncMsg='';
 function statusLine(){
@@ -444,17 +587,19 @@ function statusLine(){
 function updateStatus(){const s=$('#stat');if(s)s.textContent=statusLine();}
 function renderHome(){
   setTitle('Bordbuch',false);const r=!!rec;
-  view.innerHTML=`
+  view.innerHTML=`<div class="home">
   <div class="status" id="stat">${esc(statusLine())}</div>
   <div class="bigbtns ${r?'recording':''}">
     <button class="ssb start" id="bMS" ${r?'disabled':''} aria-label="Start – Motor gestartet"><span class="face"><span class="main">Start</span><span class="sub">Motor gestartet</span></span></button>
     <button class="ssb stop" id="bMG" ${r?'':'disabled'} aria-label="Stop – Motor ausgeschaltet"><span class="face"><span class="main">Stop</span><span class="sub">Motor ausgeschaltet</span></span></button>
-  </div>
   <div class="fuelWrap"><button class="ssb fuel" id="bFuel" aria-label="Tanken erfassen"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.5 2h7A1.5 1.5 0 0 1 14 3.5V20h1v2H3v-2h1V3.5A1.5 1.5 0 0 1 5.5 2zM6.2 4.3v5.2h5.6V4.3z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M14 11.5h1.3c.8 0 1.4.6 1.4 1.4v4.4a1.6 1.6 0 0 0 3.2 0V8.6L17.6 6.2"/><path fill="currentColor" d="M18.4 4.6l2.6 2.6-1.1 1.1-2.6-2.6z"/></svg></span></button><small>Tanken</small></div>
-  <div class="ver">Version ${APP_VERSION}</div>
+  </div>
+  ${crewBarHtml()}
+
   ${r?`<section class="live">
     <div class="head"><span class="rec">● Aufzeichnung läuft</span><span id="lvPts">0</span></div>
     <div class="hint" style="margin-top:6px">Fahrtbeginn: <span id="lvStart"></span></div>
+    <div class="hint">Skipper: ${esc(rec?.trip.skipper||'–')} · Steuermann: ${esc(rec?curHelm(rec.trip):'–')}</div>
     <div class="grid">
       <div><small>Dauer</small><b id="lvDur">–</b></div>
       <div><small>Strecke</small><b id="lvDist">–</b></div>
@@ -463,8 +608,9 @@ function renderHome(){
     </div>
     <button class="btn ghost full" id="bNote">📝 Ereignis an aktueller Position notieren</button>
     <p class="hint">Lass die App im Vordergrund geöffnet – das Display bleibt dafür an. Wird sie in den Hintergrund geschickt oder das Gerät gesperrt, pausiert der Browser das GPS; die Lücke wird als gerade Linie verbunden.</p>
-  </section>`:''}`;
-  $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;$('#bFuel').onclick=()=>openFuelDlg(null);
+  </section>`:''}
+  <div class="ver">Version ${APP_VERSION}</div></div>`;
+  $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;$('#bFuel').onclick=()=>openFuelDlg(null);bindCrewBar();
   if(r){$('#bNote').onclick=async()=>{
     const t=rec.trip;const p=t.points[t.points.length-1];
     if(!p){toast('Noch keine GPS-Position vorhanden');return;}
@@ -474,7 +620,7 @@ function renderHome(){
 }
 
 /* ================= Fahrtenliste ================= */
-const F={boat:DEFAULT_BOAT_NAME,from:'',to:''}; // Filter; beim App-Start immer „Blue Moon“
+const F={boat:DEFAULT_BOAT_NAME,from:'',to:'',skipper:'*',helm:'*'}; // Filter; beim App-Start immer „Blue Moon“
 const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 async function renderList(){
   setTitle('Fahrten',true);
@@ -486,6 +632,8 @@ async function renderList(){
     <label for="fBoat">Boot</label>
     <select id="fBoat"><option value="*">Alle Boote</option>${boats.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}</select>
     <div class="fr">
+      <div><label for="fSk">Skipper</label><select id="fSk"><option value="*">Alle</option>${uniq([...S.skippers,...trips.map(t=>t.skipper)]).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div>
+      <div><label for="fHl">Steuermann</label><select id="fHl"><option value="*">Alle</option>${uniq([...S.helms,...trips.flatMap(t=>tripHelms(t).map(h=>h.name))]).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div>
       <div><label for="fFrom">Von</label><input type="date" id="fFrom"></div>
       <div><label for="fTo">Bis</label><input type="date" id="fTo"></div>
     </div>
@@ -493,14 +641,15 @@ async function renderList(){
   </section>
   <div class="summary" id="sum"></div>
   <div id="res"></div>`;
-  $('#fBoat').value=F.boat;$('#fFrom').value=F.from;$('#fTo').value=F.to;
+  $('#fBoat').value=F.boat;$('#fFrom').value=F.from;$('#fTo').value=F.to;$('#fSk').value=F.skipper;$('#fHl').value=F.helm;if($('#fSk').value!==F.skipper){F.skipper='*';$('#fSk').value='*';}if($('#fHl').value!==F.helm){F.helm='*';$('#fHl').value='*';}
   const draw=()=>{
-    const sel=trips.filter(t=>(F.boat==='*'||tripBoat(t).name===F.boat)&&(!F.from||dayKey(t.start.t)>=F.from)&&(!F.to||dayKey(t.start.t)<=F.to));
+    const sel=trips.filter(t=>(F.boat==='*'||tripBoat(t).name===F.boat)&&(F.skipper==='*'||t.skipper===F.skipper)&&(F.helm==='*'||tripHelms(t).some(h=>h.name===F.helm))&&(!F.from||dayKey(t.start.t)>=F.from)&&(!F.to||dayKey(t.start.t)<=F.to));
     let km=0,ms=0;
     sel.forEach(t=>{const active=t.status!=='done';km+=active?trackDist(t.points):(t.distance||0);ms+=(active?Date.now():t.end.t)-t.start.t;});
     $('#sum').innerHTML=`<div><b>${sel.length}</b><small>${sel.length===1?'Fahrt':'Fahrten'}</small></div>
       <div><b>${fmtKm(km)}</b><small>Gesamtstrecke</small></div>
-      <div><b>${fmtDur(ms)}</b><small>Gesamtdauer</small></div>`;
+      <div><b>${fmtDur(ms)}</b><small>Gesamtdauer</small></div>`+(F.helm!=='*'?(()=>{let hk=0,hm=0;sel.forEach(t=>helmSegments(t).filter(g=>g.name===F.helm).forEach(g=>{hk+=g.km;hm+=g.to-g.from;}));
+        return `<div style="grid-column:1/-1"><small>Davon selbst gesteuert von ${esc(F.helm)}</small><b>${fmtKm(hk)} · ${fmtDur(hm)}</b></div>`;})():'');
     $('#res').innerHTML=sel.length?sel.map(t=>{
       const n=Object.keys(t.notes||{}).length+(t.note?1:0);
       const active=t.status!=='done';
@@ -511,13 +660,15 @@ async function renderList(){
         <div class="c1"><span>${fmtDate(t.start.t)}${F.boat==='*'?`<span class="boatTag">${esc(tripBoat(t).name)}</span>`:''}</span><span>${fmtTime(t.start.t)} – ${active?'<span class="rec">läuft</span>':fmtTime(t.end.t)}</span></div>
         <div class="c2">${esc(t.placeStart||'…')} → ${esc(active?'unterwegs':(t.placeEnd||'…'))}</div>
         <div class="c3">${fmtKm(dist)} · ${fmtDur(dur)}${t.weatherStart?' · '+wxTxt(t.weatherStart,true):''}${n?` · 📝 ${n}`:''}</div>
+        ${t.skipper?`<div class="c3">Skipper ${esc(t.skipper)} · ${tripPax(t)} ${tripPax(t)===1?'Person':'Personen'} an Bord${tripAuto(t).length+tripGuests(t).length<tripPax(t)?' <span class="pending">· Namen fehlen</span>':''}</div>`:''}
         ${pend&&!active?'<div class="pending">Ort und Wetter werden nachgeladen, sobald online</div>':''}
       </a>`;}).join(''):'<p class="empty">Keine Fahrten für diese Auswahl.</p>';
   };
   $('#fBoat').onchange=e=>{F.boat=e.target.value;draw();};
+  $('#fSk').onchange=e=>{F.skipper=e.target.value;draw();};$('#fHl').onchange=e=>{F.helm=e.target.value;draw();};
   $('#fFrom').onchange=e=>{F.from=e.target.value;if(F.to&&F.from>F.to){F.to=F.from;$('#fTo').value=F.to;}draw();};
   $('#fTo').onchange=e=>{F.to=e.target.value;if(F.from&&F.to<F.from){F.from=F.to;$('#fFrom').value=F.from;}draw();};
-  $('#fReset').onclick=()=>{F.boat=DEFAULT_BOAT_NAME;F.from='';F.to='';$('#fBoat').value=F.boat;$('#fFrom').value='';$('#fTo').value='';draw();};
+  $('#fReset').onclick=()=>{F.boat=DEFAULT_BOAT_NAME;F.from='';F.to='';F.skipper='*';F.helm='*';$('#fSk').value='*';$('#fHl').value='*';$('#fBoat').value=F.boat;$('#fFrom').value='';$('#fTo').value='';draw();};
   draw();
 }
 
@@ -543,6 +694,7 @@ async function renderTrip(id,focusKey){
     <div><small>Höchstgeschwindigkeit</small><b>${kmh(t.maxSpd)}</b></div>
   </div>
   <div class="wx"><div><small>Wetter bei Fahrtbeginn</small><span id="wxS"></span></div><div><small>Wetter bei Fahrtende</small><span id="wxE"></span></div></div>
+  <h3>Besatzung</h3><div id="crewBox"></div>
   <h3>Kommentar zur ganzen Fahrt</h3>
   <textarea id="tripNote" rows="3" placeholder="zum Beispiel Crew, Treibstoff, Besonderheiten">${esc(t.note)}</textarea>
   <div class="row"><button class="btn" id="saveNote">Kommentar speichern</button></div>
@@ -551,6 +703,20 @@ async function renderTrip(id,focusKey){
   <p class="hint">Tipp: In die Karte hineinzoomen – ab Zoomstufe 15 erscheinen die einzelnen Wegpunkte. Tippe auf einen Punkt oder die Linie, um Uhrzeit und Fahrt zu sehen und einen Kommentar zu setzen.</p>
   <div class="row"><button class="btn ghost" id="gpx">GPX exportieren</button>${active?'':'<button class="btn danger" id="del">Fahrt löschen</button>'}</div>`;
   cur={t};
+  const drawCrew=()=>{
+    const segs=helmSegments(t),auto=tripAuto(t),gs=t.crew?.guests||[],pax=tripPax(t);
+    const missing=Math.max(0,pax-auto.length-gs.filter(Boolean).length);
+    $('#crewBox').innerHTML=`<div class="panel" style="padding:10px 14px">
+      <p style="margin:4px 0"><b>Skipper:</b> ${esc(t.skipper||'nicht erfasst')}</p>
+      ${segs.length?`<div class="tblwrap"><table class="tbl helmTbl"><thead><tr><th>Steuermann</th><th>Zeit</th><th>Strecke</th></tr></thead><tbody>${segs.map(g=>`<tr><td>${esc(g.name)}</td><td>${fmtTime(g.from)} – ${fmtTime(g.to)} Uhr</td><td>${fmtKm(g.km)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">Kein Steuermann erfasst.</p>'}
+      <p style="margin:8px 0 2px"><b>Personen an Bord: ${pax||'–'}</b></p>
+      <ul class="crewList">${auto.map(a=>`<li><span>${esc(a.name)}</span><small>${esc(a.role)}</small></li>`).join('')}${gs.filter(Boolean).map(g=>`<li><span>${esc(g)}</span><small>Gast</small></li>`).join('')}
+      ${missing?`<li><span class="pending">${missing} ${missing===1?'Person':'Personen'} ohne Namen</span></li>`:''}</ul>
+      <button class="btn ghost" id="crewEdit">${missing?'Namen nachtragen':'Personen bearbeiten'}</button></div>`;
+    $('#crewEdit').onclick=async()=>{const res=await editCrew(auto,pax||auto.length||1,gs);if(!res)return;
+      t.crew=res;t.updatedAt=Date.now();await putTrip(t);syncSoon();drawCrew();toast('Personen an Bord gespeichert');};
+  };
+  drawCrew();
   fillMeta(t);
   $('#saveNote').onclick=async()=>{t.note=$('#tripNote').value.trim();t.updatedAt=Date.now();await putTrip(t);syncSoon();toast('Gespeichert');};
   $('#gpx').onclick=()=>saveFile(`bordbuch_${new Date(t.start.t).toISOString().slice(0,10)}.gpx`,toGpx(t),'application/gpx+xml');
@@ -784,12 +950,16 @@ async function renderFuel(){
       <div><b>${cH>0?num(cL/cH,1)+' l/h':'–'}</b><small>Durchschnittsverbrauch je Stunde</small></div>
       <div class="wide"><b>${cKm>0?eur(cC/(cKm/1000))+' je km':'–'}</b><small>Kraftstoffkosten je Kilometer</small></div>
     </div>`;
-    $('#uList').innerHTML=shown.length?`<div class="tblwrap"><table class="tbl fuelTbl"><thead><tr><th>Datum / Ort</th><th class="num">Menge / Preis</th><th class="num">Strecke / Verbrauch</th></tr></thead><tbody>${
+    $('#uList').innerHTML=shown.length?`<div class="tblwrap"><table class="tbl fuelTbl"><thead><tr><th>Datum / Ort</th><th class="num">Menge / Preis</th><th class="num">Strecke / Verbrauch</th><th></th></tr></thead><tbody>${
       shown.map((r,i)=>`<tr data-id="${r.f.id}"><td>${fmtDateS(r.f.t)} ${fmtTime(r.f.t)}<br><small class="hint">${esc(r.f.place||(r.f.lat!=null?fmtCoord(r.f.lat,r.f.lon):'ohne Ort'))}${FU.boat==='*'?' · '+esc(r.f.boat.name):''}</small></td>
         <td class="num"><b>${lit(r.f.liters)}</b> ${esc(r.f.fuelType)}${r.f.full===false?'<br><span class="badge">Teilbetankung</span>':''}<br><small class="hint">${num(r.f.price,3)} €/l · ${eur(r.f.liters*r.f.price)}</small></td>
-        <td class="num">${r.sp?fmtKm(r.sp.km):'<small class="hint">Ausgangswert</small>'}<br><small class="hint">${r.cons?num(r.cons.l/(r.cons.km/1000),2)+' l/km':'–'}</small></td></tr>`).join('')
+        <td class="num">${r.sp?fmtKm(r.sp.km):'<small class="hint">Ausgangswert</small>'}<br><small class="hint">${r.cons?num(r.cons.l/(r.cons.km/1000),2)+' l/km':'–'}</small></td><td><button class="delBtn" data-del="${r.f.id}" aria-label="Tankvorgang löschen">🗑</button></td></tr>`).join('')
     }</tbody></table></div>`:'<p class="empty">Keine Tankvorgänge für diese Auswahl.</p>';
     $('#uList').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openFuelDlg(tr.dataset.id));
+    $('#uList').querySelectorAll('button[data-del]').forEach(b=>b.onclick=async e=>{e.stopPropagation();
+      const f=await getFuel(b.dataset.del);if(!f)return;
+      if(!confirm(`Tankvorgang vom ${fmtDateS(f.t)} (${lit(f.liters)} ${f.fuelType}) löschen?`))return;
+      Object.assign(f,{deleted:true,updatedAt:Date.now()});await putFuel(f);syncSoon();toast('Tankvorgang gelöscht');renderFuel();});
   };
   $('#uBoat').onchange=e=>{FU.boat=e.target.value;draw();};
   $('#uType').onchange=e=>{FU.type=e.target.value;draw();};
@@ -933,6 +1103,14 @@ async function renderSettings(){
     <label>Bootsname</label><input type="text" id="sBName" value="${esc(S.boatName)}">
     <p class="hint">Wird bei jeder neuen Fahrt mitgespeichert. Auch über einen Tipp auf die Bootsangabe in der Kopfzeile änderbar.</p>
   </section>
+  <section class="panel"><h3>Skipper</h3>
+    <div class="chips">${S.skippers.map(f=>`<span class="chip">${esc(f)}${BUILTIN_PEOPLE.includes(f)?'':`<button data-pk="skippers" data-p="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
+    <p class="hint">Weitere Skipper kommen über „Weiterer Skipper …“ auf der Startseite hinzu. Entfernen wirkt nur auf künftige Fahrten.</p>
+  </section>
+  <section class="panel"><h3>Steuermann</h3>
+    <div class="chips">${S.helms.map(f=>`<span class="chip">${esc(f)}${BUILTIN_PEOPLE.includes(f)?'':`<button data-pk="helms" data-p="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
+    <p class="hint">Weitere Steuerleute kommen über „Weiterer Steuermann …“ auf der Startseite hinzu. Entfernen wirkt nur auf künftige Fahrten.</p>
+  </section>
   <section class="panel"><h3>Kraftstoffarten</h3>
     <div class="chips">${S.fuelTypes.map(f=>`<span class="chip">${esc(f)}${BUILTIN_FUELS.includes(f)?'':`<button data-f="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
     <div class="row" style="flex-wrap:nowrap"><input type="text" id="sFuelNew" placeholder="Weitere Kraftstoffart, zum Beispiel Super E10"><button class="btn" id="sFuelAdd">Hinzufügen</button></div>
@@ -969,6 +1147,10 @@ async function renderSettings(){
   setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
   $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();};
   $('#sBName').onchange=e=>{S.boatName=e.target.value.trim();saveS();renderBoatHeader();};
+  view.querySelectorAll('button[data-pk]').forEach(b=>b.onclick=()=>{const k=b.dataset.pk,n=b.dataset.p;
+    S[k]=S[k].filter(x=>x!==n);saveS();
+    if(k==='skippers'&&P.skipper===n)P.skipper=DEFAULT_PERSON;if(k==='helms'&&P.helm===n)P.helm=DEFAULT_PERSON;saveP();
+    toast(`„${n}“ entfernt`);renderSettings();});
   $('#sFuelAdd').onclick=()=>{const v=$('#sFuelNew').value.trim();if(!v)return;
     if(S.fuelTypes.some(f=>f.toLowerCase()===v.toLowerCase())){toast('Diese Kraftstoffart gibt es schon');return;}
     S.fuelTypes.push(v);saveS();renderSettings();toast(`„${v}“ hinzugefügt`);};

@@ -104,3 +104,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 2.0 | Tanken und Auswertung „Verbrauch“, Kraftstoffarten, Versionsnummer |
 | 3.0 | Besatzung: Skipper, Steuermann (mit Wechseln während der Fahrt), Personen an Bord; Tankknopf neben Start/Stop; Tankvorgang in der Liste löschen |
 | 3.1 | Personen an Bord standardmäßig 2 |
+| 3.2 | Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst |

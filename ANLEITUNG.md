@@ -41,6 +41,10 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 - Sobald Internet da ist, werden automatisch nachgeladen: Ortsnamen von Fahrtbeginn und Fahrtende (OpenStreetMap) und das Wetter zum jeweiligen Zeitpunkt (Open-Meteo: Beschreibung, Temperatur in °C, Wind mit Richtung und Böen in km/h).
 - **Boot:** In der Kopfzeile steht Bootsbezeichnung und Bootsname (Standard: Sessa C42 HT „Blue Moon“). Antippen zum Ändern – das Boot wird bei jeder neuen Fahrt mitgespeichert.
 - **Menü ☰ → Fahrten:** Filter nach Boot (Standard „Blue Moon“, oder „Alle Boote“) und Zeitraum von/bis. Für die Auswahl werden Anzahl, Gesamtstrecke und Gesamtdauer angezeigt. In einer Fahrt: Karte mit Track, Dauer, Strecke in km, Durchschnitts- und Höchstgeschwindigkeit in km/h, Wetter, Fahrtkommentar. In die Karte zoomen und auf Punkt oder Linie tippen zeigt Uhrzeit, Geschwindigkeit und ein Kommentarfeld. Kommentierte Punkte werden orange hervorgehoben. Ebenen-Schalter: Seezeichen von OpenSeaMap einblenden.
+- **Tanken (kleiner Knopf mit Zapfsäule):** öffnet die Eingabe für getankte Liter, Preis je Liter und Kraftstoffart (voreingestellt „Diesel“). Datum, Uhrzeit, Ort und Boot werden automatisch gespeichert; Datum und Uhrzeit lassen sich ändern, wenn du nachträglich einträgst. „Vollgetankt“ bleibt angehakt, wenn der Tank voll ist; bei einer Teilbetankung den Haken entfernen.
+- **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard „Blue Moon“), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern oder Löschen. CSV-Export für Excel.
+  Berechnung: getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“; Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang ist nur der Ausgangswert.
+- **Einstellungen → Kraftstoffarten:** weitere Kraftstoffarten hinzufügen (zum Beispiel Super E10) oder selbst angelegte wieder entfernen.
 - **Menü ☰ → Kommentare:** alle Kommentare als Tabelle, durchsuchbar, Tipp auf eine Zeile springt zur Stelle in der Karte. CSV-Export für Excel.
 - Pro Fahrt: **GPX-Export** (zum Beispiel für Navionics, OpenCPN, Google Earth).
 
@@ -58,7 +62,7 @@ Die App spricht direkt mit deinem OneDrive. Dafür braucht sie eine eigene, kost
 5. In der App: ☰ → Einstellungen → Client-ID einfügen → „Mit OneDrive verbinden“ → anmelden und zustimmen.
 6. Auf jedem weiteren Gerät dieselbe Adresse öffnen, dieselbe Client-ID eintragen, mit demselben Microsoft-Konto verbinden.
 
-Die Fahrten liegen dann als einzelne Dateien in `OneDrive/Apps/Bordbuch/trips/`. Die App hat nur Zugriff auf diesen eigenen Ordner. Abgleich: beim Öffnen, bei neuer Internetverbindung, nach jeder Fahrt und jedem Kommentar, sowie alle 5 Minuten. Bei Konflikten gewinnt die zuletzt geänderte Fassung einer Fahrt.
+Die Fahrten liegen dann als einzelne Dateien in `OneDrive/Apps/Bordbuch/trips/`, die Tankvorgänge in `OneDrive/Apps/Bordbuch/fuel/`. Die App hat nur Zugriff auf diesen eigenen Ordner. Abgleich: beim Öffnen, bei neuer Internetverbindung, nach jeder Fahrt und jedem Kommentar, sowie alle 5 Minuten. Bei Konflikten gewinnt die zuletzt geänderte Fassung einer Fahrt.
 
 Hinweis: Microsoft lässt reine Web-Apps nur 24 Stunden ohne erneute Anmeldung arbeiten. Die App versucht beim Öffnen automatisch, sich still neu anzumelden (kurzer Seitenwechsel). Klappt das nicht, steht oben „bitte neu verbinden“ – dann in den Einstellungen einmal „Neu anmelden“ tippen. Bis dahin bleibt alles lokal gespeichert und wird später nachsynchronisiert.
 
@@ -81,3 +85,14 @@ Wer automatischen Abgleich zwischen iPhone, iPad und Mac möchte, nimmt am einfa
 ## Datenquellen
 
 Karten © OpenStreetMap-Mitwirkende, Seezeichen © OpenSeaMap, Ortsnamen über Nominatim (OpenStreetMap), Wetter von Open-Meteo.com (CC BY 4.0). Alle kostenlos und ohne API-Schlüssel.
+
+## Versionen
+
+Die Versionsnummer steht klein unten links auf der Startseite und in den Einstellungen. Kleine Änderungen erhöhen die Nummer um 0.1, größere die ganze Zahl.
+
+| Version | Änderungen |
+|---|---|
+| 1.0 | Erstversion: Aufzeichnung, Karte, Kommentare, OneDrive |
+| 1.1 | Alles ausgeschrieben, metrische Einheiten |
+| 1.2 | Runde Start/Stop-Knöpfe, Boot in der Kopfzeile, Fahrtenfilter |
+| 2.0 | Tanken und Auswertung „Verbrauch“, Kraftstoffarten, Versionsnummer |

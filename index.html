@@ -31,10 +31,10 @@ header{position:sticky;top:0;z-index:1500;display:flex;align-items:center;gap:6p
 #menu a:last-child{border-bottom:0}
 main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;margin:0 auto}
 .status{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 14px}
-.bigbtns{display:flex;flex-direction:column;align-items:center;gap:22px;padding:6px 0}
+.bigbtns{display:flex;flex-direction:column;align-items:center;gap:18px;padding:4px 0}
 .bigbtns.recording{flex-direction:row;justify-content:center;gap:18px}
 /* Start/Stop-Knopf im Stil moderner Pkw */
-.ssb{--d:min(62vw,31vh);--led:#3b4148;position:relative;width:var(--d);height:var(--d);border:0;padding:0;border-radius:50%;cursor:pointer;
+.ssb{--d:min(58vw,28vh);--led:#3b4148;position:relative;width:var(--d);height:var(--d);border:0;padding:0;border-radius:50%;cursor:pointer;
   background:conic-gradient(from 210deg,#f7f9fb,#8e979f 12%,#ffffff 25%,#79828b 40%,#eef1f4 55%,#9aa2ab 70%,#ffffff 85%,#f7f9fb);
   box-shadow:0 14px 28px rgba(0,0,0,.45),0 3px 6px rgba(0,0,0,.3),inset 0 1px 1px #fff;transition:transform .08s,filter .2s,opacity .2s;-webkit-user-select:none;user-select:none}
 .recording .ssb{--d:min(40vw,22vh)}
@@ -59,6 +59,26 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .filters label{display:block;font-size:12px;color:var(--muted);margin:6px 0 3px}
 .filters select,.filters input[type=date]{width:100%;font:inherit;font-size:15px;color:var(--text);background:var(--panel2);border:1px solid var(--line);border-radius:10px;padding:8px;min-height:40px}
 .filters .reset{margin-top:8px;background:none;border:0;color:var(--accent);font:inherit;font-size:14px;padding:4px 0;cursor:pointer}
+.ssb.fuel{--d:min(21vw,11.5vh);--led:#3b4148}
+.ssb.fuel:not(:disabled){--led:#f59e0b55}
+.ssb.fuel .face svg{width:52%;height:52%;color:#f28c0f;filter:drop-shadow(0 1px 0 rgba(255,255,255,.85)) drop-shadow(0 -1px 0 rgba(0,0,0,.18))}
+.fuelWrap{display:flex;flex-direction:column;align-items:center;margin-top:14px}
+.fuelWrap small{color:var(--muted);font-size:12px;margin-top:6px}
+.ver{position:fixed;left:10px;bottom:calc(env(safe-area-inset-bottom) + 6px);font-size:10px;color:var(--muted);opacity:.75;z-index:5;pointer-events:none}
+.kpis{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.kpis div{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:10px}
+.kpis b{display:block;font-size:18px} .kpis small{color:var(--muted);font-size:12px}
+.kpis .wide{grid-column:1/-1}
+.since{background:var(--panel);border:1px solid var(--line);border-left:4px solid #f28c0f;border-radius:12px;padding:10px 12px;margin-bottom:12px}
+.since b{font-size:18px}
+.num{text-align:right}
+.fuelTbl{font-size:13px}.fuelTbl td,.fuelTbl th{padding:7px 6px}.fuelTbl b{white-space:nowrap}
+.chips{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel2);border-radius:20px;padding:6px 12px;font-size:14px}
+.chip button{border:0;background:none;color:var(--stop);font-size:16px;cursor:pointer;padding:0}
+#fuelDlg label{display:block;margin:10px 0 4px;font-size:14px}
+#fuelDlg select,#fuelDlg input[type=datetime-local]{width:100%;font:inherit;color:var(--text);background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:10px;min-height:44px}
+.fdTotal{margin-top:10px;font-size:15px}
 .boatTag{display:inline-block;font-size:12px;color:var(--muted);background:var(--panel2);border-radius:6px;padding:0 6px;margin-left:6px}
 .live{margin-top:18px;background:var(--panel);border:1px solid var(--line);border-radius:16px;padding:14px}
 .live .head{display:flex;justify-content:space-between;align-items:center;font-size:14px;color:var(--muted)}
@@ -130,6 +150,7 @@ dialog h3{margin-top:0}
   <a href="#/">⚓ Start</a>
   <a href="#/fahrten">🧭 Fahrten</a>
   <a href="#/kommentare">📝 Kommentare</a>
+  <a href="#/verbrauch">⛽ Verbrauch</a>
   <a href="#/einstellungen">⚙️ Einstellungen &amp; Sync</a>
 </nav>
 <main id="view"></main>
@@ -147,10 +168,25 @@ dialog h3{margin-top:0}
   <p class="hint">Wird bei jeder neuen Fahrt mitgespeichert. Bereits aufgezeichnete Fahrten behalten ihr Boot.</p>
   <div class="row" style="justify-content:flex-end"><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn">Speichern</button></div>
 </form></dialog>
+<dialog id="fuelDlg"><form method="dialog">
+  <h3 id="fdTitle">Tankvorgang</h3>
+  <p class="hint" id="fdBoat" style="margin:0"></p>
+  <label for="fdL">Getankte Menge (Liter)</label><input type="text" inputmode="decimal" id="fdL" placeholder="zum Beispiel 250">
+  <label for="fdP">Preis je Liter (Euro)</label><input type="text" inputmode="decimal" id="fdP" placeholder="zum Beispiel 1,89">
+  <label for="fdT">Kraftstoffart</label><select id="fdT"></select>
+  <div class="check"><input type="checkbox" id="fdFull" checked><span>Vollgetankt</span></div>
+  <label for="fdW">Datum und Uhrzeit</label><input type="datetime-local" id="fdW">
+  <p class="fdTotal">Betrag: <b id="fdSum">–</b></p>
+  <p class="hint" id="fdPos"></p>
+  <div class="row" style="justify-content:flex-end"><button value="del" class="btn danger" id="fdDel">Löschen</button><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn" id="fdOk">Speichern</button></div>
+</form></dialog>
 <div id="toast"></div>
 
 <script>
 'use strict';
+/* Versionsnummer: kleine Änderungen +0.1 (1.1 → 1.2), größere/grundlegende Änderungen nächste ganze Zahl (1.2 → 2.0).
+   Verlauf: 1.0 Erstversion · 1.1 Texte & metrische Einheiten · 1.2 Start/Stop-Design, Boot, Fahrtenfilter · 2.0 Tanken & Verbrauch */
+const APP_VERSION='2.0';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -161,9 +197,12 @@ let toastT;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
 
 const DEFAULT_BOAT_TYPE='Sessa C42 HT',DEFAULT_BOAT_NAME='Blue Moon';
-const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME};
+const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin']};
 let S=Object.assign({},DEF,JSON.parse(localStorage.getItem('bb_settings')||'{}'));
 const saveS=()=>localStorage.setItem('bb_settings',JSON.stringify(S));
+const BUILTIN_FUELS=['Diesel','Benzin'];
+if(!Array.isArray(S.fuelTypes))S.fuelTypes=[...BUILTIN_FUELS];
+BUILTIN_FUELS.forEach(f=>{if(!S.fuelTypes.includes(f))S.fuelTypes.unshift(f);});
 /* Boot einer Fahrt (ältere Fahrten ohne Angabe gehören zur Blue Moon) */
 const tripBoat=t=>t.boat||{type:DEFAULT_BOAT_TYPE,name:DEFAULT_BOAT_NAME};
 const boatLabel=b=>[b.type,b.name?`„${b.name}“`:''].filter(Boolean).join(' ');
@@ -202,14 +241,19 @@ function trackDist(pts){let s=0;for(let i=1;i<pts.length;i++){const d=hav(pts[i-
 
 /* ================= Datenbank (IndexedDB) ================= */
 let dbp;
-function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',1);
-  r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('trips'))d.createObjectStore('trips',{keyPath:'id'});};
+function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',2);
+  r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('trips'))d.createObjectStore('trips',{keyPath:'id'});
+    if(!d.objectStoreNames.contains('fuel'))d.createObjectStore('fuel',{keyPath:'id'});};
   r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
 const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
 async function getTrip(id){return rq((await db()).transaction('trips').objectStore('trips').get(id));}
 async function allTrips(){return rq((await db()).transaction('trips').objectStore('trips').getAll());}
 async function putTrip(t){return rq((await db()).transaction('trips','readwrite').objectStore('trips').put(t));}
 async function liveTrips(){return (await allTrips()).filter(t=>!t.deleted).sort((a,b)=>b.start.t-a.start.t);}
+async function getFuel(id){return rq((await db()).transaction('fuel').objectStore('fuel').get(id));}
+async function allFuel(){return rq((await db()).transaction('fuel').objectStore('fuel').getAll());}
+async function putFuel(f){return rq((await db()).transaction('fuel','readwrite').objectStore('fuel').put(f));}
+async function liveFuel(){return (await allFuel()).filter(f=>!f.deleted).sort((a,b)=>a.t-b.t);}
 const curTripObj=async id=>(rec&&rec.trip.id===id)?rec.trip:await getTrip(id);
 
 /* ================= Wetter & Ort ================= */
@@ -268,6 +312,11 @@ async function enrichAll(){
           if(job.startsWith('place'))await sleep(1100); // Nominatim: max. 1 Anfrage/Sekunde
         }catch(e){console.warn(job,e);}
       }
+    }
+    for(const f of await liveFuel()){
+      if(f.lat==null||f.place)continue;
+      try{const name=await placeName(f.lat,f.lon);const cur=await getFuel(f.id);cur.place=name;cur.updatedAt=Date.now();await putFuel(cur);any=true;await sleep(1100);}
+      catch(e){console.warn('fuel place',e);}
     }
   }finally{enriching=false;}
   if(any){refreshView();syncSoon();}
@@ -375,12 +424,13 @@ function route(){
   if(parts[1]==='fahrten')return renderList();
   if(parts[1]==='fahrt'&&parts[2])return renderTrip(decodeURIComponent(parts[2]),new URLSearchParams(q||'').get('p'));
   if(parts[1]==='kommentare')return renderComments();
+  if(parts[1]==='verbrauch')return renderFuel();
   if(parts[1]==='einstellungen')return renderSettings();
   renderHome();
 }
 function refreshView(){
   const h=location.hash||'#/';
-  if(h==='#/'||h==='#'||h.startsWith('#/fahrten')||h.startsWith('#/kommentare'))route();
+  if(h==='#/'||h==='#'||h.startsWith('#/fahrten')||h.startsWith('#/kommentare')||h.startsWith('#/verbrauch'))route();
   else if(h.startsWith('#/fahrt/'))refreshTripMeta();
 }
 
@@ -400,6 +450,8 @@ function renderHome(){
     <button class="ssb start" id="bMS" ${r?'disabled':''} aria-label="Start – Motor gestartet"><span class="face"><span class="main">Start</span><span class="sub">Motor gestartet</span></span></button>
     <button class="ssb stop" id="bMG" ${r?'':'disabled'} aria-label="Stop – Motor ausgeschaltet"><span class="face"><span class="main">Stop</span><span class="sub">Motor ausgeschaltet</span></span></button>
   </div>
+  <div class="fuelWrap"><button class="ssb fuel" id="bFuel" aria-label="Tanken erfassen"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.5 2h7A1.5 1.5 0 0 1 14 3.5V20h1v2H3v-2h1V3.5A1.5 1.5 0 0 1 5.5 2zM6.2 4.3v5.2h5.6V4.3z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M14 11.5h1.3c.8 0 1.4.6 1.4 1.4v4.4a1.6 1.6 0 0 0 3.2 0V8.6L17.6 6.2"/><path fill="currentColor" d="M18.4 4.6l2.6 2.6-1.1 1.1-2.6-2.6z"/></svg></span></button><small>Tanken</small></div>
+  <div class="ver">Version ${APP_VERSION}</div>
   ${r?`<section class="live">
     <div class="head"><span class="rec">● Aufzeichnung läuft</span><span id="lvPts">0</span></div>
     <div class="hint" style="margin-top:6px">Fahrtbeginn: <span id="lvStart"></span></div>
@@ -412,7 +464,7 @@ function renderHome(){
     <button class="btn ghost full" id="bNote">📝 Ereignis an aktueller Position notieren</button>
     <p class="hint">Lass die App im Vordergrund geöffnet – das Display bleibt dafür an. Wird sie in den Hintergrund geschickt oder das Gerät gesperrt, pausiert der Browser das GPS; die Lücke wird als gerade Linie verbunden.</p>
   </section>`:''}`;
-  $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;
+  $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;$('#bFuel').onclick=()=>openFuelDlg(null);
   if(r){$('#bNote').onclick=async()=>{
     const t=rec.trip;const p=t.points[t.points.length-1];
     if(!p){toast('Noch keine GPS-Position vorhanden');return;}
@@ -616,6 +668,144 @@ async function renderComments(){
   };
 }
 
+
+/* ================= Tanken & Verbrauch ================= */
+const pnum=v=>{const n=parseFloat(String(v||'').trim().replace(/\s/g,'').replace(',','.'));return isFinite(n)?n:NaN;};
+const eur=v=>v.toLocaleString('de-DE',{style:'currency',currency:'EUR'});
+const lit=v=>num(v,1)+' l';
+const toLocalInput=t=>{const d=new Date(t);d.setMinutes(d.getMinutes()-d.getTimezoneOffset());return d.toISOString().slice(0,16);};
+function fuelTypeOptions(sel){const list=[...S.fuelTypes];if(sel&&!list.includes(sel))list.push(sel);
+  return list.map(f=>`<option value="${esc(f)}" ${f===sel?'selected':''}>${esc(f)}</option>`).join('');}
+async function openFuelDlg(id){
+  const d=$('#fuelDlg');const old=id?await getFuel(id):null;
+  const boat=old?old.boat:(rec?tripBoat(rec.trip):{type:S.boatType,name:S.boatName});
+  $('#fdTitle').textContent=old?'Tankvorgang bearbeiten':'Tankvorgang erfassen';
+  $('#fdBoat').textContent='⛵ '+boatLabel(boat);
+  $('#fdL').value=old?String(old.liters).replace('.',','):'';
+  $('#fdP').value=old?String(old.price).replace('.',','):'';
+  $('#fdT').innerHTML=fuelTypeOptions(old?old.fuelType:(S.fuelTypes.includes('Diesel')?'Diesel':S.fuelTypes[0]));
+  $('#fdFull').checked=old?old.full!==false:true;
+  $('#fdW').value=toLocalInput(old?old.t:Date.now());
+  $('#fdDel').style.display=old?'':'none';
+  const upd=()=>{const l=pnum($('#fdL').value),pr=pnum($('#fdP').value);$('#fdSum').textContent=(l>0&&pr>0)?eur(l*pr):'–';};
+  $('#fdL').oninput=upd;$('#fdP').oninput=upd;upd();
+  let pos=old&&old.lat!=null?{lat:old.lat,lon:old.lon,acc:old.acc}:null;
+  if(old)$('#fdPos').textContent=old.lat!=null?`📍 ${old.place||fmtCoord(old.lat,old.lon)}`:'📍 ohne Position gespeichert';
+  else{
+    const last=rec&&rec.trip.points[rec.trip.points.length-1];
+    if(last&&Date.now()-last.t<120000){pos={lat:last.lat,lon:last.lon,acc:last.acc};$('#fdPos').textContent='📍 '+fmtCoord(pos.lat,pos.lon);}
+    else{$('#fdPos').textContent='📍 Position wird ermittelt …';
+      getPos(20000).then(p=>{pos={lat:+p.coords.latitude.toFixed(6),lon:+p.coords.longitude.toFixed(6),acc:Math.round(p.coords.accuracy)};
+        $('#fdPos').textContent='📍 '+fmtCoord(pos.lat,pos.lon);}).catch(()=>{$('#fdPos').textContent='📍 Keine Position verfügbar – wird ohne Ort gespeichert';});}
+  }
+  d.returnValue='';
+  $('#fdOk').onclick=e=>{const l=pnum($('#fdL').value),pr=pnum($('#fdP').value);
+    if(!(l>0)){e.preventDefault();toast('Bitte die getankte Menge in Litern eingeben');$('#fdL').focus();return;}
+    if(!(pr>=0)||isNaN(pr)){e.preventDefault();toast('Bitte den Preis je Liter eingeben');$('#fdP').focus();return;}};
+  d.addEventListener('close',async()=>{
+    const v=d.returnValue;
+    if(v==='del'&&old){if(!confirm('Diesen Tankvorgang löschen?'))return;
+      Object.assign(old,{deleted:true,updatedAt:Date.now()});await putFuel(old);syncSoon();refreshView();toast('Tankvorgang gelöscht');return;}
+    if(v!=='ok')return;
+    const now=Date.now();const w=new Date($('#fdW').value).getTime();
+    const f=old||{id:uid(),createdAt:now,deleted:false,boat,place:null,lat:null,lon:null,acc:null};
+    Object.assign(f,{t:isFinite(w)?w:now,liters:pnum($('#fdL').value),price:pnum($('#fdP').value),fuelType:$('#fdT').value,full:$('#fdFull').checked,updatedAt:now});
+    if(pos&&f.lat==null){f.lat=pos.lat;f.lon=pos.lon;f.acc=pos.acc;}
+    await putFuel(f);syncSoon();enrichAll();refreshView();
+    toast(`Tankvorgang gespeichert: ${lit(f.liters)} ${f.fuelType}`);
+  },{once:true});
+  d.showModal();
+}
+/* Verbrauch: je Boot und Kraftstoffart von Volltanken zu Volltanken */
+function analyzeFuel(fuels,trips){
+  const done=trips.filter(t=>t.status==='done');
+  const span=(boat,a,b)=>{let km=0,ms=0;for(const t of done){if(tripBoat(t).name!==boat)continue;if(t.start.t>a&&t.start.t<=b){km+=t.distance||0;ms+=t.end.t-t.start.t;}}return {km,h:ms/36e5};};
+  const groups={};
+  fuels.forEach(f=>{(groups[f.boat.name+'\u0000'+f.fuelType]=groups[f.boat.name+'\u0000'+f.fuelType]||[]).push(f);});
+  const rows=[];
+  for(const list of Object.values(groups)){
+    list.sort((a,b)=>a.t-b.t);let haveFull=false,accL=0,accKm=0,accH=0,prevT=null;
+    for(const f of list){
+      const sp=prevT==null?null:span(f.boat.name,prevT,f.t);
+      let cons=null;
+      if(haveFull){accL+=f.liters;accKm+=sp.km;accH+=sp.h;}
+      if(f.full!==false){
+        if(haveFull&&accKm>0)cons={l:accL,km:accKm,h:accH};
+        haveFull=true;accL=0;accKm=0;accH=0;
+      }
+      rows.push({f,sp,cons});prevT=f.t;
+    }
+  }
+  return rows.sort((a,b)=>b.f.t-a.f.t);
+}
+const FU={boat:DEFAULT_BOAT_NAME,type:'*',from:'',to:''}; // beim App-Start immer „Blue Moon“
+async function renderFuel(){
+  setTitle('Verbrauch',true);
+  const [fuels,trips]=await Promise.all([liveFuel(),liveTrips()]);
+  const boats=[...new Set([DEFAULT_BOAT_NAME,S.boatName,...trips.map(t=>tripBoat(t).name),...fuels.map(f=>f.boat.name)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
+  const types=[...new Set([...S.fuelTypes,...fuels.map(f=>f.fuelType)])];
+  view.innerHTML=`<section class="filters">
+    <div class="fr">
+      <div><label for="uBoat">Boot</label><select id="uBoat"><option value="*">Alle Boote</option>${boats.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}</select></div>
+      <div><label for="uType">Kraftstoffart</label><select id="uType"><option value="*">Alle</option>${types.map(b=>`<option value="${esc(b)}">${esc(b)}</option>`).join('')}</select></div>
+      <div><label for="uFrom">Von</label><input type="date" id="uFrom"></div>
+      <div><label for="uTo">Bis</label><input type="date" id="uTo"></div>
+    </div>
+    <button class="reset" id="uReset">Filter zurücksetzen</button>
+  </section>
+  <div id="uSince"></div><div id="uKpi"></div>
+  <h3>Tankvorgänge</h3><div id="uList"></div>
+  <div class="row"><button class="btn" id="uAdd">⛽ Tankvorgang erfassen</button><button class="btn ghost" id="uCsv">Als CSV exportieren (Excel)</button></div>
+  <p class="hint">So wird gerechnet: Verbrauch = getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“. Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang dient als Ausgangswert.</p>`;
+  $('#uBoat').value=FU.boat;$('#uType').value=FU.type;$('#uFrom').value=FU.from;$('#uTo').value=FU.to;
+  const all=analyzeFuel(fuels,trips);let shown=[];
+  const draw=()=>{
+    const okBoat=n=>FU.boat==='*'||n===FU.boat;
+    const inRange=t=>(!FU.from||dayKey(t)>=FU.from)&&(!FU.to||dayKey(t)<=FU.to);
+    // Seit dem letzten Tanken (unabhängig vom Zeitraum)
+    const sinceBoats=FU.boat==='*'?boats:[FU.boat];
+    $('#uSince').innerHTML=sinceBoats.map(b=>{
+      const last=fuels.filter(f=>f.boat.name===b&&(FU.type==='*'||f.fuelType===FU.type)).sort((x,y)=>y.t-x.t)[0];
+      if(!last)return FU.boat==='*'?'':`<div class="since"><small class="hint">Seit dem letzten Tanken${FU.boat==='*'?' · '+esc(b):''}</small><br>Noch kein Tankvorgang erfasst.</div>`;
+      let km=0,ms=0;trips.filter(t=>tripBoat(t).name===b&&t.start.t>last.t).forEach(t=>{const a=t.status!=='done';km+=a?trackDist(t.points):(t.distance||0);ms+=(a?Date.now():t.end.t)-t.start.t;});
+      return `<div class="since"><small class="hint">Seit dem letzten Tanken${FU.boat==='*'?' · '+esc(b):''} (${fmtDateS(last.t)}, ${lit(last.liters)} ${esc(last.fuelType)})</small><br><b>${fmtKm(km)}</b> · ${fmtDur(ms)} Fahrzeit</div>`;
+    }).join('');
+    shown=all.filter(r=>okBoat(r.f.boat.name)&&(FU.type==='*'||r.f.fuelType===FU.type)&&inRange(r.f.t));
+    const L=shown.reduce((s,r)=>s+r.f.liters,0),C=shown.reduce((s,r)=>s+r.f.liters*r.f.price,0);
+    const cons=shown.filter(r=>r.cons);const cL=cons.reduce((s,r)=>s+r.cons.l,0),cKm=cons.reduce((s,r)=>s+r.cons.km,0),cH=cons.reduce((s,r)=>s+r.cons.h,0);
+    const cC=cons.reduce((s,r)=>s+r.cons.l*r.f.price,0);
+    let tKm=0,tMs=0;trips.filter(t=>t.status==='done'&&okBoat(tripBoat(t).name)&&inRange(t.start.t)).forEach(t=>{tKm+=t.distance||0;tMs+=t.end.t-t.start.t;});
+    $('#uKpi').innerHTML=`<div class="kpis">
+      <div><b>${lit(L)}</b><small>Getankt (${shown.length} ${shown.length===1?'Tankvorgang':'Tankvorgänge'})</small></div>
+      <div><b>${eur(C)}</b><small>Kosten gesamt</small></div>
+      <div><b>${L>0?num(C/L,3)+' €/l':'–'}</b><small>Durchschnittspreis je Liter</small></div>
+      <div><b>${fmtKm(tKm)}</b><small>Gefahren im Zeitraum (${fmtDur(tMs)})</small></div>
+      <div><b>${cKm>0?num(cL/(cKm/1000),2)+' l/km':'–'}</b><small>Durchschnittsverbrauch je Kilometer</small></div>
+      <div><b>${cH>0?num(cL/cH,1)+' l/h':'–'}</b><small>Durchschnittsverbrauch je Stunde</small></div>
+      <div class="wide"><b>${cKm>0?eur(cC/(cKm/1000))+' je km':'–'}</b><small>Kraftstoffkosten je Kilometer</small></div>
+    </div>`;
+    $('#uList').innerHTML=shown.length?`<div class="tblwrap"><table class="tbl fuelTbl"><thead><tr><th>Datum / Ort</th><th class="num">Menge / Preis</th><th class="num">Strecke / Verbrauch</th></tr></thead><tbody>${
+      shown.map((r,i)=>`<tr data-id="${r.f.id}"><td>${fmtDateS(r.f.t)} ${fmtTime(r.f.t)}<br><small class="hint">${esc(r.f.place||(r.f.lat!=null?fmtCoord(r.f.lat,r.f.lon):'ohne Ort'))}${FU.boat==='*'?' · '+esc(r.f.boat.name):''}</small></td>
+        <td class="num"><b>${lit(r.f.liters)}</b> ${esc(r.f.fuelType)}${r.f.full===false?'<br><span class="badge">Teilbetankung</span>':''}<br><small class="hint">${num(r.f.price,3)} €/l · ${eur(r.f.liters*r.f.price)}</small></td>
+        <td class="num">${r.sp?fmtKm(r.sp.km):'<small class="hint">Ausgangswert</small>'}<br><small class="hint">${r.cons?num(r.cons.l/(r.cons.km/1000),2)+' l/km':'–'}</small></td></tr>`).join('')
+    }</tbody></table></div>`:'<p class="empty">Keine Tankvorgänge für diese Auswahl.</p>';
+    $('#uList').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openFuelDlg(tr.dataset.id));
+  };
+  $('#uBoat').onchange=e=>{FU.boat=e.target.value;draw();};
+  $('#uType').onchange=e=>{FU.type=e.target.value;draw();};
+  $('#uFrom').onchange=e=>{FU.from=e.target.value;if(FU.to&&FU.from>FU.to){FU.to=FU.from;$('#uTo').value=FU.to;}draw();};
+  $('#uTo').onchange=e=>{FU.to=e.target.value;if(FU.from&&FU.to<FU.from){FU.from=FU.to;$('#uFrom').value=FU.from;}draw();};
+  $('#uReset').onclick=()=>{Object.assign(FU,{boat:DEFAULT_BOAT_NAME,type:'*',from:'',to:''});$('#uBoat').value=FU.boat;$('#uType').value='*';$('#uFrom').value='';$('#uTo').value='';draw();};
+  $('#uAdd').onclick=()=>openFuelDlg(null);
+  $('#uCsv').onclick=()=>{
+    const c=x=>'"'+String(x??'').replace(/"/g,'""')+'"';const n=(v,d)=>v==null||!isFinite(v)?'':v.toFixed(d).replace('.',',');
+    const lines=[['Datum','Uhrzeit','Boot','Ort','Breite','Länge','Kraftstoffart','Liter','Preis je Liter (€)','Betrag (€)','Vollgetankt','Kilometer seit letztem Tanken','Verbrauch (l/km)'].map(c).join(';')];
+    shown.slice().reverse().forEach(r=>lines.push([fmtDateS(r.f.t),fmtTime(r.f.t),boatLabel(r.f.boat),r.f.place||'',r.f.lat??'',r.f.lon??'',r.f.fuelType,n(r.f.liters,2),n(r.f.price,3),n(r.f.liters*r.f.price,2),r.f.full===false?'nein':'ja',r.sp?n(r.sp.km/1000,1):'',r.cons?n(r.cons.l/(r.cons.km/1000),3):''].map(c).join(';')));
+    saveFile('bordbuch_tankvorgaenge.csv','﻿'+lines.join('\r\n'),'text/csv');
+  };
+  draw();
+}
+
 /* ================= Dateien / Sicherung ================= */
 async function saveFile(name,text,type){
   const file=new File([text],name,{type});
@@ -626,17 +816,19 @@ async function saveFile(name,text,type){
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
 }
 async function exportAll(){
-  const trips=(await allTrips()).filter(t=>t.status==='done');
-  saveFile(`bordbuch_sicherung_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:'bordbuch',version:1,exportedAt:Date.now(),trips}),'application/json');
+  const trips=(await allTrips()).filter(t=>t.status==='done');const fuel=await allFuel();
+  saveFile(`bordbuch_sicherung_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:'bordbuch',version:2,appVersion:APP_VERSION,exportedAt:Date.now(),trips,fuel}),'application/json');
 }
 async function importFile(file){
   try{
     const j=JSON.parse(await file.text());const list=Array.isArray(j)?j:j.trips;
     if(!Array.isArray(list))throw new Error('Keine Bordbuch-Sicherung');
-    let n=0;
+    let n=0,m=0;
     for(const t of list){if(!t||!t.id||!t.start)continue;const l=await getTrip(t.id);
       if(!l||(t.updatedAt||0)>(l.updatedAt||0)){if(rec&&rec.trip.id===t.id)continue;await putTrip(t);n++;}}
-    toast(`${n} Fahrt(en) übernommen`);enrichAll();
+    for(const f of (j.fuel||[])){if(!f||!f.id||!f.t)continue;const l=await getFuel(f.id);
+      if(!l||(f.updatedAt||0)>(l.updatedAt||0)){await putFuel(f);m++;}}
+    toast(`${n} Fahrt(en) und ${m} Tankvorgang/-vorgänge übernommen`);enrichAll();
   }catch(e){alert('Import fehlgeschlagen: '+e.message);}
 }
 
@@ -688,29 +880,34 @@ async function g(path,opts={}){const tok=await odAccess();
 
 let syncing=false,syncTimer;
 function syncSoon(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(true),4000);}
+const SYNC_SETS=[
+  {folder:'trips',key:id=>id,get:getTrip,put:putTrip,all:allTrips,skipUp:t=>t.status!=='done',skipDown:id=>rec&&rec.trip.id===id},
+  {folder:'fuel',key:id=>'fuel:'+id,get:getFuel,put:putFuel,all:allFuel,skipUp:()=>false,skipDown:()=>false}];
 async function syncNow(quiet,allowSilentLogin){
   if(!localStorage.getItem('bb_od_on')){if(!quiet)toast('OneDrive ist nicht verbunden');return;}
   if(syncing||!navigator.onLine)return;syncing=true;setSync('synchronisiere …');
   const map=JSON.parse(localStorage.getItem('bb_odmap')||'{}');let down=0,up=0;
   try{
-    const remote=[];let url='/me/drive/special/approot:/trips:/children?$top=200';
-    while(url){const r=await g(url);if(r.status===404)break;if(!r.ok)throw new Error('Liste '+r.status);
-      const j=await r.json();remote.push(...j.value.filter(f=>f.name.endsWith('.json')));url=j['@odata.nextLink']||null;}
-    for(const f of remote){
-      const id=f.name.slice(0,-5),m=map[id];
-      if(m&&m.remoteMod===f.lastModifiedDateTime)continue;
-      if(rec&&rec.trip.id===id)continue;
-      const dl=f['@microsoft.graph.downloadUrl'];
-      const r=dl?await fetch(dl):await g(`/me/drive/items/${f.id}/content`);if(!r.ok)throw new Error('Download '+r.status);
-      const rt=await r.json();const local=await getTrip(id);
-      if(!local||(rt.updatedAt||0)>(local.updatedAt||0)){await putTrip(rt);down++;map[id]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt};}
-      else map[id]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt===local.updatedAt?local.updatedAt:(m?.localUpd||0)};
-    }
-    for(const t of await allTrips()){
-      if(t.status!=='done')continue;const m=map[t.id];if(m&&m.localUpd>=t.updatedAt)continue;
-      const r=await g(`/me/drive/special/approot:/trips/${t.id}.json:/content`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
-      if(!r.ok)throw new Error('Upload '+r.status);const j=await r.json();
-      map[t.id]={remoteMod:j.lastModifiedDateTime,localUpd:t.updatedAt};up++;
+    for(const set of SYNC_SETS){
+      const remote=[];let url=`/me/drive/special/approot:/${set.folder}:/children?$top=200`;
+      while(url){const r=await g(url);if(r.status===404)break;if(!r.ok)throw new Error('Liste '+r.status);
+        const j=await r.json();remote.push(...j.value.filter(f=>f.name.endsWith('.json')));url=j['@odata.nextLink']||null;}
+      for(const f of remote){
+        const id=f.name.slice(0,-5),k=set.key(id),m=map[k];
+        if(m&&m.remoteMod===f.lastModifiedDateTime)continue;
+        if(set.skipDown(id))continue;
+        const dl=f['@microsoft.graph.downloadUrl'];
+        const r=dl?await fetch(dl):await g(`/me/drive/items/${f.id}/content`);if(!r.ok)throw new Error('Download '+r.status);
+        const rt=await r.json();const local=await set.get(id);
+        if(!local||(rt.updatedAt||0)>(local.updatedAt||0)){await set.put(rt);down++;map[k]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt};}
+        else map[k]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt===local.updatedAt?local.updatedAt:(m?.localUpd||0)};
+      }
+      for(const t of await set.all()){
+        if(set.skipUp(t))continue;const k=set.key(t.id),m=map[k];if(m&&m.localUpd>=t.updatedAt)continue;
+        const r=await g(`/me/drive/special/approot:/${set.folder}/${t.id}.json:/content`,{method:'PUT',headers:{'Content-Type':'application/json'},body:JSON.stringify(t)});
+        if(!r.ok)throw new Error('Upload '+r.status);const j=await r.json();
+        map[k]={remoteMod:j.lastModifiedDateTime,localUpd:t.updatedAt};up++;
+      }
     }
     localStorage.setItem('bb_lastsync',Date.now());
     setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:''));
@@ -729,12 +926,17 @@ async function syncNow(quiet,allowSilentLogin){
 /* ================= Einstellungen ================= */
 async function renderSettings(){
   setTitle('Einstellungen',true);
-  const n=(await liveTrips()).length;const on=!!localStorage.getItem('bb_od_on');
+  const n=(await liveTrips()).length,nf=(await liveFuel()).length;const on=!!localStorage.getItem('bb_od_on');
   view.innerHTML=`
   <section class="panel"><h3>Boot</h3>
     <label>Bootsbezeichnung</label><input type="text" id="sBType" value="${esc(S.boatType)}">
     <label>Bootsname</label><input type="text" id="sBName" value="${esc(S.boatName)}">
     <p class="hint">Wird bei jeder neuen Fahrt mitgespeichert. Auch über einen Tipp auf die Bootsangabe in der Kopfzeile änderbar.</p>
+  </section>
+  <section class="panel"><h3>Kraftstoffarten</h3>
+    <div class="chips">${S.fuelTypes.map(f=>`<span class="chip">${esc(f)}${BUILTIN_FUELS.includes(f)?'':`<button data-f="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
+    <div class="row" style="flex-wrap:nowrap"><input type="text" id="sFuelNew" placeholder="Weitere Kraftstoffart, zum Beispiel Super E10"><button class="btn" id="sFuelAdd">Hinzufügen</button></div>
+    <p class="hint">Voreingestellt beim Tanken ist „Diesel“.</p>
   </section>
   <section class="panel"><h3>Aufzeichnung</h3>
     <label>Mindestabstand zwischen Wegpunkten (m)</label><input type="number" id="sMin" min="1" value="${S.minDist}">
@@ -758,14 +960,19 @@ async function renderSettings(){
     <div class="row"><button class="btn" id="exp">Sicherung exportieren</button><label class="btn ghost" style="margin:0">Sicherung importieren<input type="file" id="imp" accept=".json,application/json" hidden></label></div>
   </section>
   <section class="panel"><h3>Daten</h3>
-    <p class="hint">${n} Fahrt(en) auf diesem Gerät gespeichert.</p>
+    <p class="hint">${n} Fahrt(en) und ${nf} Tankvorgang/-vorgänge auf diesem Gerät gespeichert.</p>
     <div class="row"><button class="btn ghost" id="enr">Orte &amp; Wetter jetzt nachladen</button></div>
+    <p class="hint">Version ${APP_VERSION}</p>
     <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap</p>
   </section>`;
   const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
   setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
   $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();};
   $('#sBName').onchange=e=>{S.boatName=e.target.value.trim();saveS();renderBoatHeader();};
+  $('#sFuelAdd').onclick=()=>{const v=$('#sFuelNew').value.trim();if(!v)return;
+    if(S.fuelTypes.some(f=>f.toLowerCase()===v.toLowerCase())){toast('Diese Kraftstoffart gibt es schon');return;}
+    S.fuelTypes.push(v);saveS();renderSettings();toast(`„${v}“ hinzugefügt`);};
+  view.querySelectorAll('.chip button[data-f]').forEach(b=>b.onclick=()=>{S.fuelTypes=S.fuelTypes.filter(f=>f!==b.dataset.f);saveS();renderSettings();});
   $('#sWake').onchange=e=>{S.wake=e.target.checked;saveS();};
   $('#sCid').onchange=e=>{S.odClientId=e.target.value.trim();saveS();};
   $('#odCon').onclick=()=>{S.odClientId=$('#sCid').value.trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};

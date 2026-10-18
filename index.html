@@ -30,7 +30,7 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .status{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 14px}
 .bigbtns{display:grid;gap:16px}
 .big{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;height:30vh;min-height:150px;border:0;border-radius:22px;color:#fff;font-size:20px;font-weight:600;cursor:pointer;box-shadow:0 6px 18px rgba(0,0,0,.25)}
-.big .abbr{font-size:46px;font-weight:800;letter-spacing:2px}
+.big .lbl{font-size:30px;font-weight:800;line-height:1.15;text-align:center;padding:0 12px}
 .recording .big{height:19vh;min-height:110px}
 .big:disabled{opacity:.28;box-shadow:none}
 .ms{background:var(--go)} .mg{background:var(--stop)}
@@ -109,7 +109,7 @@ dialog h3{margin-top:0}
 <main id="view"></main>
 <dialog id="dlg"><form method="dialog">
   <h3 id="dlgT"></h3>
-  <textarea id="dlgTx" rows="4" placeholder="z. B. Schleuse, Manöver, technisches Ereignis"></textarea>
+  <textarea id="dlgTx" rows="4" placeholder="zum Beispiel Schleuse, Manöver, technisches Ereignis"></textarea>
   <div class="row" style="justify-content:flex-end"><button value="cancel" class="btn ghost">Abbrechen</button><button value="ok" class="btn">Speichern</button></div>
 </form></dialog>
 <div id="toast"></div>
@@ -135,8 +135,7 @@ const fmtTime=(t,sec)=>new Date(t).toLocaleTimeString('de-DE',sec?{hour:'2-digit
 const fmtDur=ms=>{const m=Math.max(0,Math.round(ms/60000));return `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} min`;};
 const num=(v,d=1)=>v.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
 const fmtKm=m=>num(m/1000)+' km';
-const fmtNm=m=>num(m/1852)+' sm';
-const kn=ms=>ms==null||isNaN(ms)?'–':num(ms*1.943844)+' kn';
+const kmh=ms=>ms==null||isNaN(ms)?'–':num(ms*3.6)+' km/h';
 function dm(v,pos,neg,w){const h=v>=0?pos:neg;v=Math.abs(v);const d=Math.floor(v);const m=(v-d)*60;return `${String(d).padStart(w,'0')}°${m.toFixed(3).replace('.',',').padStart(6,'0')}′${h}`;}
 const fmtCoord=(lat,lon)=>lat==null?'Position unbekannt':dm(lat,'N','S',2)+' '+dm(lon,'E','W',3);
 
@@ -165,13 +164,13 @@ const WMO={0:['Klar / sonnig','☀️'],1:['Überwiegend sonnig','🌤️'],2:['
 71:['Leichter Schneefall','🌨️'],73:['Schneefall','🌨️'],75:['Starker Schneefall','❄️'],77:['Schneegriesel','🌨️'],
 80:['Leichte Regenschauer','🌦️'],81:['Regenschauer','🌧️'],82:['Heftige Regenschauer','⛈️'],85:['Schneeschauer','🌨️'],86:['Starke Schneeschauer','🌨️'],
 95:['Gewitter','⛈️'],96:['Gewitter mit Hagel','⛈️'],99:['Schweres Gewitter mit Hagel','⛈️']};
-const DIRS=['N','NNO','NO','ONO','O','OSO','SO','SSO','S','SSW','SW','WSW','W','WNW','NW','NNW'];
+const DIRS=['Nord','Nordnordost','Nordost','Ostnordost','Ost','Ostsüdost','Südost','Südsüdost','Süd','Südsüdwest','Südwest','Westsüdwest','West','Westnordwest','Nordwest','Nordnordwest'];
 const dirTxt=d=>d==null?'':DIRS[Math.round(d/22.5)%16];
 const bft=k=>{const l=[1,6,12,20,29,39,50,62,75,89,103,118];let b=0;while(b<12&&k>=l[b])b++;return b;};
 function wxTxt(w,short){
   if(!w)return '<span class="pending">wird geladen, sobald online</span>';
   if(short)return `${w.icon} ${num(w.temp,0)}°`;
-  return `${w.icon} ${esc(w.desc)}<br>🌡 ${num(w.temp)} °C<br>💨 ${w.dir} ${w.bft} Bft (${num(w.wind,0)} km/h${w.gust!=null?`, Böen ${num(w.gust,0)}`:''})`;
+  return `${w.icon} ${esc(w.desc)}<br>🌡 ${num(w.temp)} °C<br>💨 Wind aus ${w.dir}, ${num(w.wind,0)} km/h${w.gust!=null?`, Böen ${num(w.gust,0)} km/h`:''}`;
 }
 async function weatherAt(lat,lon,t){
   const day=new Date(t).toISOString().slice(0,10);
@@ -234,7 +233,7 @@ async function startTrip(){
   rec={trip,watch:null,wake:null,lastFix:null};
   await putTrip(trip);
   navigator.storage?.persist?.();
-  renderHome();toast('Fahrtbeginn (FB) geloggt: '+fmtTime(now));
+  renderHome();toast('Fahrtbeginn gespeichert: '+fmtTime(now));
   beginWatch();keepAwake();
   try{onPos(await getPos());}catch(e){toast('Warte auf GPS-Signal …');}
 }
@@ -255,7 +254,8 @@ function onPos(p){
     const last=t.points[t.points.length-1];let ok=true;
     if(last){
       const d=hav(last,pt),dt=(pt.t-last.t)/1000;
-      if(pt.spd==null&&dt>=3&&d/dt<25)pt.spd=+(d/dt).toFixed(2);
+      const seg=dt>0?d/dt:0;
+      if(dt>=1&&seg<25&&seg>=0.3&&(pt.spd==null||pt.spd<0.3))pt.spd=+seg.toFixed(2);
       if(dt<=0||d/dt>25)ok=false;
       else if(d<S.minDist&&dt<S.maxInterval)ok=false;
       if(ok&&segCounts(last,pt,d))t.distance+=d;
@@ -268,7 +268,7 @@ function onPos(p){
 let stopping=false;
 async function stopTrip(){
   if(!rec||stopping)return;
-  if(!confirm('Maschinen gestoppt – Fahrt jetzt beenden?'))return;
+  if(!confirm('Motoren ausgeschaltet – Fahrt jetzt beenden?'))return;
   stopping=true;$('#bMG')&&($('#bMG').disabled=true);
   const t=rec.trip,now=Date.now();
   try{const p=await getPos(10000);onPos(p);}catch(e){}
@@ -277,7 +277,7 @@ async function stopTrip(){
   t.end={t:now,lat:last?.lat??t.start.lat,lon:last?.lon??t.start.lon,acc:last?.acc??null};
   t.status='done';t.distance=trackDist(t.points);t.updatedAt=Date.now();
   await putTrip(t);releaseWake();rec=null;stopping=false;
-  renderHome();toast(`Fahrtende (FE) geloggt: ${fmtTime(now)} · ${fmtKm(t.distance)}`);
+  renderHome();toast(`Fahrtende gespeichert: ${fmtTime(now)} · ${fmtKm(t.distance)}`);
   enrichAll().then(()=>syncNow(true));
 }
 async function keepAwake(){if(!S.wake||!rec||!('wakeLock' in navigator))return;try{rec.wake=await navigator.wakeLock.request('screen');}catch(e){}}
@@ -288,7 +288,7 @@ function updateLive(){
   $('#lvDur').textContent=fmtDur(Date.now()-t.start.t);
   $('#lvDist').textContent=fmtKm(t.distance);
   const last=t.points[t.points.length-1];
-  $('#lvSpd').textContent=last&&Date.now()-last.t<90000?kn(last.spd):'–';
+  $('#lvSpd').textContent=last&&Date.now()-last.t<90000?kmh(last.spd):'–';
   const f=rec.lastFix;
   $('#lvGps').textContent=!f?'suche …':(Date.now()-f.t>60000?'kein Signal':`±${Math.round(f.acc)} m`);
   $('#lvPts').textContent=t.points.length;
@@ -340,17 +340,17 @@ function renderHome(){
   view.innerHTML=`
   <div class="status" id="stat">${esc(statusLine())}</div>
   <div class="bigbtns ${r?'recording':''}">
-    <button class="big ms" id="bMS" ${r?'disabled':''}><span class="abbr">MS</span><span>Motoren gestartet</span></button>
-    <button class="big mg" id="bMG" ${r?'':'disabled'}><span class="abbr">MG</span><span>Maschinen gestoppt</span></button>
+    <button class="big ms" id="bMS" ${r?'disabled':''}><span class="lbl">Motoren gestartet</span></button>
+    <button class="big mg" id="bMG" ${r?'':'disabled'}><span class="lbl">Motoren ausgeschaltet</span></button>
   </div>
   ${r?`<section class="live">
     <div class="head"><span class="rec">● Aufzeichnung läuft</span><span id="lvPts">0</span></div>
-    <div class="hint" style="margin-top:6px">FB: <span id="lvStart"></span></div>
+    <div class="hint" style="margin-top:6px">Fahrtbeginn: <span id="lvStart"></span></div>
     <div class="grid">
       <div><small>Dauer</small><b id="lvDur">–</b></div>
       <div><small>Strecke</small><b id="lvDist">–</b></div>
-      <div><small>Fahrt über Grund</small><b id="lvSpd">–</b></div>
-      <div><small>GPS</small><b id="lvGps">–</b></div>
+      <div><small>Geschwindigkeit</small><b id="lvSpd">–</b></div>
+      <div><small>GPS-Genauigkeit</small><b id="lvGps">–</b></div>
     </div>
     <button class="btn ghost full" id="bNote">📝 Ereignis an aktueller Position notieren</button>
     <p class="hint">Lass die App im Vordergrund geöffnet – das Display bleibt dafür an. Wird sie in den Hintergrund geschickt oder das Gerät gesperrt, pausiert der Browser das GPS; die Lücke wird als gerade Linie verbunden.</p>
@@ -368,7 +368,7 @@ function renderHome(){
 async function renderList(){
   setTitle('Fahrten',true);
   const trips=await liveTrips();
-  if(!trips.length){view.innerHTML='<p class="empty">Noch keine Fahrten aufgezeichnet.<br>Starte mit „MS“ auf der Startseite.</p>';return;}
+  if(!trips.length){view.innerHTML='<p class="empty">Noch keine Fahrten aufgezeichnet.<br>Starte mit „Motoren gestartet“ auf der Startseite.</p>';return;}
   const done=trips.filter(t=>t.status==='done');
   const km=done.reduce((s,t)=>s+(t.distance||0),0);
   const ms=done.reduce((s,t)=>s+(t.end.t-t.start.t),0);
@@ -406,13 +406,13 @@ async function renderTrip(id,focusKey){
   <div id="map"></div>
   <div class="grid">
     <div><small>Dauer</small><b>${fmtDur(endT-t.start.t)}</b></div>
-    <div><small>Strecke</small><b>${fmtKm(dist)}</b><small>${fmtNm(dist)}</small></div>
-    <div><small>Ø Fahrt</small><b>${secs>0?kn(dist/secs):'–'}</b></div>
-    <div><small>Max. Fahrt</small><b>${kn(t.maxSpd)}</b></div>
+    <div><small>Strecke</small><b>${fmtKm(dist)}</b></div>
+    <div><small>Durchschnittsgeschwindigkeit</small><b>${secs>0?kmh(dist/secs):'–'}</b></div>
+    <div><small>Höchstgeschwindigkeit</small><b>${kmh(t.maxSpd)}</b></div>
   </div>
-  <div class="wx"><div><small>Wetter bei FB</small><span id="wxS"></span></div><div><small>Wetter bei FE</small><span id="wxE"></span></div></div>
+  <div class="wx"><div><small>Wetter bei Fahrtbeginn</small><span id="wxS"></span></div><div><small>Wetter bei Fahrtende</small><span id="wxE"></span></div></div>
   <h3>Kommentar zur ganzen Fahrt</h3>
-  <textarea id="tripNote" rows="3" placeholder="z. B. Crew, Treibstoff, Besonderheiten">${esc(t.note)}</textarea>
+  <textarea id="tripNote" rows="3" placeholder="zum Beispiel Crew, Treibstoff, Besonderheiten">${esc(t.note)}</textarea>
   <div class="row"><button class="btn" id="saveNote">Kommentar speichern</button></div>
   <h3>Wegpunkt-Kommentare</h3>
   <div id="wpList"></div>
@@ -431,8 +431,8 @@ async function renderTrip(id,focusKey){
 function fillMeta(t){
   const pend='<span class="pending">Ortsname folgt, sobald online</span>';
   $('#routeBox').innerHTML=`
-    <div><span class="dot g"></span><b>${t.placeStart?esc(t.placeStart):pend}</b><small>FB ${fmtTime(t.start.t)} · ${fmtCoord(t.start.lat,t.start.lon)}</small></div>
-    <div><span class="dot r"></span><b>${t.status!=='done'?'Fahrt läuft':(t.placeEnd?esc(t.placeEnd):pend)}</b>${t.end?`<small>FE ${fmtTime(t.end.t)} · ${fmtCoord(t.end.lat,t.end.lon)}</small>`:''}</div>`;
+    <div><span class="dot g"></span><b>${t.placeStart?esc(t.placeStart):pend}</b><small>Fahrtbeginn ${fmtTime(t.start.t)} Uhr · ${fmtCoord(t.start.lat,t.start.lon)}</small></div>
+    <div><span class="dot r"></span><b>${t.status!=='done'?'Fahrt läuft':(t.placeEnd?esc(t.placeEnd):pend)}</b>${t.end?`<small>Fahrtende ${fmtTime(t.end.t)} Uhr · ${fmtCoord(t.end.lat,t.end.lon)}</small>`:''}</div>`;
   $('#wxS').innerHTML=wxTxt(t.weatherStart);
   $('#wxE').innerHTML=t.status!=='done'?'–':wxTxt(t.weatherEnd);
 }
@@ -456,8 +456,8 @@ function buildMap(t,focusKey){
     map.fitBounds(line.getBounds(),{padding:[28,28]});
   }else if(t.start.lat!=null)map.setView([t.start.lat,t.start.lon],15);
   else map.setView([51.2,10.4],5);
-  if(t.start.lat!=null)L.circleMarker([t.start.lat,t.start.lon],{radius:8,color:'#fff',weight:2,fillColor:'#1f9d55',fillOpacity:1}).bindTooltip('FB '+fmtTime(t.start.t)).addTo(map);
-  if(t.end&&t.end.lat!=null)L.circleMarker([t.end.lat,t.end.lon],{radius:8,color:'#fff',weight:2,fillColor:'#d64545',fillOpacity:1}).bindTooltip('FE '+fmtTime(t.end.t)).addTo(map);
+  if(t.start.lat!=null)L.circleMarker([t.start.lat,t.start.lon],{radius:8,color:'#fff',weight:2,fillColor:'#1f9d55',fillOpacity:1}).bindTooltip('Fahrtbeginn '+fmtTime(t.start.t)+' Uhr').addTo(map);
+  if(t.end&&t.end.lat!=null)L.circleMarker([t.end.lat,t.end.lon],{radius:8,color:'#fff',weight:2,fillColor:'#d64545',fillOpacity:1}).bindTooltip('Fahrtende '+fmtTime(t.end.t)+' Uhr').addTo(map);
   const ptLayer=L.layerGroup().addTo(map),hlLayer=L.layerGroup().addTo(map);
   const drawPts=()=>{ptLayer.clearLayers();if(map.getZoom()<15)return;
     const b=map.getBounds().pad(0.2);const idx=[];t.points.forEach((p,i)=>{if(b.contains([p.lat,p.lon]))idx.push(i);});
@@ -472,7 +472,7 @@ function buildMap(t,focusKey){
   const openPoint=i=>{
     const p=t.points[i];const note=t.notes?.[p.t]?.text||'';
     const el=document.createElement('div');el.className='pp';
-    el.innerHTML=`<b>${fmtTime(p.t,true)} Uhr</b> · ${fmtDateS(p.t)}<br>Fahrt: ${kn(p.spd)} · ±${p.acc} m<br><small>${fmtCoord(p.lat,p.lon)}</small>
+    el.innerHTML=`<b>${fmtTime(p.t,true)} Uhr</b> · ${fmtDateS(p.t)}<br>Geschwindigkeit: ${kmh(p.spd)} · Genauigkeit ±${p.acc} m<br><small>${fmtCoord(p.lat,p.lon)}</small>
       <textarea rows="3" placeholder="Kommentar (Schleuse, Manöver, Technik …)"></textarea>
       <div class="row"><button class="btn sv">Speichern</button>${note?'<button class="btn ghost dl">Löschen</button>':''}</div>`;
     $('textarea',el).value=note;

@@ -83,6 +83,13 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .msel.locked{filter:grayscale(1) brightness(.92);opacity:.8}
 .msel.locked .in::after{display:none}
 .msel.locked select{cursor:default}
+.crewBtn{display:block;width:100%;max-width:430px;margin:20px auto 0;border:0;cursor:pointer;font:inherit;text-align:left;color:inherit}
+.crewBtn .in{display:flex;align-items:center;justify-content:space-between;gap:10px;min-height:54px;padding:8px 32px 8px 12px}
+.crewBtn .in::after{transform:rotate(-45deg);margin-top:-4px;right:14px}
+.crewBtn b{font-size:15.5px;color:#1b2229;margin-right:8px}
+.crewBtn .cbMiss{display:inline-block;font-size:12.5px;font-weight:700;color:#b45309}
+.crewBtn .cbR{font-size:13.5px;font-weight:700;color:#0b5ea8;white-space:nowrap;text-shadow:0 1px 0 rgba(255,255,255,.7)}
+.crewBtn:active{transform:scale(.985)}
 .crewInfo{max-width:430px;margin:8px auto 0;text-align:center;font-size:12px;color:var(--muted)}
 .crewInfo a{color:var(--accent)}
 .gdlg input[type=text]{margin-bottom:8px}
@@ -216,8 +223,8 @@ dialog h3{margin-top:0}
 /* Versionsnummer: kleine Änderungen +0.1 (1.1 → 1.2), größere/grundlegende Änderungen nächste ganze Zahl (1.2 → 2.0).
    Verlauf: 1.0 Erstversion · 1.1 Texte & metrische Einheiten · 1.2 Start/Stop-Design, Boot, Fahrtenfilter · 2.0 Tanken & Verbrauch
    · 3.0 Besatzung (Skipper, Steuermann, Personen an Bord), Tankknopf neben Start/Stop, Tankvorgang löschen
-   · 3.1 Pax standardmäßig 2 · 3.2 Datumsfelder im Filter einheitlich gestaltet · 3.3 zuverlässigere Updates */
-const APP_VERSION='3.3';
+   · 3.1 Pax standardmäßig 2 · 3.2 Datumsfelder im Filter einheitlich gestaltet · 3.3 zuverlässigere Updates · 3.4 größere Schaltfläche „Personen an Bord“ */
+const APP_VERSION='3.4';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -555,7 +562,9 @@ function crewBarHtml(){
     <label class="msel"><span class="in"><small>Steuermann</small><select id="cHl">${personOptions(S.helms,hl,'Weiterer Steuermann')}</select></span></label>
     <label class="msel"><span class="in"><small>Pax</small><select id="cPx" aria-label="Personen an Bord">${paxOpts}</select></span></label>
   </div>
-  <div class="crewInfo">Personen an Bord: ${px} · ${named<px?`${px-named} ohne Namen · `:''}<a href="#" id="cNames">Namen ${named>1||px>1?'bearbeiten':'eingeben'}</a></div>`;
+  <button class="msel crewBtn" id="cNames"><span class="in">
+    <span><small>Personen an Bord</small><b>${px} ${px===1?'Person':'Personen'}</b>${named<px?`<span class="cbMiss">${px-named} ohne Namen</span>`:''}</span>
+    <span class="cbR">Namen ${named<px?'eingeben':'bearbeiten'}</span></span></button>`;
 }
 function bindCrewBar(){
   const sk=$('#cSk'),hl=$('#cHl'),px=$('#cPx');

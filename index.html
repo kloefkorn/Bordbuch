@@ -272,8 +272,9 @@ dialog h3{margin-top:0}
    · 4.2 Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar
    · 4.3 Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe
    · 4.4 OneDrive-Anmeldung wird vor Ablauf still erneuert
-   · 4.5 Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen */
-const APP_VERSION='4.5';
+   · 4.5 Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen
+   · 4.6 Verbrauch: Strecke nur zwischen Tankvorgängen */
+const APP_VERSION='4.6';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -1145,12 +1146,13 @@ async function renderFuel(){
     const L=shown.reduce((s,r)=>s+r.f.liters,0),C=shown.reduce((s,r)=>s+r.f.liters*r.f.price,0);
     const cons=shown.filter(r=>r.cons);const cL=cons.reduce((s,r)=>s+r.cons.l,0),cKm=cons.reduce((s,r)=>s+r.cons.km,0),cH=cons.reduce((s,r)=>s+r.cons.h,0);
     const cC=cons.reduce((s,r)=>s+r.cons.l*r.f.price,0);
-    let tKm=0,tMs=0;trips.filter(t=>t.status==='done'&&okBoat(tripBoat(t).name)&&inRange(t.start.t)).forEach(t=>{tKm+=t.distance||0;tMs+=t.end.t-t.start.t;});
+    // Strecke und Fahrzeit nur zwischen den erfassten Tankvorgängen (vor dem ersten Tanken zählt nichts)
+    const tKm=shown.reduce((a,r)=>a+(r.sp?r.sp.km:0),0),tMs=shown.reduce((a,r)=>a+(r.sp?r.sp.h*36e5:0),0);
     $('#uKpi').innerHTML=`<div class="kpis">
       <div><b>${lit(L)}</b><small>Getankt (${shown.length} ${shown.length===1?'Tankvorgang':'Tankvorgänge'})</small></div>
       <div><b>${eur(C)}</b><small>Kosten gesamt</small></div>
       <div><b>${L>0?num(C/L,3)+' €/l':'–'}</b><small>Durchschnittspreis je Liter</small></div>
-      <div><b>${fmtKm(tKm)}</b><small>Gefahren im Zeitraum (${fmtDur(tMs)})</small></div>
+      <div><b>${fmtKm(tKm)}</b><small>Gefahren zwischen den Tankvorgängen (${fmtDur(tMs)})</small></div>
       <div><b>${cKm>0?num(cL/(cKm/1000),2)+' l/km':'–'}</b><small>Durchschnittsverbrauch je Kilometer</small></div>
       <div><b>${cH>0?num(cL/cH,1)+' l/h':'–'}</b><small>Durchschnittsverbrauch je Stunde</small></div>
       <div class="wide"><b>${cKm>0?eur(cC/(cKm/1000))+' je km':'–'}</b><small>Kraftstoffkosten je Kilometer</small></div>

@@ -251,8 +251,9 @@ dialog h3{margin-top:0}
    Verlauf: 1.0 Erstversion · 1.1 Texte & metrische Einheiten · 1.2 Start/Stop-Design, Boot, Fahrtenfilter · 2.0 Tanken & Verbrauch
    · 3.0 Besatzung (Skipper, Steuermann, Personen an Bord), Tankknopf neben Start/Stop, Tankvorgang löschen
    · 3.1 Pax standardmäßig 2 · 3.2 Datumsfelder im Filter einheitlich gestaltet · 3.3 zuverlässigere Updates · 3.4 größere Schaltfläche „Personen an Bord“
-   · 4.0 Bootsdaten (MMSI, Callsign …) und SOS-Notfallkarte */
-const APP_VERSION='4.0';
+   · 4.0 Bootsdaten (MMSI, Callsign …) und SOS-Notfallkarte
+   · 4.1 Steuermann nur aus Personen an Bord, wenn alle Plätze benannt; Vorbelegung der Besatzung aus der letzten Fahrt (48 h) */
+const APP_VERSION='4.1';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -460,7 +461,7 @@ async function stopTrip(){
   t.end={t:now,lat:last?.lat??t.start.lat,lon:last?.lon??t.start.lon,acc:last?.acc??null};
   t.status='done';t.distance=trackDist(t.points);t.updatedAt=Date.now();
   await putTrip(t);releaseWake();rec=null;stopping=false;
-  P=freshPre();saveP();
+  P=preFromTrip(t);saveP();
   if(localStorage.getItem('bb_reload')){localStorage.removeItem('bb_reload');setTimeout(()=>location.reload(),2500);}
   renderHome();toast(`Fahrtende gespeichert: ${fmtTime(now)} · ${fmtKm(t.distance)}`);
   enrichAll().then(()=>syncNow(true));
@@ -518,9 +519,11 @@ function refreshView(){
 /* ================= Besatzung ================= */
 const uniq=a=>[...new Set(a.filter(Boolean))];
 const DEFAULT_PAX=2;
-const freshPre=()=>({skipper:DEFAULT_PERSON,helm:DEFAULT_PERSON,pax:DEFAULT_PAX,guests:[],v:2});
+const freshPre=()=>({skipper:DEFAULT_PERSON,helm:DEFAULT_PERSON,pax:DEFAULT_PAX,guests:[],v:2,auto:true,basedOn:null,basedEnd:null});
+const PREFILL_MS=48*36e5;
 let P=Object.assign(freshPre(),JSON.parse(localStorage.getItem('bb_pre')||'{}'));
 if(P.v!==2){P.pax=Math.max(P.pax||0,DEFAULT_PAX);P.v=2;}
+if(P.auto===undefined)P.auto=true;
 const saveP=()=>localStorage.setItem('bb_pre',JSON.stringify(P));
 const tripHelms=t=>Array.isArray(t.helms)?t.helms:[];
 const curHelm=t=>{const h=tripHelms(t);return h.length?h[h.length-1].name:'';};
@@ -576,9 +579,31 @@ async function editCrew(auto,pax,guests){
   return {pax:+$('#gPax',d).value,guests:[...d.querySelectorAll('.gG')].map(i=>i.value.trim())};
 }
 /* Auswahlfeld mit „Weiterer …“ */
-function personOptions(list,sel,otherLabel){
+/* Wer ist an Bord? (Skipper, Steuerleute, namentlich bekannte Gäste) */
+const onBoardPre=()=>uniq([P.skipper,P.helm,...P.guests]);
+const onBoardTrip=t=>uniq([t.skipper,...tripHelms(t).map(h=>h.name),...tripGuests(t)]);
+const paxPre=()=>Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length);
+/* Gäste-Slots an die Personenzahl anpassen: benannte zuerst behalten */
+function fitGuests(guests,slots){const named=guests.filter(Boolean),out=named.slice(0,Math.max(0,slots));while(out.length<slots)out.push('');return out;}
+function addGuest(guests,name){if(!name||guests.includes(name))return guests;const g=[...guests];const i=g.indexOf('');if(i>=0)g[i]=name;else g.push(name);return g;}
+/* Vorbelegung aus der letzten Fahrt (beendet innerhalb von 48 Stunden) */
+function preFromTrip(t){
+  const sk=t.skipper||DEFAULT_PERSON,hl=tripHelms(t)[0]?.name||sk;
+  const all=onBoardTrip(t),guests=all.filter(n=>n!==sk&&n!==hl);
+  const pax=Math.max(tripPax(t),uniq([sk,hl]).length+guests.length);
+  return {skipper:sk,helm:hl,pax,guests:fitGuests(guests,pax-uniq([sk,hl]).length),v:2,auto:true,basedOn:t.id,basedEnd:t.end.t};
+}
+async function refreshPre(){
+  if(rec||!P.auto)return false;
+  const done=(await liveTrips()).filter(t=>t.status==='done'&&t.end);
+  const last=done.sort((a,b)=>b.end.t-a.end.t)[0];
+  if(last&&Date.now()-last.end.t<PREFILL_MS){if(P.basedOn===last.id&&P.basedEnd===last.end.t)return false;P=preFromTrip(last);saveP();return true;}
+  if(P.basedOn){P=freshPre();saveP();return true;}
+  return false;
+}
+function personOptions(list,sel,otherLabel,allowNew=true){
   const names=uniq([...list,sel]);
-  return names.map(n=>`<option value="${esc(n)}" ${n===sel?'selected':''}>${esc(n)}</option>`).join('')+`<option value="__new">${otherLabel} …</option>`;
+  return names.map(n=>`<option value="${esc(n)}" ${n===sel?'selected':''}>${esc(n)}</option>`).join('')+(allowNew?`<option value="__new">${otherLabel} …</option>`:'');
 }
 async function pickPerson(selEl,listKey,title,label,prev){
   if(selEl.value!=='__new')return selEl.value;
@@ -589,13 +614,18 @@ async function pickPerson(selEl,listKey,title,label,prev){
 }
 function crewBarHtml(){
   const r=!!rec,t=rec?.trip;
-  const sk=r?(t.skipper||'–'):P.skipper,hl=r?(curHelm(t)||DEFAULT_PERSON):P.helm,px=r?tripPax(t):Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length);
+  if(!r&&P.auto&&P.basedEnd&&Date.now()-P.basedEnd>=PREFILL_MS){P=freshPre();saveP();}
+  const sk=r?(t.skipper||'–'):P.skipper,hl=r?(curHelm(t)||DEFAULT_PERSON):P.helm,px=r?tripPax(t):paxPre();
+  const board=r?onBoardTrip(t):onBoardPre();
+  const full=board.length>=px; // alle Plätze namentlich belegt → nur diese Personen wählbar
   const min=r?Math.max(1,tripAuto(t).length):Math.max(1,autoCrew(P.skipper,[P.helm]).length);
   const paxOpts=Array.from({length:12},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===px?'selected':''} ${n<min?'disabled':''}>${n}</option>`).join('');
-  const named=r?tripAuto(t).length+tripGuests(t).length:autoCrew(P.skipper,[P.helm]).length+P.guests.filter(Boolean).length;
+  const named=Math.min(board.length,px);
+  const helmList=full?board:uniq([...board,...S.helms]);
+  const skList=full?board:uniq([...S.skippers,...board]);
   return `<div class="crewbar">
-    <label class="msel ${r?'locked':''}"><span class="in"><small>Skipper</small><select id="cSk" ${r?'disabled':''}>${r?`<option>${esc(sk)}</option>`:personOptions(S.skippers,sk,'Weiterer Skipper')}</select></span></label>
-    <label class="msel"><span class="in"><small>Steuermann</small><select id="cHl">${personOptions(S.helms,hl,'Weiterer Steuermann')}</select></span></label>
+    <label class="msel ${r?'locked':''}"><span class="in"><small>Skipper</small><select id="cSk" ${r?'disabled':''}>${r?`<option>${esc(sk)}</option>`:personOptions(skList,sk,'Weiterer Skipper',!full)}</select></span></label>
+    <label class="msel"><span class="in"><small>Steuermann</small><select id="cHl">${personOptions(helmList,hl,'Weiterer Steuermann',!full)}</select></span></label>
     <label class="msel"><span class="in"><small>Pax</small><select id="cPx" aria-label="Personen an Bord">${paxOpts}</select></span></label>
   </div>
   <button class="msel crewBtn" id="cNames"><span class="in">
@@ -604,33 +634,42 @@ function crewBarHtml(){
 }
 function bindCrewBar(){
   const sk=$('#cSk'),hl=$('#cHl'),px=$('#cPx');
-  if(!rec)sk.onchange=async()=>{const n=await pickPerson(sk,'skippers','Weiterer Skipper','Name des Skippers',P.skipper);if(!n)return;
-    P.skipper=n;P.pax=Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length);saveP();renderHome();};
+  if(!rec)sk.onchange=async()=>{const prev=P.skipper;const n=await pickPerson(sk,'skippers','Weiterer Skipper','Name des Skippers',prev);if(!n||n===prev){renderHome();return;}
+    let g=P.guests.filter(x=>x!==n);if(prev!==P.helm)g=addGuest(g,prev); // bisheriger Skipper bleibt an Bord
+    P.skipper=n;P.pax=Math.max(P.pax,uniq([P.skipper,P.helm]).length+g.filter(Boolean).length);
+    P.guests=fitGuests(g,P.pax-uniq([P.skipper,P.helm]).length);P.auto=false;saveP();renderHome();};
   hl.onchange=async()=>{
     const prev=rec?curHelm(rec.trip):P.helm;
     const n=await pickPerson(hl,'helms','Weiterer Steuermann','Name des Steuermanns',prev);if(!n||n===prev){renderHome();return;}
     if(rec){const t=rec.trip;t.helms=tripHelms(t);t.helms.push({t:Date.now(),name:n});
-      t.crew=t.crew||{pax:1,guests:[]};const need=tripAuto(t).length;
+      t.crew=t.crew||{pax:1,guests:[]};
+      const wasGuest=(t.crew.guests||[]).includes(n);
       t.crew.guests=(t.crew.guests||[]).filter(g=>g!==n);
-      if(t.crew.pax<need){t.crew.pax=need;toast(`Steuermann: ${n} ab ${fmtTime(Date.now())} – Personen an Bord auf ${need} erhöht`);}
+      const autoN=tripAuto(t).length;
+      // neuer Name füllt einen freien Platz; Gäste-Slots entsprechend verkleinern
+      t.crew.guests=fitGuests(t.crew.guests,Math.max(0,t.crew.pax-autoN));
+      if(t.crew.pax<autoN){t.crew.pax=autoN;toast(`Steuermann: ${n} ab ${fmtTime(Date.now())} – Personen an Bord auf ${autoN} erhöht`);}
       else toast(`Steuermann: ${n} ab ${fmtTime(Date.now())} Uhr`);
       t.updatedAt=Date.now();persist();}
-    else{P.helm=n;P.guests=P.guests.filter(g=>g!==n);P.pax=Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length);saveP();}
+    else{let g=P.guests.filter(x=>x!==n);if(prev!==P.skipper)g=addGuest(g,prev); // bisheriger Steuermann bleibt an Bord
+      P.helm=n;P.pax=Math.max(P.pax,uniq([P.skipper,P.helm]).length+g.filter(Boolean).length);
+      P.guests=fitGuests(g,P.pax-uniq([P.skipper,P.helm]).length);P.auto=false;saveP();}
     renderHome();};
   const names=async()=>{
     const auto=rec?tripAuto(rec.trip):autoCrew(P.skipper,[P.helm]);
-    const cur=rec?{pax:tripPax(rec.trip),guests:rec.trip.crew?.guests||[]}:{pax:P.pax,guests:P.guests};
+    const cur=rec?{pax:tripPax(rec.trip),guests:rec.trip.crew?.guests||[]}:{pax:paxPre(),guests:P.guests};
     const res=await editCrew(auto,+px.value||cur.pax,cur.guests);if(!res){renderHome();return;}
-    if(rec){rec.trip.crew=res;rec.trip.updatedAt=Date.now();persist();}else{P.pax=res.pax;P.guests=res.guests;saveP();}
+    if(rec){rec.trip.crew=res;rec.trip.updatedAt=Date.now();persist();}else{P.pax=res.pax;P.guests=res.guests;P.auto=false;saveP();}
     renderHome();};
   px.onchange=async()=>{
     const n=+px.value;
-    if(rec){rec.trip.crew=Object.assign(rec.trip.crew||{guests:[]},{pax:n});rec.trip.updatedAt=Date.now();persist();}else{P.pax=n;saveP();}
     const auto=rec?tripAuto(rec.trip):autoCrew(P.skipper,[P.helm]);
-    if(n>auto.length&&await askLater())await names();else renderHome();};
+    if(rec){const c=rec.trip.crew||{guests:[]};c.pax=n;c.guests=fitGuests(c.guests||[],n-auto.length);rec.trip.crew=c;rec.trip.updatedAt=Date.now();persist();}
+    else{P.pax=n;P.guests=fitGuests(P.guests,n-auto.length);P.auto=false;saveP();}
+    const board=rec?onBoardTrip(rec.trip):onBoardPre();
+    if(n>board.length&&await askLater())await names();else renderHome();};
   $('#cNames').onclick=e=>{e.preventDefault();names();};
 }
-
 
 /* ================= Notfall (SOS) ================= */
 const MRCC_TEL='+49421536870',MRCC_TEL_SHOW='+49 421 53687-0';
@@ -1183,7 +1222,7 @@ async function syncNow(quiet,allowSilentLogin){
     }
     localStorage.setItem('bb_lastsync',Date.now());
     setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:''));
-    if(down){refreshView();enrichAll();}
+    if(down){if(await refreshPre().catch(()=>false)&&!rec&&(location.hash||'#/').match(/^#\/?$/))renderHome();refreshView();enrichAll();}
     if(!quiet)toast('Synchronisation abgeschlossen');
   }catch(e){
     if(e.relogin){
@@ -1308,6 +1347,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   await odHandleRedirect();
   const act=(await allTrips()).filter(t=>t.status==='active'&&!t.deleted).sort((a,b)=>b.start.t-a.start.t)[0];
   if(act){rec={trip:act,watch:null,wake:null,lastFix:null};beginWatch();keepAwake();toast('Laufende Fahrt wird fortgesetzt');}
+  await refreshPre().catch(()=>{});
   route();
   enrichAll();
   syncNow(true,true);

@@ -45,7 +45,8 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
   - Der Skipper wird beim Start festgelegt und ist während der Fahrt gesperrt.
   - Der Steuermann kann jederzeit während der Fahrt gewechselt werden; jeder Wechsel wird mit Uhrzeit gespeichert. In der Fahrt siehst du, wer wann wie viele Kilometer gesteuert hat.
   - Pax: Anzahl der Personen an Bord (1 bis 12). Danach fragt die App, ob du die Namen jetzt oder später eingeben möchtest. Skipper und Steuerleute zählen automatisch mit. Fehlende Namen trägst du später unter Fahrten → Fahrt → „Namen nachtragen“ ein.
-  - Nach dem Ende einer Fahrt springen die Felder wieder auf die Voreinstellung zurück (Arne Klöfkorn, 2 Personen).
+  - Sind alle Personen an Bord namentlich erfasst, stehen als Skipper und Steuermann nur noch diese Personen zur Auswahl. „Weiterer …“ erscheint erst wieder, wenn die Personenzahl erhöht wird.
+  - Wurde die letzte Fahrt vor weniger als 48 Stunden beendet, sind Skipper, Personenzahl und alle Personen an Bord aus dieser Fahrt vorbelegt. Sonst gilt die Voreinstellung (Arne Klöfkorn, 2 Personen).
 - **S.O.S (roter Knopf links):** öffnet sofort das Notfallfenster: MRCC Bremen mit UKW-Kanal 16 und 70 (DSC) und der Notrufnummer +49 421 53687-0 (antippen ruft direkt an), darunter alle Bootsdaten, die laufend aktualisierte GPS-Position groß und zum Vorlesen ausgeschrieben sowie die Anzahl der Personen an Bord. Funktioniert auch ohne Internet.
 - **Tanken (kleiner Knopf mit Zapfsäule):** öffnet die Eingabe für getankte Liter, Preis je Liter und Kraftstoffart (voreingestellt „Diesel“). Datum, Uhrzeit, Ort und Boot werden automatisch gespeichert; Datum und Uhrzeit lassen sich ändern, wenn du nachträglich einträgst. „Vollgetankt“ bleibt angehakt, wenn der Tank voll ist; bei einer Teilbetankung den Haken entfernen.
 - **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard „Blue Moon“), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern; mit dem Papierkorb in der Zeile wird er gelöscht. CSV-Export für Excel.
@@ -110,3 +111,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 3.3 | Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen |
 | 3.4 | „Personen an Bord“ auf der Startseite als größere Schaltfläche im Stil der übrigen Felder |
 | 4.0 | Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S-Notfallfenster |
+| 4.1 | Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt |

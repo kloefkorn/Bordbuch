@@ -53,7 +53,7 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 - **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard „Blue Moon“), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern; mit dem Papierkorb in der Zeile wird er gelöscht. CSV-Export für Excel.
   Berechnung: getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“; Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang ist nur der Ausgangswert.
 - **Einstellungen → Boot:** zusätzlich MMSI, Callsign, Bootskennzeichen, Länge, Breite, Höhe (je in Metern) und Verdrängung (in Tonnen). Diese Angaben gehören fest zum Bootsnamen, werden mit OneDrive abgeglichen und im Notfallfenster angezeigt.
-- **Einstellungen → Skipper / Steuermann:** selbst hinzugefügte Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert.
+- **Einstellungen → Skipper / Steuermann:** selbst hinzugefügte Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert. Die Namenslisten und die Kraftstoffarten werden über OneDrive zwischen deinen Geräten abgeglichen (auch Löschungen). Die Einstellungen zur Aufzeichnung und das aktuell gewählte Boot bleiben bewusst je Gerät.
 - **Einstellungen → Kraftstoffarten:** weitere Kraftstoffarten hinzufügen (zum Beispiel Super E10) oder selbst angelegte wieder entfernen.
 - **Menü ☰ → Kommentare:** alle Kommentare als Tabelle, durchsuchbar, Tipp auf eine Zeile springt zur Stelle in der Karte. CSV-Export für Excel.
 - Pro Fahrt: **GPX-Export** (zum Beispiel für Navionics, OpenCPN, Google Earth).
@@ -116,3 +116,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 4.2 | Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“) |
 | 4.3 | Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand) |
 | 4.4 | OneDrive-Anmeldung wird vor Ablauf automatisch im Hintergrund erneuert |
+| 4.5 | Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen |

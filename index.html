@@ -271,8 +271,9 @@ dialog h3{margin-top:0}
    · 4.1 Steuermann nur aus Personen an Bord, wenn alle Plätze benannt; Vorbelegung der Besatzung aus der letzten Fahrt (48 h)
    · 4.2 Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar
    · 4.3 Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe
-   · 4.4 OneDrive-Anmeldung wird vor Ablauf still erneuert */
-const APP_VERSION='4.4';
+   · 4.4 OneDrive-Anmeldung wird vor Ablauf still erneuert
+   · 4.5 Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen */
+const APP_VERSION='4.5';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -329,10 +330,11 @@ function trackDist(pts){let s=0;for(let i=1;i<pts.length;i++){const d=hav(pts[i-
 
 /* ================= Datenbank (IndexedDB) ================= */
 let dbp;
-function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',3);
+function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',4);
   r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('trips'))d.createObjectStore('trips',{keyPath:'id'});
     if(!d.objectStoreNames.contains('fuel'))d.createObjectStore('fuel',{keyPath:'id'});
-    if(!d.objectStoreNames.contains('boats'))d.createObjectStore('boats',{keyPath:'id'});};
+    if(!d.objectStoreNames.contains('boats'))d.createObjectStore('boats',{keyPath:'id'});
+    if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'id'});};
   r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
 const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
 async function getTrip(id){return rq((await db()).transaction('trips').objectStore('trips').get(id));}
@@ -350,6 +352,34 @@ const boatId=name=>(name||'').trim().toLowerCase().replace(/[^a-z0-9äöüß]+/g
 const BOAT_FIELDS=[['mmsi','MMSI','numeric',''],['callsign','Callsign','text',''],['reg','Bootskennzeichen','text',''],
   ['length','Länge','decimal','m'],['beam','Breite','decimal','m'],['height','Höhe','decimal','m'],['displacement','Verdrängung','decimal','t']];
 async function boatInfo(name){return (await getBoatRec(boatId(name)))||{};}
+/* ---- Geräteübergreifende Listen: Skipper, Steuermann, Kraftstoffarten ----
+   Jeder Eintrag merkt sich, wann er hinzugefügt (a) und zuletzt geändert (t) wurde; gelöschte bleiben als Vermerk (del),
+   damit sie nach dem Abgleich nicht auf einem anderen Gerät wieder auftauchen. */
+async function getMeta(id){return rq((await db()).transaction('meta').objectStore('meta').get(id));}
+async function allMeta(){return rq((await db()).transaction('meta').objectStore('meta').getAll());}
+async function putMeta(m){return rq((await db()).transaction('meta','readwrite').objectStore('meta').put(m));}
+const LIST_KEYS=['skippers','helms','fuelTypes'];
+const listBuiltins=k=>k==='fuelTypes'?['Diesel','Benzin']:['Arne Klöfkorn','Anja Klöfkorn'];
+function listsToS(m){for(const k of LIST_KEYS){const e=m.entries[k]||{};const b=listBuiltins(k);
+  S[k]=[...b,...Object.entries(e).filter(([n,v])=>!v.del&&!b.includes(n)).sort((x,y)=>(x[1].a||0)-(y[1].a||0)).map(([n])=>n)];}saveS();}
+function mergeLists(a,b){const out={id:'lists',entries:{},updatedAt:Math.max(a?.updatedAt||0,b?.updatedAt||0)};
+  for(const k of LIST_KEYS){const ea=a?.entries?.[k]||{},eb=b?.entries?.[k]||{},o={};
+    for(const n of new Set([...Object.keys(ea),...Object.keys(eb)])){const x=ea[n],y=eb[n];
+      const w=!x?y:!y?x:((y.t||0)>(x.t||0)?y:x);o[n]={...w,a:Math.min(x?.a??Infinity,y?.a??Infinity)};}
+    out.entries[k]=o;}
+  return out;}
+async function initLists(){
+  let m=await getMeta('lists');
+  if(!m){const now=Date.now();m={id:'lists',updatedAt:now,entries:{}};
+    for(const k of LIST_KEYS){m.entries[k]={};S[k].forEach((n,i)=>{m.entries[k][n]={a:now+i,t:now};});}
+    await putMeta(m);}
+  listsToS(m);
+}
+async function listChange(k,name,del){
+  const m=(await getMeta('lists'))||{id:'lists',entries:{}};m.entries[k]=m.entries[k]||{};
+  const now=Date.now(),old=m.entries[k][name];m.entries[k][name]={a:old?.a??now,t:now,del:!!del};
+  m.updatedAt=now;await putMeta(m);listsToS(m);syncSoon();
+}
 const curTripObj=async id=>(rec&&rec.trip.id===id)?rec.trip:await getTrip(id);
 
 /* ================= Wetter & Ort ================= */
@@ -628,7 +658,7 @@ async function pickPerson(selEl,listKey,title,label,prev){
   if(selEl.value!=='__new')return selEl.value;
   const n=await askName(title,label);
   if(!n){selEl.value=prev;return null;}
-  if(!S[listKey].includes(n)){S[listKey].push(n);saveS();}
+  if(!S[listKey].includes(n)){S[listKey].push(n);saveS();listChange(listKey,n,false);}
   return n;
 }
 function crewBarHtml(){
@@ -1161,8 +1191,8 @@ async function saveFile(name,text,type){
   setTimeout(()=>{URL.revokeObjectURL(a.href);a.remove();},2000);
 }
 async function exportAll(){
-  const trips=(await allTrips()).filter(t=>t.status==='done');const fuel=await allFuel();const boats=await allBoats();
-  saveFile(`bordbuch_sicherung_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:'bordbuch',version:2,appVersion:APP_VERSION,exportedAt:Date.now(),trips,fuel,boats}),'application/json');
+  const trips=(await allTrips()).filter(t=>t.status==='done');const fuel=await allFuel();const boats=await allBoats();const meta=await allMeta();
+  saveFile(`bordbuch_sicherung_${new Date().toISOString().slice(0,10)}.json`,JSON.stringify({app:'bordbuch',version:2,appVersion:APP_VERSION,exportedAt:Date.now(),trips,fuel,boats,meta}),'application/json');
 }
 async function importFile(file){
   try{
@@ -1173,6 +1203,7 @@ async function importFile(file){
       if(!l||(t.updatedAt||0)>(l.updatedAt||0)){if(rec&&rec.trip.id===t.id)continue;await putTrip(t);n++;}}
     for(const f of (j.fuel||[])){if(!f||!f.id||!f.t)continue;const l=await getFuel(f.id);
       if(!l||(f.updatedAt||0)>(l.updatedAt||0)){await putFuel(f);m++;}}
+    for(const mm of (j.meta||[])){if(mm?.id==='lists'){const mg=mergeLists(await getMeta('lists'),mm);mg.updatedAt=Date.now();await putMeta(mg);listsToS(mg);}}
     for(const b of (j.boats||[])){if(!b||!b.id)continue;const l=await getBoatRec(b.id);if(!l||(b.updatedAt||0)>(l.updatedAt||0))await putBoatRec(b);}
     toast(`${n} Fahrt(en) und ${m} Tankvorgang/-vorgänge übernommen`);enrichAll();
   }catch(e){alert('Import fehlgeschlagen: '+e.message);}
@@ -1243,11 +1274,12 @@ function syncSoon(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(tru
 const SYNC_SETS=[
   {folder:'trips',key:id=>id,get:getTrip,put:putTrip,all:allTrips,skipUp:t=>t.status!=='done',skipDown:id=>rec&&rec.trip.id===id},
   {folder:'fuel',key:id=>'fuel:'+id,get:getFuel,put:putFuel,all:allFuel,skipUp:()=>false,skipDown:()=>false},
-  {folder:'boats',key:id=>'boat:'+id,get:getBoatRec,put:putBoatRec,all:allBoats,skipUp:()=>false,skipDown:()=>false}];
+  {folder:'boats',key:id=>'boat:'+id,get:getBoatRec,put:putBoatRec,all:allBoats,skipUp:()=>false,skipDown:()=>false},
+  {folder:'meta',key:id=>'meta:'+id,get:getMeta,put:putMeta,all:allMeta,skipUp:()=>false,skipDown:()=>false,merge:mergeLists}];
 async function syncNow(quiet,allowSilentLogin){
   if(!localStorage.getItem('bb_od_on')){if(!quiet)toast('OneDrive ist nicht verbunden');return;}
   if(syncing||!navigator.onLine)return;syncing=true;setSync('synchronisiere …');
-  const map=JSON.parse(localStorage.getItem('bb_odmap')||'{}');let down=0,up=0;
+  const map=JSON.parse(localStorage.getItem('bb_odmap')||'{}');let down=0,up=0,metaChanged=false;
   try{
     for(const set of SYNC_SETS){
       const remote=[];let url=`/me/drive/special/approot:/${set.folder}:/children?$top=200`;
@@ -1260,6 +1292,12 @@ async function syncNow(quiet,allowSilentLogin){
         const dl=f['@microsoft.graph.downloadUrl'];
         const r=dl?await fetch(dl):await g(`/me/drive/items/${f.id}/content`);if(!r.ok)throw new Error('Download '+r.status);
         const rt=await r.json();const local=await set.get(id);
+        if(set.merge){
+          const mg=set.merge(local,rt);const sameAsRemote=JSON.stringify(mg.entries)===JSON.stringify(set.merge(rt,rt).entries);
+          if(!sameAsRemote)mg.updatedAt=Date.now();
+          await set.put(mg);if(id==='lists'){listsToS(mg);metaChanged=true;}down++;
+          map[k]={remoteMod:f.lastModifiedDateTime,localUpd:sameAsRemote?mg.updatedAt:0};continue;
+        }
         if(!local||(rt.updatedAt||0)>(local.updatedAt||0)){await set.put(rt);down++;map[k]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt};}
         else map[k]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt===local.updatedAt?local.updatedAt:(m?.localUpd||0)};
       }
@@ -1272,6 +1310,7 @@ async function syncNow(quiet,allowSilentLogin){
     }
     localStorage.setItem('bb_lastsync',Date.now());
     setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:''));
+    if(metaChanged&&(location.hash||'').startsWith('#/einstellungen'))renderSettings();
     if(down){if(await refreshPre().catch(()=>false)&&!rec&&(location.hash||'#/').match(/^#\/?$/))renderHome();refreshView();enrichAll();}
     if(!quiet)toast('Synchronisation abgeschlossen');
   }catch(e){
@@ -1297,16 +1336,16 @@ async function renderSettings(){
   </section>
   <section class="panel"><h3>Skipper</h3>
     <div class="chips">${S.skippers.map(f=>`<span class="chip">${esc(f)}${BUILTIN_PEOPLE.includes(f)?'':`<button data-pk="skippers" data-p="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
-    <p class="hint">Weitere Skipper kommen über „Weiterer Skipper …“ auf der Startseite hinzu. Entfernen wirkt nur auf künftige Fahrten.</p>
+    <p class="hint">Weitere Skipper kommen über „Weiterer Skipper …“ auf der Startseite hinzu. Entfernen wirkt nur auf künftige Fahrten. Die Liste wird über OneDrive mit deinen anderen Geräten abgeglichen.</p>
   </section>
   <section class="panel"><h3>Steuermann</h3>
     <div class="chips">${S.helms.map(f=>`<span class="chip">${esc(f)}${BUILTIN_PEOPLE.includes(f)?'':`<button data-pk="helms" data-p="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
-    <p class="hint">Weitere Steuerleute kommen über „Weiterer Steuermann …“ auf der Startseite hinzu. Entfernen wirkt nur auf künftige Fahrten.</p>
+    <p class="hint">Weitere Steuerleute kommen über „Weiterer Steuermann …“ auf der Startseite hinzu. Entfernen wirkt nur auf künftige Fahrten. Die Liste wird über OneDrive mit deinen anderen Geräten abgeglichen.</p>
   </section>
   <section class="panel"><h3>Kraftstoffarten</h3>
     <div class="chips">${S.fuelTypes.map(f=>`<span class="chip">${esc(f)}${BUILTIN_FUELS.includes(f)?'':`<button data-f="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
     <div class="row" style="flex-wrap:nowrap"><input type="text" id="sFuelNew" placeholder="Weitere Kraftstoffart, zum Beispiel Super E10"><button class="btn" id="sFuelAdd">Hinzufügen</button></div>
-    <p class="hint">Voreingestellt beim Tanken ist „Diesel“.</p>
+    <p class="hint">Voreingestellt beim Tanken ist „Diesel“. Die Liste wird über OneDrive mit deinen anderen Geräten abgeglichen.</p>
   </section>
   <section class="panel"><h3>Aufzeichnung</h3>
     <label>Mindestabstand zwischen Wegpunkten (m)</label><input type="number" id="sMin" min="1" value="${S.minDist}">
@@ -1347,13 +1386,13 @@ async function renderSettings(){
     cur.name=S.boatName;cur.type=S.boatType;cur[inp.dataset.bf]=inp.value.trim();cur.updatedAt=Date.now();
     await putBoatRec(cur);syncSoon();toast('Bootsdaten gespeichert');});
   view.querySelectorAll('button[data-pk]').forEach(b=>b.onclick=()=>{const k=b.dataset.pk,n=b.dataset.p;
-    S[k]=S[k].filter(x=>x!==n);saveS();
+    S[k]=S[k].filter(x=>x!==n);saveS();listChange(k,n,true);
     if(k==='skippers'&&P.skipper===n)P.skipper=DEFAULT_PERSON;if(k==='helms'&&P.helm===n)P.helm=DEFAULT_PERSON;saveP();
     toast(`„${n}“ entfernt`);renderSettings();});
   $('#sFuelAdd').onclick=()=>{const v=$('#sFuelNew').value.trim();if(!v)return;
     if(S.fuelTypes.some(f=>f.toLowerCase()===v.toLowerCase())){toast('Diese Kraftstoffart gibt es schon');return;}
-    S.fuelTypes.push(v);saveS();renderSettings();toast(`„${v}“ hinzugefügt`);};
-  view.querySelectorAll('.chip button[data-f]').forEach(b=>b.onclick=()=>{S.fuelTypes=S.fuelTypes.filter(f=>f!==b.dataset.f);saveS();renderSettings();});
+    S.fuelTypes.push(v);saveS();listChange('fuelTypes',v,false).then(renderSettings);toast(`„${v}“ hinzugefügt`);};
+  view.querySelectorAll('.chip button[data-f]').forEach(b=>b.onclick=()=>{S.fuelTypes=S.fuelTypes.filter(f=>f!==b.dataset.f);saveS();listChange('fuelTypes',b.dataset.f,true).then(renderSettings);});
   $('#sWake').onchange=e=>{S.wake=e.target.checked;saveS();};
   $('#sCid').onchange=e=>{S.odClientId=e.target.value.trim();saveS();};
   $('#odCon').onclick=()=>{S.odClientId=$('#sCid').value.trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};
@@ -1398,6 +1437,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   await odHandleRedirect();
   const act=(await allTrips()).filter(t=>t.status==='active'&&!t.deleted).sort((a,b)=>b.start.t-a.start.t)[0];
   if(act){rec={trip:act,watch:null,wake:null,lastFix:null};beginWatch();keepAwake();toast('Laufende Fahrt wird fortgesetzt');}
+  await initLists().catch(e=>console.warn(e));
   await refreshPre().catch(()=>{});
   route();
   enrichAll();

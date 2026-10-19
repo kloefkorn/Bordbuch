@@ -114,3 +114,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 4.0 | Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S-Notfallfenster |
 | 4.1 | Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt |
 | 4.2 | Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“) |
+| 4.3 | Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand) |

@@ -1,6 +1,6 @@
 // Bordbuch Service Worker – macht die App offline-fähig.
 // Die Cache-Version bei jeder neuen App-Version anpassen (wie APP_VERSION in index.html).
-const SHELL='bordbuch-shell-v4.2', TILES='bordbuch-tiles-v1';
+const SHELL='bordbuch-shell-v4.3', TILES='bordbuch-tiles-v1';
 const LOCAL=['./','./index.html','./manifest.webmanifest','./icon-192.png','./icon-512.png'];
 const CDN=['https://unpkg.com/leaflet@1.9.4/dist/leaflet.css','https://unpkg.com/leaflet@1.9.4/dist/leaflet.js'];
 

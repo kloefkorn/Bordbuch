@@ -270,8 +270,9 @@ dialog h3{margin-top:0}
    · 4.0 Bootsdaten (MMSI, Callsign …) und SOS-Notfallkarte
    · 4.1 Steuermann nur aus Personen an Bord, wenn alle Plätze benannt; Vorbelegung der Besatzung aus der letzten Fahrt (48 h)
    · 4.2 Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar
-   · 4.3 Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe */
-const APP_VERSION='4.3';
+   · 4.3 Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe
+   · 4.4 OneDrive-Anmeldung wird vor Ablauf still erneuert */
+const APP_VERSION='4.4';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -1180,7 +1181,8 @@ async function importFile(file){
 /* ================= OneDrive-Synchronisation ================= */
 const OD_AUTH='https://login.microsoftonline.com/common/oauth2/v2.0';
 const GRAPH='https://graph.microsoft.com/v1.0';
-const OD_SCOPE='Files.ReadWrite.AppFolder offline_access';
+const OD_SCOPE='Files.ReadWrite.AppFolder offline_access openid profile';
+const RT_LIFE=24*36e5,RT_RENEW=18*36e5; // Microsoft: Browser-Apps erhalten max. 24 h gültige Anmeldungen
 const redirectUri=()=>location.origin+location.pathname;
 let odTok=JSON.parse(localStorage.getItem('bb_od')||'null');
 const saveTok=()=>odTok?localStorage.setItem('bb_od',JSON.stringify(odTok)):localStorage.removeItem('bb_od');
@@ -1196,6 +1198,7 @@ async function odLogin(silent){
   localStorage.setItem('bb_od_pkce',JSON.stringify({ver,state,silent:!!silent,hash:location.hash}));
   const q=new URLSearchParams({client_id:S.odClientId,response_type:'code',redirect_uri:redirectUri(),response_mode:'query',
     scope:OD_SCOPE,state,code_challenge:ch,code_challenge_method:'S256',prompt:silent?'none':'select_account'});
+  const hint=localStorage.getItem('bb_od_user');if(hint)q.set('login_hint',hint);
   location.href=`${OD_AUTH}/authorize?${q}`;
 }
 async function odHandleRedirect(){
@@ -1206,6 +1209,7 @@ async function odHandleRedirect(){
   if(err){if(pk?.silent){setSync('bitte neu verbinden');return;}alert('OneDrive-Anmeldung fehlgeschlagen: '+(p.get('error_description')||err));return;}
   if(!pk||pk.state!==p.get('state')){alert('Anmeldung ungültig – bitte erneut versuchen.');return;}
   try{await odTokenReq({grant_type:'authorization_code',code,redirect_uri:redirectUri(),code_verifier:pk.ver});
+    odTok.rtIssued=Date.now();saveTok();
     localStorage.setItem('bb_od_on','1');if(!pk.silent)toast('Mit OneDrive verbunden');}
   catch(e){alert('Token-Abruf fehlgeschlagen: '+e.message);}
 }
@@ -1213,7 +1217,10 @@ async function odTokenReq(params){
   const r=await fetch(`${OD_AUTH}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
     body:new URLSearchParams({client_id:S.odClientId,scope:OD_SCOPE,...params})});
   const j=await r.json();if(!r.ok)throw new Error(j.error_description||j.error||r.status);
-  odTok={access:j.access_token,refresh:j.refresh_token||odTok?.refresh,exp:Date.now()+(j.expires_in-120)*1000};saveTok();
+  odTok={access:j.access_token,refresh:j.refresh_token||odTok?.refresh,exp:Date.now()+(j.expires_in-120)*1000,rtIssued:odTok?.rtIssued||Date.now()};
+  if(j.id_token){try{const c=JSON.parse(decodeURIComponent(escape(atob(j.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))));
+    const u=c.preferred_username||c.email||c.login_hint;if(u)localStorage.setItem('bb_od_user',u);}catch(e){}}
+  saveTok();
 }
 async function odAccess(){
   if(odTok&&Date.now()<odTok.exp)return odTok.access;
@@ -1223,6 +1230,14 @@ async function odAccess(){
 async function g(path,opts={}){const tok=await odAccess();
   return fetch(path.startsWith('http')?path:GRAPH+path,{...opts,headers:{...(opts.headers||{}),Authorization:'Bearer '+tok}});}
 
+/* Stille Erneuerung der Microsoft-Anmeldung, bevor sie nach 24 h abläuft (nur ohne laufende Fahrt) */
+function maybeRenew(){
+  if(!localStorage.getItem('bb_od_on')||!S.odClientId||rec||!navigator.onLine||document.visibilityState!=='visible')return false;
+  const age=odTok?.rtIssued?Date.now()-odTok.rtIssued:Infinity;
+  if(odTok&&age<RT_RENEW)return false;
+  const last=+localStorage.getItem('bb_silent')||0;if(Date.now()-last<2*36e5)return false;
+  localStorage.setItem('bb_silent',Date.now());odLogin(true);return true;
+}
 let syncing=false,syncTimer;
 function syncSoon(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(true),4000);}
 const SYNC_SETS=[
@@ -1262,7 +1277,7 @@ async function syncNow(quiet,allowSilentLogin){
   }catch(e){
     if(e.relogin){
       const last=+localStorage.getItem('bb_silent')||0;
-      if(allowSilentLogin&&!rec&&Date.now()-last>6*36e5){localStorage.setItem('bb_silent',Date.now());syncing=false;odLogin(true);return;}
+      if(allowSilentLogin&&!rec&&Date.now()-last>2*36e5){localStorage.setItem('bb_silent',Date.now());syncing=false;odLogin(true);return;}
       setSync('bitte neu verbinden');
     }else setSync('Fehler: '+e.message);
     if(!quiet)toast('Sync: '+e.message);
@@ -1300,7 +1315,7 @@ async function renderSettings(){
     <div class="check"><input type="checkbox" id="sWake" ${S.wake?'checked':''}><span>Display während der Fahrt anlassen (empfohlen)</span></div>
   </section>
   <section class="panel"><h3>OneDrive – automatische Synchronisation</h3>
-    <p class="hint">Status: <b id="odState">${on?esc(syncMsg||'verbunden'):'nicht verbunden'}</b></p>
+    <p class="hint">Status: <b id="odState">${on?esc(syncMsg||'verbunden'):'nicht verbunden'}</b>${on&&localStorage.getItem('bb_od_user')?` · angemeldet als ${esc(localStorage.getItem('bb_od_user'))}`:''}</p>
     <label>Anwendungs-(Client-)ID aus der Azure-App-Registrierung</label>
     <input type="text" id="sCid" value="${esc(S.odClientId)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocapitalize="off" autocomplete="off">
     <p class="hint">Umleitungs-URI für die Registrierung (Plattform „Single-Page-Anwendung“):<br><code>${esc(redirectUri())}</code></p>
@@ -1308,6 +1323,7 @@ async function renderSettings(){
       <button class="btn" id="odCon">${on?'Neu anmelden':'Mit OneDrive verbinden'}</button>
       ${on?'<button class="btn ghost" id="odSync">Jetzt synchronisieren</button><button class="btn danger" id="odOff">Trennen</button>':''}
     </div>
+    <p class="hint">Microsoft lässt Web-Apps nur 24 Stunden ohne neue Anmeldung zu. Die App erneuert die Anmeldung deshalb beim Öffnen automatisch im Hintergrund (kurzer Seitenwechsel). Damit das ohne Eingabe klappt, bei der Microsoft-Anmeldung „Angemeldet bleiben?“ mit „Ja“ beantworten.</p>
     <p class="hint">Die Fahrten liegen in deinem OneDrive unter <i>Apps › Bordbuch › trips</i>. Jedes Gerät mit derselben Client-ID und demselben Microsoft-Konto sieht dieselben Fahrten.</p>
   </section>
   <section class="panel"><h3>iCloud &amp; Datensicherung</h3>
@@ -1373,7 +1389,7 @@ async function forceUpdate(){
 /* ================= Start ================= */
 window.addEventListener('online',()=>{updateStatus();enrichAll();syncSoon();});
 window.addEventListener('offline',updateStatus);
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(rec)keepAwake();updateStatus();enrichAll();syncSoon();}});
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'){if(rec)keepAwake();updateStatus();enrichAll();if(!maybeRenew())syncNow(true,true);}});
 setInterval(()=>{if(document.visibilityState==='visible')syncNow(true);},5*60*1000);
 
 document.addEventListener('DOMContentLoaded',async()=>{
@@ -1385,7 +1401,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   await refreshPre().catch(()=>{});
   route();
   enrichAll();
-  syncNow(true,true);
+  if(!maybeRenew())syncNow(true,true);
 });
 </script>
 </body>

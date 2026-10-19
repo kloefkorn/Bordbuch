@@ -74,7 +74,7 @@ Die App spricht direkt mit deinem OneDrive. Dafür braucht sie eine eigene, kost
 
 Die Fahrten liegen dann als einzelne Dateien in `OneDrive/Apps/Bordbuch/trips/`, die Tankvorgänge in `OneDrive/Apps/Bordbuch/fuel/`. Die App hat nur Zugriff auf diesen eigenen Ordner. Abgleich: beim Öffnen, bei neuer Internetverbindung, nach jeder Fahrt und jedem Kommentar, sowie alle 5 Minuten. Bei Konflikten gewinnt die zuletzt geänderte Fassung einer Fahrt.
 
-Hinweis: Microsoft lässt reine Web-Apps nur 24 Stunden ohne erneute Anmeldung arbeiten. Die App versucht beim Öffnen automatisch, sich still neu anzumelden (kurzer Seitenwechsel). Klappt das nicht, steht oben „bitte neu verbinden“ – dann in den Einstellungen einmal „Neu anmelden“ tippen. Bis dahin bleibt alles lokal gespeichert und wird später nachsynchronisiert.
+Hinweis: Microsoft lässt reine Web-Apps grundsätzlich nur 24 Stunden ohne erneute Anmeldung arbeiten; das lässt sich auch in der Azure-Registrierung nicht verlängern. Die App erneuert die Anmeldung deshalb ab etwa 18 Stunden automatisch beim Öffnen (kurzer Seitenwechsel zu Microsoft und zurück, ohne Eingabe) – nie während einer laufenden Fahrt. Damit das klappt, bei der Microsoft-Anmeldung „Angemeldet bleiben?“ mit **Ja** beantworten. Nur wenn Microsoft trotzdem eine Eingabe verlangt, steht oben „bitte neu verbinden“; bis dahin bleibt alles lokal gespeichert und wird danach nachsynchronisiert.
 
 ## 5. iCloud
 
@@ -115,3 +115,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 4.1 | Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt |
 | 4.2 | Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“) |
 | 4.3 | Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand) |
+| 4.4 | OneDrive-Anmeldung wird vor Ablauf automatisch im Hintergrund erneuert |

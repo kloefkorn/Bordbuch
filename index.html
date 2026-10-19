@@ -252,8 +252,9 @@ dialog h3{margin-top:0}
    · 3.0 Besatzung (Skipper, Steuermann, Personen an Bord), Tankknopf neben Start/Stop, Tankvorgang löschen
    · 3.1 Pax standardmäßig 2 · 3.2 Datumsfelder im Filter einheitlich gestaltet · 3.3 zuverlässigere Updates · 3.4 größere Schaltfläche „Personen an Bord“
    · 4.0 Bootsdaten (MMSI, Callsign …) und SOS-Notfallkarte
-   · 4.1 Steuermann nur aus Personen an Bord, wenn alle Plätze benannt; Vorbelegung der Besatzung aus der letzten Fahrt (48 h) */
-const APP_VERSION='4.1';
+   · 4.1 Steuermann nur aus Personen an Bord, wenn alle Plätze benannt; Vorbelegung der Besatzung aus der letzten Fahrt (48 h)
+   · 4.2 Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar */
+const APP_VERSION='4.2';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -621,21 +622,38 @@ function crewBarHtml(){
   const min=r?Math.max(1,tripAuto(t).length):Math.max(1,autoCrew(P.skipper,[P.helm]).length);
   const paxOpts=Array.from({length:12},(_,i)=>i+1).map(n=>`<option value="${n}" ${n===px?'selected':''} ${n<min?'disabled':''}>${n}</option>`).join('');
   const named=Math.min(board.length,px);
-  const helmList=full?board:uniq([...board,...S.helms]);
-  const skList=full?board:uniq([...S.skippers,...board]);
+  // Vor der Fahrt ist alles frei wählbar; während der Fahrt nur Personen an Bord, sobald alle Plätze benannt sind
+  const lock=r&&full;
+  const helmList=lock?board:uniq([...board,...S.helms]);
+  const skList=uniq([...S.skippers,...board]);
   return `<div class="crewbar">
-    <label class="msel ${r?'locked':''}"><span class="in"><small>Skipper</small><select id="cSk" ${r?'disabled':''}>${r?`<option>${esc(sk)}</option>`:personOptions(skList,sk,'Weiterer Skipper',!full)}</select></span></label>
-    <label class="msel"><span class="in"><small>Steuermann</small><select id="cHl">${personOptions(helmList,hl,'Weiterer Steuermann',!full)}</select></span></label>
+    <label class="msel ${r?'locked':''}"><span class="in"><small>Skipper</small><select id="cSk" ${r?'disabled':''}>${r?`<option>${esc(sk)}</option>`:personOptions(skList,sk,'Weiterer Skipper',true)}</select></span></label>
+    <label class="msel"><span class="in"><small>Steuermann</small><select id="cHl">${personOptions(helmList,hl,'Weiterer Steuermann',!lock)}</select></span></label>
     <label class="msel"><span class="in"><small>Pax</small><select id="cPx" aria-label="Personen an Bord">${paxOpts}</select></span></label>
   </div>
   <button class="msel crewBtn" id="cNames"><span class="in">
     <span><small>Personen an Bord</small><b>${px} ${px===1?'Person':'Personen'}</b>${named<px?`<span class="cbMiss">${px-named} ohne Namen</span>`:''}</span>
     <span class="cbR">Namen ${named<px?'eingeben':'bearbeiten'}</span></span></button>`;
 }
+/* Vor der Fahrt: neue Person übernimmt eine Rolle. Bleibt die bisherige Person an Bord? */
+async function askKeep(name){
+  const {v}=await modal(`<h3>Alle Plätze sind belegt</h3><p>Bleibt <b>${esc(name)}</b> trotzdem an Bord?</p>
+    <div class="row" style="justify-content:flex-end"><button value="no" class="btn ghost">Nein, ersetzen</button><button value="yes" class="btn">Ja, eine Person mehr</button></div>`);
+  return v!=='no';
+}
+async function preSwap(prev,n,prevKeepsRole){
+  const wasOnBoard=onBoardPre().includes(n),full=onBoardPre().length>=paxPre();
+  let g=P.guests.filter(x=>x!==n);
+  if(!prevKeepsRole&&prev!==n){
+    const keep=(!wasOnBoard&&full)?await askKeep(prev):true;
+    if(keep)g=addGuest(g,prev);
+  }
+  return g;
+}
 function bindCrewBar(){
   const sk=$('#cSk'),hl=$('#cHl'),px=$('#cPx');
   if(!rec)sk.onchange=async()=>{const prev=P.skipper;const n=await pickPerson(sk,'skippers','Weiterer Skipper','Name des Skippers',prev);if(!n||n===prev){renderHome();return;}
-    let g=P.guests.filter(x=>x!==n);if(prev!==P.helm)g=addGuest(g,prev); // bisheriger Skipper bleibt an Bord
+    const g=await preSwap(prev,n,prev===P.helm);
     P.skipper=n;P.pax=Math.max(P.pax,uniq([P.skipper,P.helm]).length+g.filter(Boolean).length);
     P.guests=fitGuests(g,P.pax-uniq([P.skipper,P.helm]).length);P.auto=false;saveP();renderHome();};
   hl.onchange=async()=>{
@@ -651,7 +669,7 @@ function bindCrewBar(){
       if(t.crew.pax<autoN){t.crew.pax=autoN;toast(`Steuermann: ${n} ab ${fmtTime(Date.now())} – Personen an Bord auf ${autoN} erhöht`);}
       else toast(`Steuermann: ${n} ab ${fmtTime(Date.now())} Uhr`);
       t.updatedAt=Date.now();persist();}
-    else{let g=P.guests.filter(x=>x!==n);if(prev!==P.skipper)g=addGuest(g,prev); // bisheriger Steuermann bleibt an Bord
+    else{const g=await preSwap(prev,n,prev===P.skipper);
       P.helm=n;P.pax=Math.max(P.pax,uniq([P.skipper,P.helm]).length+g.filter(Boolean).length);
       P.guests=fitGuests(g,P.pax-uniq([P.skipper,P.helm]).length);P.auto=false;saveP();}
     renderHome();};

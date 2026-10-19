@@ -273,8 +273,8 @@ dialog h3{margin-top:0}
    · 4.3 Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe
    · 4.4 OneDrive-Anmeldung wird vor Ablauf still erneuert
    · 4.5 Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen
-   · 4.6 Verbrauch: Strecke nur zwischen Tankvorgängen */
-const APP_VERSION='4.6';
+   · 4.6 Verbrauch: Strecke nur zwischen Tankvorgängen · 4.7 Fahrtenfilter „Person an Bord“ */
+const APP_VERSION='4.7';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -826,7 +826,7 @@ function renderHome(){
 }
 
 /* ================= Fahrtenliste ================= */
-const F={boat:DEFAULT_BOAT_NAME,from:'',to:'',skipper:'*',helm:'*'}; // Filter; beim App-Start immer „Blue Moon“
+const F={boat:DEFAULT_BOAT_NAME,from:'',to:'',skipper:'*',helm:'*',person:'*'}; // Filter; beim App-Start immer „Blue Moon“
 const dayKey=t=>{const d=new Date(t);return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;};
 async function renderList(){
   setTitle('Fahrten',true);
@@ -840,6 +840,7 @@ async function renderList(){
     <div class="fr">
       <div><label for="fSk">Skipper</label><select id="fSk"><option value="*">Alle</option>${uniq([...S.skippers,...trips.map(t=>t.skipper)]).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div>
       <div><label for="fHl">Steuermann</label><select id="fHl"><option value="*">Alle</option>${uniq([...S.helms,...trips.flatMap(t=>tripHelms(t).map(h=>h.name))]).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div>
+      <div style="grid-column:1/-1"><label for="fPe">Person an Bord</label><select id="fPe"><option value="*">Alle</option>${uniq(trips.flatMap(t=>onBoardTrip(t))).sort((a,b)=>a.localeCompare(b,'de')).map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('')}</select></div>
       <div><label for="fFrom">Von</label><input type="date" id="fFrom"></div>
       <div><label for="fTo">Bis</label><input type="date" id="fTo"></div>
     </div>
@@ -847,9 +848,9 @@ async function renderList(){
   </section>
   <div class="summary" id="sum"></div>
   <div id="res"></div>`;
-  $('#fBoat').value=F.boat;$('#fFrom').value=F.from;$('#fTo').value=F.to;$('#fSk').value=F.skipper;$('#fHl').value=F.helm;if($('#fSk').value!==F.skipper){F.skipper='*';$('#fSk').value='*';}if($('#fHl').value!==F.helm){F.helm='*';$('#fHl').value='*';}
+  $('#fBoat').value=F.boat;$('#fFrom').value=F.from;$('#fTo').value=F.to;$('#fSk').value=F.skipper;$('#fHl').value=F.helm;if($('#fSk').value!==F.skipper){F.skipper='*';$('#fSk').value='*';}if($('#fHl').value!==F.helm){F.helm='*';$('#fHl').value='*';}$('#fPe').value=F.person;if($('#fPe').value!==F.person){F.person='*';$('#fPe').value='*';}
   const draw=()=>{
-    const sel=trips.filter(t=>(F.boat==='*'||tripBoat(t).name===F.boat)&&(F.skipper==='*'||t.skipper===F.skipper)&&(F.helm==='*'||tripHelms(t).some(h=>h.name===F.helm))&&(!F.from||dayKey(t.start.t)>=F.from)&&(!F.to||dayKey(t.start.t)<=F.to));
+    const sel=trips.filter(t=>(F.boat==='*'||tripBoat(t).name===F.boat)&&(F.skipper==='*'||t.skipper===F.skipper)&&(F.helm==='*'||tripHelms(t).some(h=>h.name===F.helm))&&(F.person==='*'||onBoardTrip(t).includes(F.person))&&(!F.from||dayKey(t.start.t)>=F.from)&&(!F.to||dayKey(t.start.t)<=F.to));
     let km=0,ms=0;
     sel.forEach(t=>{const active=t.status!=='done';km+=active?trackDist(t.points):(t.distance||0);ms+=(active?Date.now():t.end.t)-t.start.t;});
     $('#sum').innerHTML=`<div><b>${sel.length}</b><small>${sel.length===1?'Fahrt':'Fahrten'}</small></div>
@@ -871,10 +872,10 @@ async function renderList(){
       </a>`;}).join(''):'<p class="empty">Keine Fahrten für diese Auswahl.</p>';
   };
   $('#fBoat').onchange=e=>{F.boat=e.target.value;draw();};
-  $('#fSk').onchange=e=>{F.skipper=e.target.value;draw();};$('#fHl').onchange=e=>{F.helm=e.target.value;draw();};
+  $('#fSk').onchange=e=>{F.skipper=e.target.value;draw();};$('#fHl').onchange=e=>{F.helm=e.target.value;draw();};$('#fPe').onchange=e=>{F.person=e.target.value;draw();};
   $('#fFrom').onchange=e=>{F.from=e.target.value;if(F.to&&F.from>F.to){F.to=F.from;$('#fTo').value=F.to;}draw();};
   $('#fTo').onchange=e=>{F.to=e.target.value;if(F.from&&F.to<F.from){F.from=F.to;$('#fFrom').value=F.from;}draw();};
-  $('#fReset').onclick=()=>{F.boat=DEFAULT_BOAT_NAME;F.from='';F.to='';F.skipper='*';F.helm='*';$('#fSk').value='*';$('#fHl').value='*';$('#fBoat').value=F.boat;$('#fFrom').value='';$('#fTo').value='';draw();};
+  $('#fReset').onclick=()=>{F.boat=DEFAULT_BOAT_NAME;F.from='';F.to='';F.skipper='*';F.helm='*';F.person='*';$('#fSk').value='*';$('#fHl').value='*';$('#fPe').value='*';$('#fBoat').value=F.boat;$('#fFrom').value='';$('#fTo').value='';draw();};
   draw();
 }
 

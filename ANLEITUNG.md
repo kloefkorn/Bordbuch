@@ -35,7 +35,7 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 - **Beim allerersten Start** fragt die App nach Bootsname (Pflicht), Bootsbezeichnung (freiwillig), Skipper und Steuermann (Pflicht) und ob OneDrive genutzt werden soll. Alles lässt sich später in den Einstellungen ändern.
 
 ### Die App an Bekannte weitergeben
-Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bordbuch/`) weitergeben. Jeder installiert sie auf seinem eigenen Gerät; die Daten bleiben getrennt auf dem jeweiligen Gerät bzw. im eigenen OneDrive. Ein eigenes GitHub-Konto brauchen Bekannte nicht. Wer OneDrive nutzen möchte, kann dieselbe Client-ID verwenden wie du (siehe Abschnitt 4) – die Daten landen trotzdem nur im eigenen OneDrive.
+Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bordbuch/`) weitergeben. Jeder installiert sie auf seinem eigenen Gerät; die Daten bleiben getrennt auf dem jeweiligen Gerät bzw. im eigenen OneDrive. Ein eigenes GitHub-Konto brauchen Bekannte nicht. Wer OneDrive nutzen möchte, schaltet es einfach ein und meldet sich mit dem eigenen Microsoft-Konto an – die Daten landen nur im eigenen OneDrive.
 
 ## 3. Bedienung
 
@@ -69,14 +69,16 @@ Ein Browser darf GPS nur aufzeichnen, solange die App sichtbar ist. Deshalb häl
 
 OneDrive ist ausgeschaltet, bis du es in der Ersteinrichtung oder unter Einstellungen → „OneDrive-Synchronisation verwenden“ einschaltest. Ohne OneDrive bleiben alle Daten auf dem Gerät; gesichert wird dann über „Sicherung exportieren“ (Abschnitt 5).
 
-Die App spricht direkt mit deinem OneDrive. Dafür braucht sie eine eigene, kostenlose „App-Registrierung“ bei Microsoft (etwa 5 Minuten, einmalig):
+Die App spricht direkt mit deinem OneDrive. Die nötige Microsoft-Registrierung (Client-ID `faa92145-a1d5-4ac5-8e41-66c5d2019548`) ist bereits eingebaut. Auf jedem Gerät genügt: Einstellungen → „OneDrive-Synchronisation verwenden“ einschalten → „Mit OneDrive verbinden“ → mit dem eigenen Microsoft-Konto anmelden.
 
-1. Mit deinem Microsoft-Konto auf **https://portal.azure.com** anmelden → „App-Registrierungen“ → „Neue Registrierung“.
+Die Client-ID ist kein Geheimnis: Sie steht ohnehin in jeder Anmelde-Adresse. Anmeldungen damit funktionieren nur unter der in Azure eingetragenen Web-Adresse dieser App; jeder Nutzer sieht nur sein eigenes OneDrive und gibt den Zugriff selbst frei. Wichtig für den Betreiber: Die App-Registrierung in Azure nicht löschen und die Umleitungs-URI nicht ändern, sonst funktioniert der Abgleich bei allen Nutzern nicht mehr.
+
+**Nur wer die App unter einer eigenen Web-Adresse betreibt**, braucht eine eigene Registrierung:
+
+1. Mit dem Microsoft-Konto auf **https://portal.azure.com** anmelden → „App-Registrierungen“ → „Neue Registrierung“.
 2. Name: `Bordbuch`. Unterstützte Kontotypen: **„Konten in einem beliebigen Organisationsverzeichnis und persönliche Microsoft-Konten“**.
-3. Umleitungs-URI: Plattform **„Single-Page-Anwendung (SPA)“**, Adresse genau wie in der App unter Einstellungen angezeigt, zum Beispiel `https://<benutzername>.github.io/bordbuch/`.
-4. Registrieren → die **Anwendungs-ID (Client-ID)** kopieren.
-5. In der App: ☰ → Einstellungen → Client-ID einfügen → „Mit OneDrive verbinden“ → anmelden und zustimmen.
-6. Auf jedem weiteren Gerät dieselbe Adresse öffnen, dieselbe Client-ID eintragen, mit demselben Microsoft-Konto verbinden.
+3. Umleitungs-URI: Plattform **„Single-Page-Anwendung (SPA)“**, Adresse genau wie in der App unter Einstellungen → „Erweitert: eigene Client-ID“ angezeigt.
+4. Registrieren → die **Anwendungs-ID (Client-ID)** kopieren und in der App unter „Erweitert: eigene Client-ID“ eintragen.
 
 Die Fahrten liegen dann als einzelne Dateien in `OneDrive/Apps/Bordbuch/trips/`, die Tankvorgänge in `OneDrive/Apps/Bordbuch/fuel/`. Die App hat nur Zugriff auf diesen eigenen Ordner. Abgleich: beim Öffnen, bei neuer Internetverbindung, nach jeder Fahrt und jedem Kommentar, sowie alle 5 Minuten. Bei Konflikten gewinnt die zuletzt geänderte Fassung einer Fahrt.
 
@@ -126,3 +128,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 4.6 | Verbrauch: „Gefahren“ zählt nur die Strecke zwischen erfassten Tankvorgängen |
 | 4.7 | Fahrtenfilter „Person an Bord“ |
 | 5.0 | Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen |
+| 5.1 | Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld |

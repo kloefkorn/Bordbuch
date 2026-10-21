@@ -286,8 +286,9 @@ dialog h3{margin-top:0}
    · 4.4 OneDrive-Anmeldung wird vor Ablauf still erneuert
    · 4.5 Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen
    · 4.6 Verbrauch: Strecke nur zwischen Tankvorgängen · 4.7 Fahrtenfilter „Person an Bord“
-   · 5.0 Für alle nutzbar: Ersteinrichtung (Boot, Skipper, Steuermann), OneDrive abschaltbar, Hilfe */
-const APP_VERSION='5.0';
+   · 5.0 Für alle nutzbar: Ersteinrichtung (Boot, Skipper, Steuermann), OneDrive abschaltbar, Hilfe
+   · 5.1 Eingebaute Microsoft-Client-ID; Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld */
+const APP_VERSION='5.1';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -1234,6 +1235,10 @@ async function importFile(file){
 }
 
 /* ================= OneDrive-Synchronisation ================= */
+/* Eingebaute Microsoft-Client-ID. Sie ist kein Geheimnis (steht in jeder Anmelde-Adresse);
+   Anmeldungen funktionieren damit nur unter der in Azure registrierten Web-Adresse dieser App. */
+const BUILTIN_CLIENT_ID='faa92145-a1d5-4ac5-8e41-66c5d2019548';
+const clientId=()=>(S.odClientId||'').trim()||BUILTIN_CLIENT_ID;
 const OD_AUTH='https://login.microsoftonline.com/common/oauth2/v2.0';
 const GRAPH='https://graph.microsoft.com/v1.0';
 const OD_SCOPE='Files.ReadWrite.AppFolder offline_access openid profile';
@@ -1245,13 +1250,12 @@ const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,
 function setSync(m){syncMsg=m;updateStatus();const e=$('#odState');if(e)e.textContent=m;}
 
 async function odLogin(silent){
-  if(!S.odClientId){alert('Bitte zuerst die Anwendungs-(Client-)ID eintragen – siehe Anleitung.');return;}
   if(!crypto.subtle){alert('Die Anmeldung funktioniert nur über HTTPS.');return;}
   const ver=b64u(crypto.getRandomValues(new Uint8Array(32)));
   const ch=b64u(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(ver)));
   const state=b64u(crypto.getRandomValues(new Uint8Array(16)));
   localStorage.setItem('bb_od_pkce',JSON.stringify({ver,state,silent:!!silent,hash:location.hash}));
-  const q=new URLSearchParams({client_id:S.odClientId,response_type:'code',redirect_uri:redirectUri(),response_mode:'query',
+  const q=new URLSearchParams({client_id:clientId(),response_type:'code',redirect_uri:redirectUri(),response_mode:'query',
     scope:OD_SCOPE,state,code_challenge:ch,code_challenge_method:'S256',prompt:silent?'none':'select_account'});
   const hint=localStorage.getItem('bb_od_user');if(hint)q.set('login_hint',hint);
   location.href=`${OD_AUTH}/authorize?${q}`;
@@ -1270,7 +1274,7 @@ async function odHandleRedirect(){
 }
 async function odTokenReq(params){
   const r=await fetch(`${OD_AUTH}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
-    body:new URLSearchParams({client_id:S.odClientId,scope:OD_SCOPE,...params})});
+    body:new URLSearchParams({client_id:clientId(),scope:OD_SCOPE,...params})});
   const j=await r.json();if(!r.ok)throw new Error(j.error_description||j.error||r.status);
   odTok={access:j.access_token,refresh:j.refresh_token||odTok?.refresh,exp:Date.now()+(j.expires_in-120)*1000,rtIssued:odTok?.rtIssued||Date.now()};
   if(j.id_token){try{const c=JSON.parse(decodeURIComponent(escape(atob(j.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))));
@@ -1287,7 +1291,7 @@ async function g(path,opts={}){const tok=await odAccess();
 
 /* Stille Erneuerung der Microsoft-Anmeldung, bevor sie nach 24 h abläuft (nur ohne laufende Fahrt) */
 function maybeRenew(){
-  if(!S.odEnabled||!localStorage.getItem('bb_od_on')||!S.odClientId||rec||!navigator.onLine||document.visibilityState!=='visible')return false;
+  if(!S.odEnabled||!localStorage.getItem('bb_od_on')||rec||!navigator.onLine||document.visibilityState!=='visible')return false;
   const age=odTok?.rtIssued?Date.now()-odTok.rtIssued:Infinity;
   if(odTok&&age<RT_RENEW)return false;
   const last=+localStorage.getItem('bb_silent')||0;if(Date.now()-last<2*36e5)return false;
@@ -1383,13 +1387,16 @@ async function renderSettings(){
     <div class="check"><input type="checkbox" id="sOdEn" ${S.odEnabled?'checked':''}><span>OneDrive-Synchronisation verwenden</span></div>
     ${S.odEnabled?`
     <p class="hint">Status: <b id="odState">${on?esc(syncMsg||'verbunden'):'nicht verbunden'}</b>${on&&localStorage.getItem('bb_od_user')?` · angemeldet als ${esc(localStorage.getItem('bb_od_user'))}`:''}</p>
-    <label>Anwendungs-(Client-)ID aus der Azure-App-Registrierung</label>
-    <input type="text" id="sCid" value="${esc(S.odClientId)}" placeholder="xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx" autocapitalize="off" autocomplete="off">
-    <p class="hint">Umleitungs-URI für die Registrierung (Plattform „Single-Page-Anwendung“):<br><code>${esc(redirectUri())}</code></p>
+    <p class="hint">Einfach auf „Mit OneDrive verbinden“ tippen und mit deinem Microsoft-Konto anmelden – eine weitere Einrichtung ist nicht nötig.</p>
     <div class="row">
       <button class="btn" id="odCon">${on?'Neu anmelden':'Mit OneDrive verbinden'}</button>
       ${on?'<button class="btn ghost" id="odSync">Jetzt synchronisieren</button><button class="btn danger" id="odOff">Trennen</button>':''}
     </div>
+    <details class="help" style="margin:10px 0"><summary>Erweitert: eigene Client-ID</summary><div>
+      <p class="hint">Nur nötig, wenn du die App unter einer eigenen Web-Adresse betreibst. Leer lassen, um die eingebaute ID zu verwenden.</p>
+      <input type="text" id="sCid" value="${esc(S.odClientId&&S.odClientId!==BUILTIN_CLIENT_ID?S.odClientId:'')}" placeholder="leer = eingebaute ID" autocapitalize="off" autocomplete="off">
+      <p class="hint">Umleitungs-URI für eine eigene Registrierung (Plattform „Single-Page-Anwendung“):<br><code>${esc(redirectUri())}</code></p>
+    </div></details>
     <p class="hint">Microsoft lässt Web-Apps nur 24 Stunden ohne neue Anmeldung zu. Die App erneuert die Anmeldung deshalb beim Öffnen automatisch im Hintergrund (kurzer Seitenwechsel). Damit das ohne Eingabe klappt, bei der Microsoft-Anmeldung „Angemeldet bleiben?“ mit „Ja“ beantworten.</p>
     <p class="hint">Die Fahrten liegen in deinem OneDrive unter <i>Apps › Bordbuch › trips</i>. Jedes Gerät mit derselben Client-ID und demselben Microsoft-Konto sieht dieselben Fahrten.</p>
   `:`<p class="hint">Ausgeschaltet: Alle Daten bleiben nur auf diesem Gerät. Sichern kannst du sie unten mit „Sicherung exportieren“. Einschalten lohnt sich, wenn du die App auf mehreren Geräten nutzen möchtest – die Einrichtung ist in der Hilfe beschrieben.</p>`}
@@ -1425,7 +1432,7 @@ async function renderSettings(){
   $('#sWake').onchange=e=>{S.wake=e.target.checked;saveS();};
   if($('#sCid'))$('#sCid').onchange=e=>{S.odClientId=e.target.value.trim();saveS();};
   $('#sOdEn').onchange=e=>{S.odEnabled=e.target.checked;saveS();updateStatus();renderSettings();if(S.odEnabled)syncNow(true);};
-  if($('#odCon'))$('#odCon').onclick=()=>{S.odClientId=$('#sCid').value.trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};
+  if($('#odCon'))$('#odCon').onclick=()=>{S.odClientId=($('#sCid')?.value||'').trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};
   if($('#odSync'))$('#odSync').onclick=()=>syncNow(false);
   if($('#odOff'))$('#odOff').onclick=()=>{['bb_od','bb_od_on','bb_odmap'].forEach(k=>localStorage.removeItem(k));odTok=null;syncMsg='';renderSettings();};
   $('#exp').onclick=exportAll;
@@ -1492,8 +1499,8 @@ function renderHelp(){
     <li>Alle Daten liegen zunächst <b>nur auf diesem Gerät</b>. Es gibt keinen Server, der deine Daten speichert.</li>
     <li>Einstellungen → <b>Sicherung exportieren</b> speichert alles als Datei (zum Beispiel in iCloud Drive). Mit „Sicherung importieren“ holst du sie auf ein anderes Gerät.</li>
     <li><b>Achtung iPhone/iPad:</b> Wird das App-Symbol vom Home-Bildschirm gelöscht, sind auch die Daten weg. Vorher eine Sicherung exportieren.</li>
-    <li><b>OneDrive (freiwillig):</b> gleicht Fahrten, Tankvorgänge, Bootsdaten und Namenslisten automatisch zwischen deinen Geräten ab. Dafür in den Einstellungen „OneDrive-Synchronisation verwenden“ einschalten, eine Client-ID eintragen und mit deinem Microsoft-Konto verbinden.</li>
-    <li>Die Client-ID stammt aus einer kostenlosen App-Registrierung auf portal.azure.com (Plattform „Single-Page-Anwendung“, Umleitungs-URI wie in den Einstellungen angezeigt, Kontotyp „persönliche Microsoft-Konten“). Hast du die App von jemandem bekommen, der das schon eingerichtet hat, kannst du meist dessen Client-ID verwenden – deine Daten landen trotzdem nur in deinem eigenen OneDrive.</li></ul>`)}
+    <li><b>OneDrive (freiwillig):</b> gleicht Fahrten, Tankvorgänge, Bootsdaten und Namenslisten automatisch zwischen deinen Geräten ab. Dafür in den Einstellungen „OneDrive-Synchronisation verwenden“ einschalten, „Mit OneDrive verbinden“ tippen und mit deinem Microsoft-Konto anmelden. Bei der Frage „Angemeldet bleiben?“ „Ja“ wählen.</li>
+    <li>Eine eigene Microsoft-Registrierung ist nicht nötig: Die App bringt alles mit. Deine Daten landen nur in deinem eigenen OneDrive (Ordner <i>Apps › Bordbuch</i>); die App hat auch nur auf diesen Ordner Zugriff.</li></ul>`)}
   ${sec('8. Updates',`<ul><li>Neue Versionen lädt die App mit Internet automatisch. Die Versionsnummer steht unten links auf der Startseite. Einstellungen → „Nach neuer Version suchen“ erzwingt ein Update; deine Daten bleiben erhalten.</li></ul>`)}
   ${sec('Datenquellen und Datenschutz',`<p class="hint">Karten © OpenStreetMap-Mitwirkende, Seezeichen © OpenSeaMap, Ortsnamen über Nominatim (OpenStreetMap), Wetter von Open-Meteo.com. Für Ortsnamen und Wetter werden nur die Koordinaten von Fahrtbeginn und -ende an diese Dienste geschickt.</p>`)}
   <div class="row"><button class="btn ghost" id="hSetup">Ersteinrichtung erneut öffnen</button></div>`;
@@ -1510,15 +1517,15 @@ function openSetup(again){
       <label for="suName">Bootsname <b style="color:var(--stop)">*</b></label><input type="text" id="suName" value="${esc(S.boatName||'')}" placeholder="zum Beispiel Seestern" autocapitalize="words">
       <label for="suType">Bootsbezeichnung (Typ)</label><input type="text" id="suType" value="${esc(S.boatType||'')}" placeholder="zum Beispiel Bavaria S29">
       <label for="suSk">Skipper <b style="color:var(--stop)">*</b></label><input type="text" id="suSk" value="${esc(S.skippers[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words" autocomplete="name">
-      <label for="suHl">Steuermann <b style="color:var(--stop)">*</b></label><input type="text" id="suHl" value="${esc(S.helms[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words">
-      <div class="check" style="margin:6px 0"><input type="checkbox" id="suSame"><span>Steuermann ist der Skipper</span></div>
+      <div class="check" style="margin:10px 0 4px"><input type="checkbox" id="suSame"><span>Der Skipper ist auch Steuermann</span></div>
+      <div id="suHlBox"><label for="suHl">Steuermann <b style="color:var(--stop)">*</b></label><input type="text" id="suHl" value="${esc(S.helms[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words"></div>
       <div class="check"><input type="checkbox" id="suOd" ${S.odEnabled?'checked':''}><span>OneDrive-Synchronisation verwenden (optional, später einrichtbar)</span></div>
       <p class="hint"><b style="color:var(--stop)">*</b> Pflichtangabe</p>
       <div class="row" style="justify-content:flex-end">${again?'<button value="cancel" class="btn ghost">Abbrechen</button>':''}<button value="ok" class="btn" id="suOk">Los geht’s</button></div>
     </form>`;
     document.body.appendChild(d);
     if(!again)d.addEventListener('cancel',e=>e.preventDefault()); // Pflicht: nicht wegwischbar
-    $('#suSame',d).onchange=e=>{if(e.target.checked){$('#suHl',d).value=$('#suSk',d).value;}$('#suHl',d).disabled=e.target.checked;};
+    $('#suSame',d).onchange=e=>{$('#suHlBox',d).style.display=e.target.checked?'none':'';if(!e.target.checked)$('#suHl',d).focus();};
     $('#suSk',d).oninput=()=>{if($('#suSame',d).checked)$('#suHl',d).value=$('#suSk',d).value;};
     $('#suOk',d).onclick=e=>{
       const nm=$('#suName',d).value.trim(),sk=$('#suSk',d).value.trim(),hl=($('#suSame',d).checked?$('#suSk',d).value:$('#suHl',d).value).trim();

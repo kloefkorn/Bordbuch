@@ -32,6 +32,10 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 - **Android:** In Chrome öffnen → Menü ⋮ → „App installieren“.
 - Beim ersten Tippen auf „Start“ den Standortzugriff erlauben. Unter iOS: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“ + „Genauer Standort“.
 - Einmal mit Internet öffnen, damit Karte und App-Dateien zwischengespeichert werden.
+- **Beim allerersten Start** fragt die App nach Bootsname (Pflicht), Bootsbezeichnung (freiwillig), Skipper und Steuermann (Pflicht) und ob OneDrive genutzt werden soll. Alles lässt sich später in den Einstellungen ändern.
+
+### Die App an Bekannte weitergeben
+Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bordbuch/`) weitergeben. Jeder installiert sie auf seinem eigenen Gerät; die Daten bleiben getrennt auf dem jeweiligen Gerät bzw. im eigenen OneDrive. Ein eigenes GitHub-Konto brauchen Bekannte nicht. Wer OneDrive nutzen möchte, kann dieselbe Client-ID verwenden wie du (siehe Abschnitt 4) – die Daten landen trotzdem nur im eigenen OneDrive.
 
 ## 3. Bedienung
 
@@ -39,21 +43,21 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 - **Stop (Motor ausgeschaltet):** speichert das Fahrtende und beendet die Aufzeichnung (mit Sicherheitsabfrage).
 - Während der Fahrt: **„Ereignis notieren“** setzt einen Kommentar an die aktuelle Position (Schleuse, Manöver …).
 - Sobald Internet da ist, werden automatisch nachgeladen: Ortsnamen von Fahrtbeginn und Fahrtende (OpenStreetMap) und das Wetter zum jeweiligen Zeitpunkt (Open-Meteo: Beschreibung, Temperatur in °C, Wind mit Richtung und Böen in km/h).
-- **Boot:** In der Kopfzeile steht Bootsbezeichnung und Bootsname (Standard: Sessa C42 HT „Blue Moon“). Antippen zum Ändern – das Boot wird bei jeder neuen Fahrt mitgespeichert.
-- **Menü ☰ → Fahrten:** Filter nach Boot (Standard „Blue Moon“, oder „Alle Boote“), Skipper, Steuermann, Person an Bord und Zeitraum von/bis. Bei gewähltem Steuermann wird zusätzlich angezeigt, wie viele Kilometer und Stunden diese Person selbst gesteuert hat. Für die Auswahl werden Anzahl, Gesamtstrecke und Gesamtdauer angezeigt. In einer Fahrt: Karte mit Track, Dauer, Strecke in km, Durchschnitts- und Höchstgeschwindigkeit in km/h, Wetter, Fahrtkommentar. In die Karte zoomen und auf Punkt oder Linie tippen zeigt Uhrzeit, Geschwindigkeit und ein Kommentarfeld. Kommentierte Punkte werden orange hervorgehoben. Ebenen-Schalter: Seezeichen von OpenSeaMap einblenden.
-- **Skipper, Steuermann, Pax (unter dem Stop-Knopf):** Voreingestellt ist jeweils „Arne Klöfkorn“, wählbar auch „Anja Klöfkorn“ oder „Weiterer Skipper …“ / „Weiterer Steuermann …“ (Name eingeben, erscheint danach dauerhaft in der Auswahl).
+- **Boot:** In der Kopfzeile stehen Bootsbezeichnung und Bootsname aus der Ersteinrichtung. Antippen zum Ändern – das Boot wird bei jeder neuen Fahrt mitgespeichert.
+- **Menü ☰ → Fahrten:** Filter nach Boot (Standard: das eingestellte Boot, oder „Alle Boote“), Skipper, Steuermann, Person an Bord und Zeitraum von/bis. Bei gewähltem Steuermann wird zusätzlich angezeigt, wie viele Kilometer und Stunden diese Person selbst gesteuert hat. Für die Auswahl werden Anzahl, Gesamtstrecke und Gesamtdauer angezeigt. In einer Fahrt: Karte mit Track, Dauer, Strecke in km, Durchschnitts- und Höchstgeschwindigkeit in km/h, Wetter, Fahrtkommentar. In die Karte zoomen und auf Punkt oder Linie tippen zeigt Uhrzeit, Geschwindigkeit und ein Kommentarfeld. Kommentierte Punkte werden orange hervorgehoben. Ebenen-Schalter: Seezeichen von OpenSeaMap einblenden.
+- **Skipper, Steuermann, Pax (unter dem Stop-Knopf):** Voreingestellt sind die Namen aus der Ersteinrichtung, wählbar auch „Weiterer Skipper …“ / „Weiterer Steuermann …“ (Name eingeben, erscheint danach dauerhaft in der Auswahl).
   - Der Skipper wird beim Start festgelegt und ist während der Fahrt gesperrt.
   - Der Steuermann kann jederzeit während der Fahrt gewechselt werden; jeder Wechsel wird mit Uhrzeit gespeichert. In der Fahrt siehst du, wer wann wie viele Kilometer gesteuert hat.
   - Pax: Anzahl der Personen an Bord (1 bis 12). Danach fragt die App, ob du die Namen jetzt oder später eingeben möchtest. Skipper und Steuerleute zählen automatisch mit. Fehlende Namen trägst du später unter Fahrten → Fahrt → „Namen nachtragen“ ein.
   - Vor Fahrtbeginn sind Skipper und Steuermann frei wählbar. Kommt eine neue Person dazu, obwohl alle Plätze belegt sind, fragt die App, ob die bisherige Person an Bord bleibt (eine Person mehr) oder ersetzt wird.
   - Während der Fahrt stehen als Steuermann nur noch die Personen an Bord zur Auswahl, sobald alle namentlich erfasst sind. „Weiterer Steuermann …“ erscheint erst wieder, wenn die Personenzahl erhöht wird.
-  - Wurde die letzte Fahrt vor weniger als 48 Stunden beendet, sind Skipper, Personenzahl und alle Personen an Bord aus dieser Fahrt vorbelegt. Sonst gilt die Voreinstellung (Arne Klöfkorn, 2 Personen).
+  - Wurde die letzte Fahrt vor weniger als 48 Stunden beendet, sind Skipper, Personenzahl und alle Personen an Bord aus dieser Fahrt vorbelegt. Sonst gilt die Voreinstellung (Skipper und Steuermann aus der Ersteinrichtung, 2 Personen).
 - **S.O.S (roter Knopf links):** öffnet sofort das Notfallfenster: MRCC Bremen mit UKW-Kanal 16 und 70 (DSC) und der Notrufnummer +49 421 53687-0 (antippen ruft direkt an), darunter alle Bootsdaten, die laufend aktualisierte GPS-Position groß und zum Vorlesen ausgeschrieben sowie die Anzahl der Personen an Bord. Funktioniert auch ohne Internet.
 - **Tanken (kleiner Knopf mit Zapfsäule):** öffnet die Eingabe für getankte Liter, Preis je Liter und Kraftstoffart (voreingestellt „Diesel“). Datum, Uhrzeit, Ort und Boot werden automatisch gespeichert; Datum und Uhrzeit lassen sich ändern, wenn du nachträglich einträgst. „Vollgetankt“ bleibt angehakt, wenn der Tank voll ist; bei einer Teilbetankung den Haken entfernen.
-- **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, die zwischen den Tankvorgängen gefahrene Strecke, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard „Blue Moon“), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern; mit dem Papierkorb in der Zeile wird er gelöscht. CSV-Export für Excel.
+- **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, die zwischen den Tankvorgängen gefahrene Strecke, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard: das eingestellte Boot), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern; mit dem Papierkorb in der Zeile wird er gelöscht. CSV-Export für Excel.
   Berechnung: getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“; Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang ist nur der Ausgangswert.
 - **Einstellungen → Boot:** zusätzlich MMSI, Callsign, Bootskennzeichen, Länge, Breite, Höhe (je in Metern) und Verdrängung (in Tonnen). Diese Angaben gehören fest zum Bootsnamen, werden mit OneDrive abgeglichen und im Notfallfenster angezeigt.
-- **Einstellungen → Skipper / Steuermann:** selbst hinzugefügte Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert. Die Namenslisten und die Kraftstoffarten werden über OneDrive zwischen deinen Geräten abgeglichen (auch Löschungen). Die Einstellungen zur Aufzeichnung und das aktuell gewählte Boot bleiben bewusst je Gerät.
+- **Einstellungen → Skipper / Steuermann:** Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert. Die Namenslisten und die Kraftstoffarten werden über OneDrive zwischen deinen Geräten abgeglichen (auch Löschungen). Die Einstellungen zur Aufzeichnung und das aktuell gewählte Boot bleiben bewusst je Gerät.
 - **Einstellungen → Kraftstoffarten:** weitere Kraftstoffarten hinzufügen (zum Beispiel Super E10) oder selbst angelegte wieder entfernen.
 - **Menü ☰ → Kommentare:** alle Kommentare als Tabelle, durchsuchbar, Tipp auf eine Zeile springt zur Stelle in der Karte. CSV-Export für Excel.
 - Pro Fahrt: **GPX-Export** (zum Beispiel für Navionics, OpenCPN, Google Earth).
@@ -61,7 +65,9 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 ### Wichtig: GPS im Hintergrund
 Ein Browser darf GPS nur aufzeichnen, solange die App sichtbar ist. Deshalb hält die App während der Fahrt das Display an. Wird das Handy gesperrt oder eine andere App geöffnet, pausiert die Aufzeichnung; beim Zurückkehren läuft sie weiter und die Lücke wird als gerade Linie verbunden. Für lange Fahrten: Handy an Strom, App offen lassen. Auch ein Neustart oder Absturz verliert nichts – jede Position wird sofort gespeichert und die laufende Fahrt beim nächsten Öffnen fortgesetzt.
 
-## 4. Geräteübergreifend: OneDrive (automatisch)
+## 4. Geräteübergreifend: OneDrive (freiwillig)
+
+OneDrive ist ausgeschaltet, bis du es in der Ersteinrichtung oder unter Einstellungen → „OneDrive-Synchronisation verwenden“ einschaltest. Ohne OneDrive bleiben alle Daten auf dem Gerät; gesichert wird dann über „Sicherung exportieren“ (Abschnitt 5).
 
 Die App spricht direkt mit deinem OneDrive. Dafür braucht sie eine eigene, kostenlose „App-Registrierung“ bei Microsoft (etwa 5 Minuten, einmalig):
 
@@ -119,3 +125,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 4.5 | Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen |
 | 4.6 | Verbrauch: „Gefahren“ zählt nur die Strecke zwischen erfassten Tankvorgängen |
 | 4.7 | Fahrtenfilter „Person an Bord“ |
+| 5.0 | Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen |

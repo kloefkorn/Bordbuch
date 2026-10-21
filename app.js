@@ -13,8 +13,9 @@
    · 4.6 Verbrauch: Strecke nur zwischen Tankvorgängen · 4.7 Fahrtenfilter „Person an Bord“
    · 5.0 Für alle nutzbar: Ersteinrichtung (Boot, Skipper, Steuermann), OneDrive abschaltbar, Hilfe
    · 5.1 Eingebaute Microsoft-Client-ID; Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld
-   · 5.2 Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP) */
-const APP_VERSION='5.2';
+   · 5.2 Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP)
+   · 6.0 Bootsart Motor-/Segelboot, Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive) */
+const APP_VERSION='6.0';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -25,19 +26,23 @@ let toastT;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
 
 const DEFAULT_BOAT_TYPE='',DEFAULT_BOAT_NAME='';
-const DEF={minDist:10,maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin'],skippers:[],helms:[],odEnabled:undefined,setupDone:false};
+const DEF={minDist:25,boatKind:'motor',maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin'],skippers:[],helms:[],odEnabled:undefined,setupDone:false};
 let S=Object.assign({},DEF,JSON.parse(localStorage.getItem('bb_settings')||'{}'));
 const saveS=()=>localStorage.setItem('bb_settings',JSON.stringify(S));
 const BUILTIN_FUELS=['Diesel','Benzin'];
 if(!Array.isArray(S.fuelTypes))S.fuelTypes=[...BUILTIN_FUELS];
 BUILTIN_FUELS.forEach(f=>{if(!S.fuelTypes.includes(f))S.fuelTypes.unshift(f);});
 const BUILTIN_PEOPLE=[];
+if(!S.v6){if(S.minDist===10)S.minDist=25;S.v6=true;saveS();}
 const defSkipper=()=>S.skippers[0]||'';
 const defHelm=()=>S.helms[0]||defSkipper();
 if(S.odEnabled===undefined){S.odEnabled=!!localStorage.getItem('bb_od_on');}
 ['skippers','helms'].forEach(k=>{if(!Array.isArray(S[k]))S[k]=[...BUILTIN_PEOPLE];BUILTIN_PEOPLE.slice().reverse().forEach(n=>{if(!S[k].includes(n))S[k].unshift(n);});});
 /* Boot einer Fahrt (sehr alte Fahrten ohne Angabe gehören zum aktuell eingestellten Boot) */
 const tripBoat=t=>t.boat||{type:S.boatType||'',name:S.boatName||''};
+const KINDS={motor:'Motorboot',sail:'Segelboot'};
+const kindLabel=k=>KINDS[k]||'';
+const kindIcon=k=>k==='sail'?'⛵':'🛥️';
 const boatLabel=b=>[b.type,b.name?`„${b.name}“`:''].filter(Boolean).join(' ');
 function renderBoatHeader(){
   const b=rec?tripBoat(rec.trip):{type:S.boatType,name:S.boatName};
@@ -74,11 +79,12 @@ function trackDist(pts){let s=0;for(let i=1;i<pts.length;i++){const d=hav(pts[i-
 
 /* ================= Datenbank (IndexedDB) ================= */
 let dbp;
-function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',4);
+function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',5);
   r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('trips'))d.createObjectStore('trips',{keyPath:'id'});
     if(!d.objectStoreNames.contains('fuel'))d.createObjectStore('fuel',{keyPath:'id'});
     if(!d.objectStoreNames.contains('boats'))d.createObjectStore('boats',{keyPath:'id'});
-    if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'id'});};
+    if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'id'});
+    if(!d.objectStoreNames.contains('pdfs'))d.createObjectStore('pdfs',{keyPath:'id'});};
   r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
 const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
 async function getTrip(id){return rq((await db()).transaction('trips').objectStore('trips').get(id));}
@@ -99,6 +105,8 @@ async function boatInfo(name){return (await getBoatRec(boatId(name)))||{};}
 /* ---- Geräteübergreifende Listen: Skipper, Steuermann, Kraftstoffarten ----
    Jeder Eintrag merkt sich, wann er hinzugefügt (a) und zuletzt geändert (t) wurde; gelöschte bleiben als Vermerk (del),
    damit sie nach dem Abgleich nicht auf einem anderen Gerät wieder auftauchen. */
+async function allPdfs(){return rq((await db()).transaction('pdfs').objectStore('pdfs').getAll());}
+async function putPdf(x){return rq((await db()).transaction('pdfs','readwrite').objectStore('pdfs').put(x));}
 async function getMeta(id){return rq((await db()).transaction('meta').objectStore('meta').get(id));}
 async function allMeta(){return rq((await db()).transaction('meta').objectStore('meta').getAll());}
 async function putMeta(m){return rq((await db()).transaction('meta','readwrite').objectStore('meta').put(m));}
@@ -197,6 +205,16 @@ let rec=null; // {trip, watch, wake, lastFix}
 const getPos=(timeout=15000)=>new Promise((res,rej)=>navigator.geolocation.getCurrentPosition(res,rej,{enableHighAccuracy:true,timeout,maximumAge:5000}));
 function persist(){if(rec)putTrip(rec.trip).catch(e=>console.error(e));}
 
+async function askBriefing(trip){
+  const {v}=await modal(`<h3>Sicherheitsunterweisung</h3><p style="font-size:17px">Sicherheitsunterweisung der Crew durchgeführt?</p>
+    <p class="hint">Zum Beispiel Rettungswesten, Feuerlöscher, Notruf, Mann über Bord, Verhalten bei Notfällen.</p>
+    <div class="row" style="justify-content:flex-end"><button value="no" class="btn ghost" style="min-width:90px">Nein</button><button value="yes" class="btn" style="min-width:90px">Ja</button></div>`,
+    d=>d.addEventListener('cancel',e=>e.preventDefault()));
+  trip.briefing={done:v==='yes',t:Date.now()};trip.updatedAt=Date.now();await putTrip(trip);
+  if(rec&&rec.trip.id===trip.id)renderHome();
+  toast(v==='yes'?'Sicherheitsunterweisung: Ja – gespeichert':'Sicherheitsunterweisung: Nein – gespeichert');
+}
+const briefingText=t=>t.briefing?(t.briefing.done?`Ja (${fmtTime(t.briefing.t)} Uhr)`:'Nein'):((t.crew?.pax||1)>1?'nicht erfasst':'nicht erforderlich (1 Person)');
 async function startTrip(){
   if(rec)return;
   if(!S.boatName){alert('Bitte zuerst in den Einstellungen einen Bootsnamen eintragen.');return;}
@@ -206,7 +224,7 @@ async function startTrip(){
   const trip={id:uid(),v:1,status:'active',createdAt:now,updatedAt:now,deleted:false,
     start:{t:now,lat:null,lon:null,acc:null},end:null,points:[],distance:0,maxSpd:0,
     placeStart:null,placeEnd:null,weatherStart:null,weatherEnd:null,note:'',notes:{},
-    boat:{type:S.boatType,name:S.boatName},
+    boat:{type:S.boatType,name:S.boatName,kind:S.boatKind||'motor'},
     skipper:P.skipper,helms:[{t:now,name:P.helm}],
     crew:{pax:Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length),guests:P.guests.filter(g=>g&&g!==P.skipper&&g!==P.helm)}};
   rec={trip,watch:null,wake:null,lastFix:null};
@@ -214,7 +232,8 @@ async function startTrip(){
   navigator.storage?.persist?.();
   renderHome();toast('Fahrtbeginn gespeichert: '+fmtTime(now));
   beginWatch();keepAwake();
-  try{onPos(await getPos());}catch(e){toast('Warte auf GPS-Signal …');}
+  getPos().then(onPos).catch(()=>toast('Warte auf GPS-Signal …'));
+  if(trip.crew.pax>1)askBriefing(trip);
 }
 function beginWatch(){
   rec.watch=navigator.geolocation.watchPosition(onPos,err=>{
@@ -504,7 +523,7 @@ async function openSos(){
       <a class="tel" href="tel:${MRCC_TEL}"><small>Notfall (24 h) – antippen zum Anrufen</small>📞 ${MRCC_TEL_SHOW}</a>
     </div>
     <div class="blk"><h3>Boot</h3><dl>
-      ${row('Bootsbezeichnung',boat.type)}${row('Bootsname',boat.name)}
+      ${row('Bootsart',kindLabel(boat.kind||bi.kind||S.boatKind))}${row('Bootsmodell',boat.type)}${row('Bootsname',boat.name)}
       ${BOAT_FIELDS.map(([k,l,,u])=>row(l,bi[k],u)).join('')}
     </dl>${BOAT_FIELDS.some(([k])=>!bi[k])?'<p class="hint">Fehlende Angaben unter Einstellungen → Boot ergänzen.</p>':''}</div>
     <div class="blk"><h3>Position</h3><div id="sosPos"><p class="say">Position wird ermittelt …</p></div></div>
@@ -551,7 +570,7 @@ function renderHome(){
   ${r?`<section class="live">
     <div class="head"><span class="rec">Aufzeichnung läuft</span><span><span id="lvPts">0</span> Wegpunkte</span></div>
     <div class="meta">Fahrtbeginn: <span id="lvStart"></span>
-<br>Skipper: ${esc(rec?.trip.skipper||'–')} · Steuermann: ${esc(rec?curHelm(rec.trip):'–')}</div>
+<br>Skipper: ${esc(rec?.trip.skipper||'–')} · Steuermann: ${esc(rec?curHelm(rec.trip):'–')}${rec&&(rec.trip.crew?.pax||1)>1?`<br>Sicherheitsunterweisung: ${esc(briefingText(rec.trip))}`:''}</div>
     <div class="grid">
       <div><small>Dauer</small><b id="lvDur">–</b></div>
       <div><small>Strecke</small><b id="lvDist">–</b></div>
@@ -627,7 +646,7 @@ async function renderList(){
 }
 
 /* ================= Fahrt-Detail mit Karte ================= */
-let map=null,cur=null;
+let map=null,cur=null,drawPdfList=null;
 function destroyMap(){if(map){map.remove();map=null;}cur=null;}
 async function renderTrip(id,focusKey){
   const t=await curTripObj(id);
@@ -638,7 +657,7 @@ async function renderTrip(id,focusKey){
   const dist=active?trackDist(t.points):t.distance;
   const secs=(endT-t.start.t)/1000;
   view.innerHTML=`
-  <p class="hint" style="margin:0 0 8px;text-align:center">⛵ ${esc(boatLabel(tripBoat(t)))}</p>
+  <p class="hint" style="margin:0 0 8px;text-align:center">${kindIcon(tripBoat(t).kind)} ${esc(boatLabel(tripBoat(t)))}</p>
   <div class="route" id="routeBox"></div>
   <div id="map"></div>
   <div class="grid">
@@ -655,6 +674,7 @@ async function renderTrip(id,focusKey){
   <h3>Wegpunkt-Kommentare</h3>
   <div id="wpList"></div>
   <p class="hint">Tipp: In die Karte hineinzoomen – ab Zoomstufe 15 erscheinen die einzelnen Wegpunkte. Tippe auf einen Punkt oder die Linie, um Uhrzeit und Fahrt zu sehen und einen Kommentar zu setzen.</p>
+  ${active?'':'<h3>Logbucheintrag</h3><button class="msel noteBtn" id="pdfBtn"><span class="in">📄 Logbucheintrag als PDF exportieren</span></button><div id="pdfList"></div>'}
   <div class="row"><button class="btn ghost" id="gpx">GPX exportieren</button>${active?'':'<button class="btn danger" id="del">Fahrt löschen</button>'}</div>`;
   cur={t};
   const drawCrew=()=>{
@@ -664,6 +684,7 @@ async function renderTrip(id,focusKey){
       <p style="margin:4px 0"><b>Skipper:</b> ${esc(t.skipper||'nicht erfasst')}</p>
       ${segs.length?`<div class="tblwrap"><table class="tbl helmTbl"><thead><tr><th>Steuermann</th><th>Zeit</th><th>Strecke</th></tr></thead><tbody>${segs.map(g=>`<tr><td>${esc(g.name)}</td><td>${fmtTime(g.from)} – ${fmtTime(g.to)} Uhr</td><td>${fmtKm(g.km)}</td></tr>`).join('')}</tbody></table></div>`:'<p class="hint">Kein Steuermann erfasst.</p>'}
       <p style="margin:8px 0 2px"><b>Personen an Bord: ${pax||'–'}</b></p>
+      <p class="hint" style="margin:0 0 4px">Sicherheitsunterweisung: ${esc(briefingText(t))}</p>
       <ul class="crewList">${auto.map(a=>`<li><span>${esc(a.name)}</span><small>${esc(a.role)}</small></li>`).join('')}${gs.filter(Boolean).map(g=>`<li><span>${esc(g)}</span><small>Gast</small></li>`).join('')}
       ${missing?`<li><span class="pending">${missing} ${missing===1?'Person':'Personen'} ohne Namen</span></li>`:''}</ul>
       <button class="btn ghost" id="crewEdit">${missing?'Namen nachtragen':'Personen bearbeiten'}</button></div>`;
@@ -673,6 +694,13 @@ async function renderTrip(id,focusKey){
   drawCrew();
   fillMeta(t);
   $('#saveNote').onclick=async()=>{t.note=$('#tripNote').value.trim();t.updatedAt=Date.now();await putTrip(t);syncSoon();toast('Gespeichert');};
+  if($('#pdfBtn')){
+    drawPdfList=async()=>{const el=$('#pdfList');if(!el)return;const list=(await allPdfs()).filter(x=>x.tripId===t.id).sort((a,b)=>b.created-a.created);
+      el.innerHTML=list.length?`<ul class="crewList">${list.map(x=>`<li><a href="#" data-pdf="${x.id}">${esc(x.name)}</a><small>${x.uploaded?'in OneDrive ✓':(S.odEnabled&&localStorage.getItem('bb_od_on')?'wartet auf OneDrive':'nur auf dem Gerät')}</small></li>`).join('')}</ul>`:'';
+      el.querySelectorAll('a[data-pdf]').forEach(a=>a.onclick=async e=>{e.preventDefault();const x=list.find(y=>y.id===a.dataset.pdf);if(x)saveFile(x.name,new Uint8Array(x.bytes),'application/pdf');});};
+    drawPdfList();
+    $('#pdfBtn').onclick=async()=>{try{await exportLogPdf(t);drawPdfList();}catch(e){console.error(e);alert('PDF konnte nicht erstellt werden: '+e.message);}};
+  }
   $('#gpx').onclick=()=>saveFile(`bordbuch_${new Date(t.start.t).toISOString().slice(0,10)}.gpx`,toGpx(t),'application/gpx+xml');
   if($('#del'))$('#del').onclick=async()=>{
     if(!confirm('Diese Fahrt endgültig löschen (auch in der Cloud)?'))return;
@@ -932,6 +960,133 @@ async function renderFuel(){
   draw();
 }
 
+
+/* ================= Logbucheintrag als PDF (ohne fremde Bibliothek) ================= */
+const HELV={"Helvetica":[278,278,355,556,556,889,667,191,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,278,278,584,584,584,556,1015,667,667,722,722,667,611,778,722,278,500,667,556,833,722,778,667,778,722,667,611,722,667,944,667,667,611,278,278,278,469,556,333,556,556,500,556,556,278,556,556,222,222,500,222,833,556,556,556,556,333,500,278,556,500,722,500,500,500,334,260,334,584,761,556,0,222,556,333,1000,556,556,333,1000,667,333,1000,0,611,0,0,222,222,333,333,350,556,1000,333,1000,500,333,944,0,500,667,278,333,556,556,556,556,260,556,333,737,370,556,584,333,737,333,400,584,333,333,333,556,537,278,333,333,365,556,834,834,834,611,667,667,667,667,667,667,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,500,556,556,556,556,278,278,278,278,556,556,556,556,556,556,556,584,611,556,556,556,556,500,556,500],"Helvetica-Bold":[278,333,474,556,556,889,722,238,333,333,389,584,278,333,278,278,556,556,556,556,556,556,556,556,556,556,333,333,584,584,584,611,975,722,722,722,722,667,611,778,722,278,556,722,611,833,722,778,667,778,722,667,611,722,667,944,667,667,611,333,278,333,584,556,333,556,611,556,611,556,333,611,611,278,278,556,278,889,611,611,611,611,389,556,333,611,556,778,556,556,500,389,280,389,584,761,556,0,278,556,500,1000,556,556,333,1000,667,333,1000,0,611,0,0,278,278,500,500,350,556,1000,333,1000,556,333,944,0,500,667,278,333,556,556,556,556,280,556,333,737,370,556,584,333,737,333,400,584,333,333,333,611,556,278,333,333,365,556,834,834,834,611,722,722,722,722,722,722,1000,722,667,667,667,667,278,278,278,278,722,722,778,778,778,778,778,584,778,722,722,722,722,667,667,611,556,556,556,556,556,556,889,556,556,556,556,556,278,278,278,278,611,611,611,611,611,611,611,584,611,611,611,611,611,556,611,556]}; // Zeichenbreiten Helvetica/Helvetica-Bold (WinAnsi 32–255, je 1000 Einheiten)
+const WINMAP={0x20AC:0x80,0x201A:0x82,0x201E:0x84,0x2026:0x85,0x2030:0x89,0x2018:0x91,0x2019:0x92,0x201C:0x93,0x201D:0x94,0x2022:0x95,0x2013:0x96,0x2014:0x97,0x2032:0x27,0x2033:0x22};
+function winStr(s){
+  s=String(s??'').replace(/→/g,'->').replace(/✓/g,'').replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{FE0F}\u{200D}]/gu,'');
+  let o='';for(const ch of s){const c=ch.codePointAt(0);
+    if(c===10||(c>=32&&c<0x7F)||(c>=0xA0&&c<=0xFF))o+=String.fromCharCode(c);else if(WINMAP[c])o+=String.fromCharCode(WINMAP[c]);else if(c===9)o+=' ';else o+='?';}
+  return o;}
+const tw=(w,bold,size)=>{const m=HELV[bold?'Helvetica-Bold':'Helvetica'];let x=0;for(let i=0;i<w.length;i++){const c=w.charCodeAt(i);x+=(c>=32&&c<=255?m[c-32]:556)||556;}return x*size/1000;};
+const pEsc=w=>w.replace(/\\/g,'\\\\').replace(/\(/g,'\\(').replace(/\)/g,'\\)');
+const f2=n=>(+n).toFixed(2);
+class Pdf{
+  constructor(){this.W=595.28;this.H=841.89;this.M=48;this.pages=[];this.add();}
+  add(){this.c=[];this.pages.push(this.c);this.y=this.H-this.M;}
+  need(h){if(this.y-h<this.M+24)this.add();}
+  txt(x,y,s,size=10,bold=false,rgb){this.c.push(`BT /${bold?'F2':'F1'} ${size} Tf ${rgb?rgb+' rg':'0 g'} ${f2(x)} ${f2(y)} Td (${pEsc(winStr(s))}) Tj ET`);}
+  line(x1,y1,x2,y2,w=.6,gray=0){this.c.push(`${gray} G ${w} w ${f2(x1)} ${f2(y1)} m ${f2(x2)} ${f2(y2)} l S`);}
+  rect(x,y,w,h,{fill,stroke}={}){this.c.push(`${fill?fill+' rg ':''}${stroke!=null?stroke+' G .6 w ':''}${f2(x)} ${f2(y)} ${f2(w)} ${f2(h)} re ${fill&&stroke!=null?'B':fill?'f':'S'}`);}
+  circle(x,y,r,rgb){const k=.5523*r;this.c.push(`${rgb} rg 1 1 1 RG 1 w ${f2(x+r)} ${f2(y)} m ${f2(x+r)} ${f2(y+k)} ${f2(x+k)} ${f2(y+r)} ${f2(x)} ${f2(y+r)} c ${f2(x-k)} ${f2(y+r)} ${f2(x-r)} ${f2(y+k)} ${f2(x-r)} ${f2(y)} c ${f2(x-r)} ${f2(y-k)} ${f2(x-k)} ${f2(y-r)} ${f2(x)} ${f2(y-r)} c ${f2(x+k)} ${f2(y-r)} ${f2(x+r)} ${f2(y-k)} ${f2(x+r)} ${f2(y)} c B`);}
+  path(pts,rgb,w=1.6){if(pts.length<2)return;this.c.push(`${rgb} RG ${w} w 1 J 1 j ${f2(pts[0][0])} ${f2(pts[0][1])} m ${pts.slice(1).map(p=>`${f2(p[0])} ${f2(p[1])} l`).join(' ')} S`);}
+  wrap(s,maxW,size,bold){const out=[];for(const para of winStr(s).split('\n')){let line='';
+    for(const word of para.split(' ')){const t=line?line+' '+word:word;
+      if(tw(t,bold,size)<=maxW||!line){if(tw(word,bold,size)>maxW&&!line){let cut='';for(const ch of word){if(tw(cut+ch,bold,size)>maxW){out.push(cut);cut='';}cut+=ch;}line=cut;}else line=t;}
+      else{out.push(line);line=word;}}
+    out.push(line);}return out;}
+  para(s,{x=this.M,w=this.W-2*this.M,size=10,bold=false,rgb,lead=1.38}={}){for(const l of this.wrap(s,w,size,bold)){this.need(size*lead);this.y-=size*lead;this.c.push(`BT /${bold?'F2':'F1'} ${size} Tf ${rgb?rgb+' rg':'0 g'} ${f2(x)} ${f2(this.y)} Td (${pEsc(l)}) Tj ET`);}}
+  h(s){this.need(34);this.y-=16;this.txt(this.M,this.y-12,s,12.5,true,'0.06 0.22 0.4');this.y-=17;this.line(this.M,this.y,this.W-this.M,this.y,.5,.75);this.y-=2;}
+  kv(k,v,lw=150){const x2=this.M+lw,w=this.W-this.M-x2;const ls=this.wrap(v||'–',w,10,false);this.need(14*Math.min(ls.length,3));
+    this.y-=14;this.txt(this.M,this.y,k,10,false,'0.38 0.42 0.47');
+    ls.forEach((l,i)=>{if(i){this.need(14);this.y-=14;}this.c.push(`BT /F1 10 Tf 0 g ${f2(x2)} ${f2(this.y)} Td (${pEsc(l)}) Tj ET`);});}
+  build(info){
+    const n=this.pages.length;this.pages.forEach((c,i)=>{c.push(`BT /F1 8 Tf 0.45 g ${f2(this.M)} 26 Td (${pEsc(winStr(info.footer))}) Tj ET`);
+      const pg=`Seite ${i+1} von ${n}`;c.push(`BT /F1 8 Tf 0.45 g ${f2(this.W-this.M-tw(winStr(pg),false,8))} 26 Td (${pg}) Tj ET`);});
+    const objs=[];const add=s=>{objs.push(s);return objs.length;};
+    const cat=add(null),pages=add(null);
+    const fo=`/Type /Font /Subtype /Type1 /Encoding /WinAnsiEncoding`;
+    const f1=add(`<< ${fo} /BaseFont /Helvetica >>`),fb=add(`<< ${fo} /BaseFont /Helvetica-Bold >>`);
+    const kids=[];
+    for(const c of this.pages){const body=c.join('\n');const cs=add(`<< /Length ${body.length} >>\nstream\n${body}\nendstream`);
+      kids.push(add(`<< /Type /Page /Parent ${pages} 0 R /MediaBox [0 0 ${f2(this.W)} ${f2(this.H)}] /Resources << /Font << /F1 ${f1} 0 R /F2 ${fb} 0 R >> >> /Contents ${cs} 0 R >>`));}
+    objs[cat-1]=`<< /Type /Catalog /Pages ${pages} 0 R >>`;
+    objs[pages-1]=`<< /Type /Pages /Kids [${kids.map(k=>k+' 0 R').join(' ')}] /Count ${kids.length} >>`;
+    const d=new Date(),pad=x=>String(x).padStart(2,'0'),off=-d.getTimezoneOffset();
+    const cd=`D:${d.getFullYear()}${pad(d.getMonth()+1)}${pad(d.getDate())}${pad(d.getHours())}${pad(d.getMinutes())}${pad(d.getSeconds())}${off>=0?'+':'-'}${pad(Math.floor(Math.abs(off)/60))}'${pad(Math.abs(off)%60)}'`;
+    const infoN=add(`<< /Title (${pEsc(winStr(info.title))}) /Author (${pEsc(winStr(info.author||''))}) /Creator (Bordbuch ${APP_VERSION}) /Producer (Bordbuch ${APP_VERSION}) /CreationDate (${cd}) >>`);
+    let out='%PDF-1.4\n%\xE2\xE3\xCF\xD3\n';const xref=[];
+    objs.forEach((o,i)=>{xref.push(out.length);out+=`${i+1} 0 obj\n${o}\nendobj\n`;});
+    const xs=out.length;
+    out+=`xref\n0 ${objs.length+1}\n0000000000 65535 f \n`+xref.map(x=>String(x).padStart(10,'0')+' 00000 n \n').join('');
+    out+=`trailer\n<< /Size ${objs.length+1} /Root ${cat} 0 R /Info ${infoN} 0 R >>\nstartxref\n${xs}\n%%EOF\n`;
+    const bytes=new Uint8Array(out.length);for(let i=0;i<out.length;i++)bytes[i]=out.charCodeAt(i)&255;return bytes;
+  }
+}
+const coordTxt=(lat,lon)=>lat==null?'Position unbekannt':fmtCoord(lat,lon).replace(/′/g,"'");
+const wxPdf=w=>w?`${w.desc}, ${num(w.temp)} °C, Wind aus ${w.dir} ${num(w.wind,0)} km/h${w.gust!=null?`, Böen ${num(w.gust,0)} km/h`:''}`:'nicht verfügbar';
+async function exportLogPdf(t){
+  if(t.status!=='done'){toast('Die Fahrt läuft noch');return;}
+  const now=Date.now(),boat=tripBoat(t),bi=await boatInfo(boat.name);
+  const kind=kindLabel(boat.kind||bi.kind);
+  const doc=new Pdf(),M=doc.M,W=doc.W;
+  // Kopf
+  doc.rect(0,doc.H-92,W,92,{fill:'0.04 0.13 0.22'});
+  doc.txt(M,doc.H-46,'Logbucheintrag',22,true,'1 1 1');
+  doc.txt(M,doc.H-68,[kind,boat.type,boat.name?`„${boat.name}“`:''].filter(Boolean).join(' · '),11,false,'0.85 0.9 0.95');
+  const dtxt=fmtDate(t.start.t);doc.txt(W-M-tw(winStr(dtxt),true,12),doc.H-46,dtxt,12,true,'1 1 1');
+  doc.y=doc.H-100;
+  const secs=(t.end.t-t.start.t)/1000;
+  doc.h('Fahrt');
+  doc.kv('Fahrtbeginn',`${fmtTime(t.start.t)} Uhr · ${t.placeStart||'Ort unbekannt'} · ${coordTxt(t.start.lat,t.start.lon)}`);
+  doc.kv('Fahrtende',`${fmtTime(t.end.t)} Uhr · ${t.placeEnd||'Ort unbekannt'} · ${coordTxt(t.end.lat,t.end.lon)}`);
+  doc.kv('Dauer',fmtDur(t.end.t-t.start.t));
+  doc.kv('Strecke',fmtKm(t.distance||0));
+  doc.kv('Geschwindigkeit',`Durchschnitt ${secs>0?kmh((t.distance||0)/secs):'–'} · Höchstwert ${kmh(t.maxSpd)}`);
+  doc.h('Wetter');
+  doc.kv('Bei Fahrtbeginn',wxPdf(t.weatherStart));
+  doc.kv('Bei Fahrtende',wxPdf(t.weatherEnd));
+  doc.h('Besatzung');
+  doc.kv('Skipper',t.skipper||'nicht erfasst');
+  const segs=helmSegments(t);
+  doc.kv('Steuermann',segs.length?segs.map(g=>`${g.name} (${fmtTime(g.from)}–${fmtTime(g.to)} Uhr, ${fmtKm(g.km)})`).join('\n'):'nicht erfasst');
+  const auto=tripAuto(t),gs=tripGuests(t),pax=tripPax(t);
+  const names=[...auto.map(a=>`${a.name} (${a.role})`),...gs.map(g=>`${g} (Gast)`)];
+  const miss=Math.max(0,pax-auto.length-gs.length);
+  doc.kv('Personen an Bord',`${pax||'–'}${names.length?'\n'+names.join('\n'):''}${miss?`\n${miss} ohne Namen`:''}`);
+  doc.kv('Sicherheitsunterweisung',briefingText(t));
+  const fuels=(await liveFuel()).filter(f=>f.boat?.name===boat.name&&f.t>=t.start.t-36e5&&f.t<=t.end.t+36e5);
+  if(fuels.length){doc.h('Tankvorgänge');fuels.forEach(f=>doc.kv(`${fmtTime(f.t)} Uhr`,`${lit(f.liters)} ${f.fuelType} · ${num(f.price,3)} €/l · ${eur(f.liters*f.price)}${f.place?' · '+f.place:''}`));}
+  const ev=Object.entries(t.notes||{}).sort((a,b)=>a[0]-b[0]);
+  if(t.note||ev.length){doc.h('Kommentare und Ereignisse');
+    if(t.note)doc.kv('Zur Fahrt',t.note);
+    ev.forEach(([k,n])=>{const p=t.points.find(p=>p.t==k);doc.kv(`${fmtTime(+k)} Uhr`,`${n.text}${p?`\n${coordTxt(p.lat,p.lon)}`:''}`);});}
+  // Streckenskizze
+  const pts=t.points||[];
+  if(pts.length>1){
+    const bh=230;doc.need(bh+40);doc.h('Streckenskizze');doc.y-=8;
+    const bx=M,by=doc.y-bh,bw=W-2*M;doc.rect(bx,by,bw,bh,{fill:'0.96 0.97 0.98',stroke:.8});
+    let la0=Infinity,la1=-Infinity,lo0=Infinity,lo1=-Infinity;pts.forEach(p=>{la0=Math.min(la0,p.lat);la1=Math.max(la1,p.lat);lo0=Math.min(lo0,p.lon);lo1=Math.max(lo1,p.lon);});
+    const kx=Math.cos((la0+la1)/2*Math.PI/180),sx=(lo1-lo0)*kx||1e-6,sy=(la1-la0)||1e-6,pad=16;
+    const sc=Math.min((bw-2*pad)/sx,(bh-2*pad)/sy),ox=bx+(bw-sx*sc)/2,oy=by+(bh-sy*sc)/2;
+    const P=p=>[ox+(p.lon-lo0)*kx*sc,oy+(p.lat-la0)*sc];
+    doc.path(pts.map(P),'0.12 0.53 0.9',1.8);
+    ev.forEach(([k])=>{const p=pts.find(p=>p.t==k);if(p){const q=P(p);doc.circle(q[0],q[1],3.2,'1 0.55 0.1');}});
+    const a=P(pts[0]),z=P(pts[pts.length-1]);doc.circle(a[0],a[1],4.5,'0.12 0.62 0.33');doc.circle(z[0],z[1],4.5,'0.84 0.27 0.27');
+    const ext=Math.max(hav({lat:la0,lon:lo0},{lat:la0,lon:lo1}),hav({lat:la0,lon:lo0},{lat:la1,lon:lo0}));
+    doc.txt(bx+6,by+6,`Grün: Fahrtbeginn · Rot: Fahrtende · Orange: Ereignis · Ausdehnung ca. ${fmtKm(ext)} · Norden oben`,8,false,'0.4 0.4 0.4');
+    doc.y=by-4;
+  }
+  // Unterschrift
+  doc.need(110);doc.y-=34;
+  const stamp=`${fmtDateS(now).replace(/\.(\d\d)$/,'.20$1')}, ${fmtTime(now)} Uhr`;
+  doc.txt(M,doc.y,`Logbucheintrag erstellt am ${fmtDate(now)} um ${fmtTime(now)} Uhr.`,9,false,'0.35 0.35 0.35');
+  doc.y-=44;
+  const half=(W-2*M-30)/2;
+  doc.txt(M,doc.y+5,stamp,11);
+  doc.line(M,doc.y,M+half,doc.y,.8);doc.line(M+half+30,doc.y,W-M,doc.y,.8);
+  doc.txt(M,doc.y-12,'Datum, Uhrzeit',8.5,false,'0.4 0.4 0.4');
+  doc.txt(M+half+30,doc.y-12,`Unterschrift Skipper${t.skipper?` (${t.skipper})`:''}`,8.5,false,'0.4 0.4 0.4');
+  const bytes=doc.build({title:`Logbucheintrag ${boat.name||''} ${fmtDateS(t.start.t)}`,author:t.skipper||'',footer:`Bordbuch ${APP_VERSION} · ${boat.name||''} · Fahrt vom ${fmtDateS(t.start.t)} · erstellt ${stamp}`});
+  const d=new Date(t.start.t),pd=x=>String(x).padStart(2,'0');
+  const nm=`Logbuch_${(boat.name||'Boot').replace(/[^\wäöüÄÖÜß-]+/g,'_')}_${d.getFullYear()}-${pd(d.getMonth()+1)}-${pd(d.getDate())}_${pd(d.getHours())}${pd(d.getMinutes())}_erstellt_${new Date(now).getFullYear()}${pd(new Date(now).getMonth()+1)}${pd(new Date(now).getDate())}-${pd(new Date(now).getHours())}${pd(new Date(now).getMinutes())}.pdf`;
+  await putPdf({id:uid(),tripId:t.id,name:nm,created:now,bytes:bytes.buffer,uploaded:null});
+  await saveFile(nm,bytes,'application/pdf');
+  toast(S.odEnabled&&localStorage.getItem('bb_od_on')?'PDF gespeichert – wird mit OneDrive abgeglichen':'PDF gespeichert');
+  syncSoon();
+}
+
 /* ================= Dateien / Sicherung ================= */
 async function saveFile(name,text,type){
   const file=new File([text],name,{type});
@@ -1063,6 +1218,13 @@ async function syncNow(quiet,allowSilentLogin){
         map[k]={remoteMod:j.lastModifiedDateTime,localUpd:t.updatedAt};up++;
       }
     }
+    for(const x of await allPdfs()){
+      if(x.uploaded)continue;
+      const r=await g(`/me/drive/special/approot:/pdf/${encodeURIComponent(x.name)}:/content`,{method:'PUT',headers:{'Content-Type':'application/pdf'},body:x.bytes});
+      if(!r.ok)throw new Error('PDF-Upload '+r.status);
+      x.uploaded=Date.now();await putPdf(x);up++;
+      if((location.hash||'').startsWith('#/fahrt/'))drawPdfList&&drawPdfList();
+    }
     localStorage.setItem('bb_lastsync',Date.now());
     setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:''));
     if(metaChanged&&(location.hash||'').startsWith('#/einstellungen'))renderSettings();
@@ -1085,10 +1247,11 @@ async function renderSettings(){
   view.innerHTML=`
   <a class="msel crewBtn helpBtn" href="#/hilfe" style="margin:0 auto 14px;text-decoration:none"><span class="in"><span><small>Neu hier?</small><b>Hilfe und Anleitung</b></span><span class="cbR">öffnen</span></span></a>
   <section class="panel"><h3>Boot</h3>
-    <label>Bootsbezeichnung</label><input type="text" id="sBType" value="${esc(S.boatType)}">
+    <label>Bootsart</label><div class="seg" id="sKind" role="radiogroup"><button type="button" data-k="motor" class="${(binfo.kind||S.boatKind)==='sail'?'':'on'}">🛥️ Motorboot</button><button type="button" data-k="sail" class="${(binfo.kind||S.boatKind)==='sail'?'on':''}">⛵ Segelboot</button></div>
+    <label>Bootsmodell</label><input type="text" id="sBType" value="${esc(S.boatType)}">
     <label>Bootsname</label><input type="text" id="sBName" value="${esc(S.boatName)}">
     ${BOAT_FIELDS.map(([k,l,m,u])=>`<label for="sB_${k}">${l}${u?` (${u})`:''}</label><input type="text" id="sB_${k}" data-bf="${k}" inputmode="${m}" value="${esc(binfo[k]||'')}" autocomplete="off" autocapitalize="characters">`).join('')}
-    <p class="hint">Bootsbezeichnung und Bootsname werden bei jeder neuen Fahrt mitgespeichert. Die weiteren Angaben gehören fest zum Bootsnamen „${esc(S.boatName)}“ und erscheinen im Notfallfenster (SOS).</p>
+    <p class="hint">Bootsart, Bootsmodell und Bootsname werden bei jeder neuen Fahrt mitgespeichert. Die weiteren Angaben gehören fest zum Bootsnamen „${esc(S.boatName)}“ und erscheinen im Notfallfenster (SOS).</p>
   </section>
   <section class="panel"><h3>Skipper</h3>
     <div class="chips">${S.skippers.map(f=>`<span class="chip">${esc(f)}${BUILTIN_PEOPLE.includes(f)?'':`<button data-pk="skippers" data-p="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
@@ -1143,9 +1306,15 @@ async function renderSettings(){
   setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
   $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();};
   $('#sBName').onchange=e=>{S.boatName=e.target.value.trim();saveS();renderBoatHeader();renderSettings();};
+  if(binfo.kind&&binfo.kind!==S.boatKind){S.boatKind=binfo.kind;saveS();}
+  $('#sKind').querySelectorAll('button').forEach(bt=>bt.onclick=async()=>{
+    S.boatKind=bt.dataset.k;saveS();
+    $('#sKind').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===bt));
+    const id=boatId(S.boatName),cur=(await getBoatRec(id))||{id,deleted:false};
+    cur.name=S.boatName;cur.type=S.boatType;cur.kind=S.boatKind;cur.updatedAt=Date.now();await putBoatRec(cur);syncSoon();toast(kindLabel(S.boatKind)+' gespeichert');});
   view.querySelectorAll('input[data-bf]').forEach(inp=>inp.onchange=async()=>{
     const id=boatId(S.boatName),cur=(await getBoatRec(id))||{id,deleted:false};
-    cur.name=S.boatName;cur.type=S.boatType;cur[inp.dataset.bf]=inp.value.trim();cur.updatedAt=Date.now();
+    cur.name=S.boatName;cur.type=S.boatType;cur.kind=cur.kind||S.boatKind;cur[inp.dataset.bf]=inp.value.trim();cur.updatedAt=Date.now();
     await putBoatRec(cur);syncSoon();toast('Bootsdaten gespeichert');});
   view.querySelectorAll('button[data-pk]').forEach(b=>b.onclick=()=>{const k=b.dataset.pk,n=b.dataset.p;
     S[k]=S[k].filter(x=>x!==n);saveS();listChange(k,n,true);
@@ -1200,7 +1369,7 @@ function renderHelp(){
     <li>Beim ersten Start den <b>Standortzugriff erlauben</b> (iPhone: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“ und „Genauer Standort“).</li>
     <li>Einmal mit Internet öffnen, damit die App für die Nutzung ohne Netz gespeichert wird.</li></ul>`,true)}
   ${sec('2. Eine Fahrt aufzeichnen',`<ul>
-    <li>Vor dem Ablegen <b>Skipper</b>, <b>Steuermann</b> und <b>Pax</b> (Personen an Bord) wählen.</li>
+    <li>Vor dem Ablegen <b>Skipper</b>, <b>Steuermann</b> und <b>Pax</b> (Personen an Bord) wählen. Sind mehr als eine Person an Bord, fragt die App nach dem Start, ob die Sicherheitsunterweisung der Crew durchgeführt wurde; die Antwort wird mit der Fahrt gespeichert.</li>
     <li><b>Start</b> drücken, wenn der Motor läuft: Datum, Uhrzeit und Position werden gespeichert, die Strecke wird aufgezeichnet.</li>
     <li><b>Stop</b> drücken, wenn der Motor aus ist: Die Fahrt wird beendet.</li>
     <li><b>Wichtig:</b> App während der Fahrt im Vordergrund lassen (am besten mit Ladekabel). Im Hintergrund oder bei gesperrtem Display pausiert das GPS.</li>
@@ -1217,7 +1386,8 @@ function renderHelp(){
   ${sec('5. Fahrten, Karte und Kommentare',`<ul>
     <li>Menü → <b>Fahrten</b>: alle Fahrten mit Filtern (Boot, Skipper, Steuermann, Person an Bord, Zeitraum) und Summen.</li>
     <li>In einer Fahrt: Karte mit Strecke. Hineinzoomen und auf einen Punkt tippen zeigt Uhrzeit und Geschwindigkeit und erlaubt einen Kommentar.</li>
-    <li>Menü → <b>Kommentare</b>: alle Kommentare als Tabelle, auch als Excel-Datei (CSV).</li></ul>`)}
+    <li>Menü → <b>Kommentare</b>: alle Kommentare als Tabelle, auch als Excel-Datei (CSV).</li>
+    <li>In einer beendeten Fahrt: <b>„Logbucheintrag als PDF exportieren“</b> erstellt ein PDF mit allen Angaben, Streckenskizze und Unterschriftenzeile für den Skipper. Es wird auf dem Gerät gespeichert (Teilen-Menü → „In Dateien sichern“) und – wenn eingeschaltet – in OneDrive unter <i>Apps › Bordbuch › pdf</i> abgelegt.</li></ul>`)}
   ${sec('6. Notfall (S.O.S)',`<ul>
     <li>Der rote Knopf zeigt sofort die Seenotleitung MRCC Bremen mit Telefonnummer (antippen zum Anrufen) und UKW-Kanal, dazu alle Bootsdaten, die aktuelle Position zum Vorlesen und die Personen an Bord.</li>
     <li>Damit das vollständig ist: in den Einstellungen unter <b>Boot</b> MMSI, Callsign, Kennzeichen und Maße eintragen.</li></ul>`)}
@@ -1242,7 +1412,8 @@ function openSetup(again){
       <h2 style="margin:4px 0 6px">⚓ Willkommen beim Bordbuch</h2>
       <p class="hint" style="margin-top:0">Bitte einmal kurz einrichten. Alles lässt sich später in den Einstellungen ändern.</p>
       <label for="suName">Bootsname <b style="color:var(--stop)">*</b></label><input type="text" id="suName" value="${esc(S.boatName||'')}" placeholder="zum Beispiel Seestern" autocapitalize="words">
-      <label for="suType">Bootsbezeichnung (Typ)</label><input type="text" id="suType" value="${esc(S.boatType||'')}" placeholder="zum Beispiel Bavaria S29">
+      <label>Bootsart</label><div class="seg" id="suKind" role="radiogroup"><button type="button" data-k="motor" class="${S.boatKind==='sail'?'':'on'}">🛥️ Motorboot</button><button type="button" data-k="sail" class="${S.boatKind==='sail'?'on':''}">⛵ Segelboot</button></div>
+      <label for="suType">Bootsmodell</label><input type="text" id="suType" value="${esc(S.boatType||'')}" placeholder="zum Beispiel Bavaria S29">
       <label for="suSk">Skipper <b style="color:var(--stop)">*</b></label><input type="text" id="suSk" value="${esc(S.skippers[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words" autocomplete="name">
       <div class="check" style="margin:10px 0 4px"><input type="checkbox" id="suSame"><span>Der Skipper ist auch Steuermann</span></div>
       <div id="suHlBox"><label for="suHl">Steuermann <b style="color:var(--stop)">*</b></label><input type="text" id="suHl" value="${esc(S.helms[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words"></div>
@@ -1252,6 +1423,7 @@ function openSetup(again){
     </form>`;
     document.body.appendChild(d);
     if(!again)d.addEventListener('cancel',e=>e.preventDefault()); // Pflicht: nicht wegwischbar
+    $('#suKind',d).querySelectorAll('button').forEach(bt=>bt.onclick=()=>{$('#suKind',d).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===bt));d.dataset.kind=bt.dataset.k;});
     $('#suSame',d).onchange=e=>{$('#suHlBox',d).style.display=e.target.checked?'none':'';if(!e.target.checked)$('#suHl',d).focus();};
     $('#suSk',d).oninput=()=>{if($('#suSame',d).checked)$('#suHl',d).value=$('#suSk',d).value;};
     $('#suOk',d).onclick=e=>{
@@ -1262,7 +1434,8 @@ function openSetup(again){
       if(d.returnValue==='ok'){
         const clean=v=>v.trim().replace(/\s+/g,' ');
         const nm=clean($('#suName',d).value),ty=clean($('#suType',d).value),sk=clean($('#suSk',d).value),hl=clean($('#suSame',d).checked?$('#suSk',d).value:$('#suHl',d).value);
-        S.boatName=nm;S.boatType=ty;S.odEnabled=$('#suOd',d).checked;S.setupDone=true;
+        S.boatName=nm;S.boatType=ty;S.boatKind=d.dataset.kind||S.boatKind||'motor';
+        {const id=boatId(nm),cur=(await getBoatRec(id))||{id,deleted:false};cur.name=nm;cur.type=ty;cur.kind=S.boatKind;cur.updatedAt=Date.now();await putBoatRec(cur);}S.odEnabled=$('#suOd',d).checked;S.setupDone=true;
         if(!S.skippers.includes(sk)){S.skippers.unshift(sk);await listChange('skippers',sk,false);}
         if(!S.helms.includes(hl)){S.helms.unshift(hl);await listChange('helms',hl,false);}
         // Gewählte Namen an den Anfang der Liste (Voreinstellung)
@@ -1290,6 +1463,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const act=(await allTrips()).filter(t=>t.status==='active'&&!t.deleted).sort((a,b)=>b.start.t-a.start.t)[0];
   if(act){rec={trip:act,watch:null,wake:null,lastFix:null};beginWatch();keepAwake();toast('Laufende Fahrt wird fortgesetzt');}
   await initLists().catch(e=>console.warn(e));
+  try{const bi=await boatInfo(S.boatName);if(bi.kind&&bi.kind!==S.boatKind){S.boatKind=bi.kind;saveS();}}catch(e){}
   if(!S.setupDone&&!needsSetup()){S.setupDone=true;saveS();}
   if(!S.setupDone||needsSetup()){route();await openSetup(false);}
   await refreshPre().catch(()=>{});

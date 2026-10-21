@@ -1,6 +1,6 @@
 // Bordbuch Service Worker – macht die App offline-fähig.
 // Die Cache-Version bei jeder neuen App-Version anpassen (wie APP_VERSION in app.js).
-const SHELL='bordbuch-shell-v5.2', TILES='bordbuch-tiles-v1';
+const SHELL='bordbuch-shell-v6.0', TILES='bordbuch-tiles-v1';
 const LOCAL=['./','./index.html','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png',
   './leaflet/leaflet.js','./leaflet/leaflet.css','./leaflet/images/layers.png','./leaflet/images/layers-2x.png',
   './leaflet/images/marker-icon.png','./leaflet/images/marker-icon-2x.png','./leaflet/images/marker-shadow.png'];

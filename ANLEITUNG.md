@@ -35,7 +35,7 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 - **Android:** In Chrome öffnen → Menü ⋮ → „App installieren“.
 - Beim ersten Tippen auf „Start“ den Standortzugriff erlauben. Unter iOS: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“ + „Genauer Standort“.
 - Einmal mit Internet öffnen, damit Karte und App-Dateien zwischengespeichert werden.
-- **Beim allerersten Start** fragt die App nach Bootsname (Pflicht), Bootsbezeichnung (freiwillig), Skipper und Steuermann (Pflicht) und ob OneDrive genutzt werden soll. Alles lässt sich später in den Einstellungen ändern.
+- **Beim allerersten Start** fragt die App nach Bootsname (Pflicht), Bootsmodell (freiwillig), Skipper und Steuermann (Pflicht) und ob OneDrive genutzt werden soll. Alles lässt sich später in den Einstellungen ändern.
 
 ### Die App an Bekannte weitergeben
 Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bordbuch/`) weitergeben. Jeder installiert sie auf seinem eigenen Gerät; die Daten bleiben getrennt auf dem jeweiligen Gerät bzw. im eigenen OneDrive. Ein eigenes GitHub-Konto brauchen Bekannte nicht. Wer OneDrive nutzen möchte, schaltet es einfach ein und meldet sich mit dem eigenen Microsoft-Konto an – die Daten landen nur im eigenen OneDrive.
@@ -46,7 +46,7 @@ Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bord
 - **Stop (Motor ausgeschaltet):** speichert das Fahrtende und beendet die Aufzeichnung (mit Sicherheitsabfrage).
 - Während der Fahrt: **„Ereignis notieren“** setzt einen Kommentar an die aktuelle Position (Schleuse, Manöver …).
 - Sobald Internet da ist, werden automatisch nachgeladen: Ortsnamen von Fahrtbeginn und Fahrtende (OpenStreetMap) und das Wetter zum jeweiligen Zeitpunkt (Open-Meteo: Beschreibung, Temperatur in °C, Wind mit Richtung und Böen in km/h).
-- **Boot:** In der Kopfzeile stehen Bootsbezeichnung und Bootsname aus der Ersteinrichtung. Antippen zum Ändern – das Boot wird bei jeder neuen Fahrt mitgespeichert.
+- **Boot:** In der Kopfzeile stehen Bootsmodell und Bootsname aus der Ersteinrichtung. Antippen zum Ändern – das Boot wird bei jeder neuen Fahrt mitgespeichert.
 - **Menü ☰ → Fahrten:** Filter nach Boot (Standard: das eingestellte Boot, oder „Alle Boote“), Skipper, Steuermann, Person an Bord und Zeitraum von/bis. Bei gewähltem Steuermann wird zusätzlich angezeigt, wie viele Kilometer und Stunden diese Person selbst gesteuert hat. Für die Auswahl werden Anzahl, Gesamtstrecke und Gesamtdauer angezeigt. In einer Fahrt: Karte mit Track, Dauer, Strecke in km, Durchschnitts- und Höchstgeschwindigkeit in km/h, Wetter, Fahrtkommentar. In die Karte zoomen und auf Punkt oder Linie tippen zeigt Uhrzeit, Geschwindigkeit und ein Kommentarfeld. Kommentierte Punkte werden orange hervorgehoben. Ebenen-Schalter: Seezeichen von OpenSeaMap einblenden.
 - **Skipper, Steuermann, Pax (unter dem Stop-Knopf):** Voreingestellt sind die Namen aus der Ersteinrichtung, wählbar auch „Weiterer Skipper …“ / „Weiterer Steuermann …“ (Name eingeben, erscheint danach dauerhaft in der Auswahl).
   - Der Skipper wird beim Start festgelegt und ist während der Fahrt gesperrt.
@@ -62,6 +62,9 @@ Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bord
 - **Einstellungen → Boot:** zusätzlich MMSI, Callsign, Bootskennzeichen, Länge, Breite, Höhe (je in Metern) und Verdrängung (in Tonnen). Diese Angaben gehören fest zum Bootsnamen, werden mit OneDrive abgeglichen und im Notfallfenster angezeigt.
 - **Einstellungen → Skipper / Steuermann:** Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert. Die Namenslisten und die Kraftstoffarten werden über OneDrive zwischen deinen Geräten abgeglichen (auch Löschungen). Die Einstellungen zur Aufzeichnung und das aktuell gewählte Boot bleiben bewusst je Gerät.
 - **Einstellungen → Kraftstoffarten:** weitere Kraftstoffarten hinzufügen (zum Beispiel Super E10) oder selbst angelegte wieder entfernen.
+- **Sicherheitsunterweisung:** Sind beim Start mehr als eine Person an Bord, fragt die App „Sicherheitsunterweisung der Crew durchgeführt?“ (Ja/Nein). Die Antwort wird mit der Fahrt gespeichert und erscheint in der Fahrt und im PDF.
+- **Logbucheintrag als PDF:** In einer beendeten Fahrt erstellt „Logbucheintrag als PDF exportieren“ ein PDF mit Fahrtdaten, Wetter, Besatzung, Sicherheitsunterweisung, Tankvorgängen, Kommentaren, Streckenskizze und einer Unterschriftenzeile für den Skipper mit Datum und Uhrzeit der Erstellung. Das PDF wird auf dem Gerät gespeichert (Teilen-Menü → „In Dateien sichern“) und – wenn OneDrive eingeschaltet ist – in `OneDrive/Apps/Bordbuch/pdf/` abgelegt. Frühere Exporte stehen unter der Fahrt und lassen sich erneut öffnen.
+- **Einstellungen → Boot → Bootsart:** Schieber Motorboot/Segelboot. Die Bootsart gehört fest zum Bootsnamen und erscheint im Notfallfenster und im PDF.
 - **Menü ☰ → Kommentare:** alle Kommentare als Tabelle, durchsuchbar, Tipp auf eine Zeile springt zur Stelle in der Karte. CSV-Export für Excel.
 - Pro Fahrt: **GPX-Export** (zum Beispiel für Navionics, OpenCPN, Google Earth).
 
@@ -83,7 +86,7 @@ Die Client-ID ist kein Geheimnis: Sie steht ohnehin in jeder Anmelde-Adresse. An
 3. Umleitungs-URI: Plattform **„Single-Page-Anwendung (SPA)“**, Adresse genau wie in der App unter Einstellungen → „Erweitert: eigene Client-ID“ angezeigt.
 4. Registrieren → die **Anwendungs-ID (Client-ID)** kopieren und in der App unter „Erweitert: eigene Client-ID“ eintragen.
 
-Die Fahrten liegen dann als einzelne Dateien in `OneDrive/Apps/Bordbuch/trips/`, die Tankvorgänge in `OneDrive/Apps/Bordbuch/fuel/`. Die App hat nur Zugriff auf diesen eigenen Ordner. Abgleich: beim Öffnen, bei neuer Internetverbindung, nach jeder Fahrt und jedem Kommentar, sowie alle 5 Minuten. Bei Konflikten gewinnt die zuletzt geänderte Fassung einer Fahrt.
+Die Fahrten liegen dann als einzelne Dateien in `OneDrive/Apps/Bordbuch/trips/`, die Tankvorgänge in `OneDrive/Apps/Bordbuch/fuel/`, die PDF-Logbucheinträge in `OneDrive/Apps/Bordbuch/pdf/`. Die App hat nur Zugriff auf diesen eigenen Ordner. Abgleich: beim Öffnen, bei neuer Internetverbindung, nach jeder Fahrt und jedem Kommentar, sowie alle 5 Minuten. Bei Konflikten gewinnt die zuletzt geänderte Fassung einer Fahrt.
 
 Hinweis: Microsoft lässt reine Web-Apps grundsätzlich nur 24 Stunden ohne erneute Anmeldung arbeiten; das lässt sich auch in der Azure-Registrierung nicht verlängern. Die App erneuert die Anmeldung deshalb ab etwa 18 Stunden automatisch beim Öffnen (kurzer Seitenwechsel zu Microsoft und zurück, ohne Eingabe) – nie während einer laufenden Fahrt. Damit das klappt, bei der Microsoft-Anmeldung „Angemeldet bleiben?“ mit **Ja** beantworten. Nur wenn Microsoft trotzdem eine Eingabe verlangt, steht oben „bitte neu verbinden“; bis dahin bleibt alles lokal gespeichert und wird danach nachsynchronisiert.
 
@@ -98,7 +101,7 @@ Wer automatischen Abgleich zwischen iPhone, iPad und Mac möchte, nimmt am einfa
 
 ## 6. Einstellungen zur Aufzeichnung
 
-- Mindestabstand zwischen Wegpunkten: 10 m (Standard)
+- Mindestabstand zwischen Wegpunkten: 25 m (Standard)
 - Spätestens alle 30 s ein Wegpunkt
 - Positionen ungenauer als 50 m werden verworfen
 - Drift am Liegeplatz wird nicht als Strecke gezählt.
@@ -139,3 +142,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 5.0 | Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen |
 | 5.1 | Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld |
 | 5.2 | Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in `app.js`, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste |
+| 6.0 | Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive) |

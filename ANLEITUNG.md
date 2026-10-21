@@ -6,10 +6,13 @@ Eine Web-App (PWA), die sich wie eine normale App auf dem Homescreen installiere
 
 | Datei | Zweck |
 |---|---|
-| `index.html` | Die komplette App |
+| `index.html` | Seitengerüst und Gestaltung der App |
+| `app.js` | Der gesamte Programmcode |
 | `sw.js` | Service Worker – macht die App offline-fähig, merkt sich angesehene Kartenausschnitte |
 | `manifest.webmanifest` | App-Name, Icon, Vollbild-Modus |
 | `icon-192.png`, `icon-512.png` | App-Icons |
+| `leaflet/` (Ordner) | Kartenbibliothek Leaflet 1.9.4 (BSD-Lizenz), aus dem offiziellen Quellcode gebaut – wird nicht mehr von fremden Servern geladen |
+| `ANLEITUNG.md` | Diese Anleitung |
 
 ## 1. Online stellen (einmalig, kostenlos)
 
@@ -100,6 +103,12 @@ Wer automatischen Abgleich zwischen iPhone, iPad und Mac möchte, nimmt am einfa
 - Positionen ungenauer als 50 m werden verworfen
 - Drift am Liegeplatz wird nicht als Strecke gezählt.
 
+## Sicherheit
+
+- Die App lädt keinen fremden Programmcode: App und Kartenbibliothek liegen vollständig im eigenen Repository.
+- Eine Sicherheitsrichtlinie (Content-Security-Policy in `index.html`) erlaubt Programmcode nur aus dem eigenen Repository und Verbindungen nur zu OpenStreetMap (Karte, Ortsnamen), OpenSeaMap, Open-Meteo und Microsoft (Anmeldung, OneDrive).
+- Wichtigster Schutz bleibt das GitHub-Konto des Betreibers: Zwei-Faktor-Anmeldung einschalten und niemandem Schreibrechte geben.
+
 ## Datenquellen
 
 Karten © OpenStreetMap-Mitwirkende, Seezeichen © OpenSeaMap, Ortsnamen über Nominatim (OpenStreetMap), Wetter von Open-Meteo.com (CC BY 4.0). Alle kostenlos und ohne API-Schlüssel.
@@ -129,3 +138,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 4.7 | Fahrtenfilter „Person an Bord“ |
 | 5.0 | Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen |
 | 5.1 | Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld |
+| 5.2 | Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in `app.js`, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste |

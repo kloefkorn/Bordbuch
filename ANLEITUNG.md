@@ -35,7 +35,9 @@ Eigene Daten landen nie auf diesem Server – er liefert nur die App-Dateien aus
 - **Android:** In Chrome öffnen → Menü ⋮ → „App installieren“.
 - Beim ersten Tippen auf „Start“ den Standortzugriff erlauben. Unter iOS: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“ + „Genauer Standort“.
 - Einmal mit Internet öffnen, damit Karte und App-Dateien zwischengespeichert werden.
-- **Beim allerersten Start** fragt die App nach Bootsname (Pflicht), Bootsmodell (freiwillig), Skipper und Steuermann (Pflicht) und ob OneDrive genutzt werden soll. Alles lässt sich später in den Einstellungen ändern.
+- **Beim allerersten Start** fragt die App zuerst, ob OneDrive genutzt werden soll.
+  - **Mit OneDrive:** Du meldest dich direkt mit deinem Microsoft-Konto an. Danach lädt die App vorhandene Daten aus deinem OneDrive (Boote, Skipper, Steuerleute, Fahrten). Boot, Skipper und Steuermann wählst du dann aus Auswahllisten – oder legst über „Weiteres …“ neue an. Ideal für ein zweites Gerät.
+  - **Ohne OneDrive:** Es erscheint sofort die Eingabemaske für Bootsname (Pflicht), Bootsart, Bootsmodell, Skipper und Steuermann (Pflicht). OneDrive lässt sich später in den Einstellungen einschalten.
 
 ### Die App an Bekannte weitergeben
 Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bordbuch/`) weitergeben. Jeder installiert sie auf seinem eigenen Gerät; die Daten bleiben getrennt auf dem jeweiligen Gerät bzw. im eigenen OneDrive. Ein eigenes GitHub-Konto brauchen Bekannte nicht. Wer OneDrive nutzen möchte, schaltet es einfach ein und meldet sich mit dem eigenen Microsoft-Konto an – die Daten landen nur im eigenen OneDrive.
@@ -59,7 +61,7 @@ Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bord
 - **Tanken (kleiner Knopf mit Zapfsäule):** öffnet die Eingabe für getankte Liter, Preis je Liter und Kraftstoffart (voreingestellt „Diesel“). Datum, Uhrzeit, Ort und Boot werden automatisch gespeichert; Datum und Uhrzeit lassen sich ändern, wenn du nachträglich einträgst. „Vollgetankt“ bleibt angehakt, wenn der Tank voll ist; bei einer Teilbetankung den Haken entfernen.
 - **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, die zwischen den Tankvorgängen gefahrene Strecke, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard: das eingestellte Boot), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern; mit dem Papierkorb in der Zeile wird er gelöscht. CSV-Export für Excel.
   Berechnung: getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“; Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang ist nur der Ausgangswert.
-- **Einstellungen → Boot:** zusätzlich MMSI, Callsign, Bootskennzeichen, Länge, Breite, Höhe (je in Metern) und Verdrängung (in Tonnen). Diese Angaben gehören fest zum Bootsnamen, werden mit OneDrive abgeglichen und im Notfallfenster angezeigt.
+- **Einstellungen → Boot:** zusätzlich MMSI, Callsign, Bootskennzeichen, Länge, Breite, Höhe (je in Metern) und Verdrängung (in Tonnen). Diese Angaben gehören fest zum Bootsnamen, werden – zusammen mit Bootsmodell und Bootsart – Feld für Feld mit OneDrive abgeglichen und im Notfallfenster angezeigt. Ein neu eingerichtetes Gerät übernimmt die vorhandenen Bootsdaten, statt sie zu überschreiben.
 - **Einstellungen → Skipper / Steuermann:** Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert. Die Namenslisten und die Kraftstoffarten werden über OneDrive zwischen deinen Geräten abgeglichen (auch Löschungen). Die Einstellungen zur Aufzeichnung und das aktuell gewählte Boot bleiben bewusst je Gerät.
 - **Einstellungen → Kraftstoffarten:** weitere Kraftstoffarten hinzufügen (zum Beispiel Super E10) oder selbst angelegte wieder entfernen.
 - **Sicherheitsunterweisung:** Sind beim Start mehr als eine Person an Bord, fragt die App „Sicherheitsunterweisung der Crew durchgeführt?“ (Ja/Nein). Die Antwort wird mit der Fahrt gespeichert und erscheint in der Fahrt und im PDF.
@@ -152,3 +154,5 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 7.0 | Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation |
 | 7.1 | Fahrten direkt in der Übersicht löschen; Seezeichen standardmäßig an, Einstellung unter „Karte“ |
 | 7.2 | Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft |
+| 7.3 | Bootsdaten inkl. Bootsmodell und Bootsart werden feldweise über OneDrive abgeglichen; ein neues Gerät überschreibt keine vorhandenen Angaben mehr |
+| 7.4 | Ersteinrichtung: zuerst Frage nach OneDrive; mit OneDrive erst anmelden und vorhandene Daten laden, dann Boot, Skipper und Steuermann aus Listen wählen |

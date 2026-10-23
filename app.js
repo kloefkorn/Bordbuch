@@ -17,8 +17,10 @@
    · 6.0 Bootsart Motor-/Segelboot, Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)
    · 7.0 Einheiten km/sm, Datenschutzerklärung, Anmeldedaten nicht mehr im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt
    · 7.1 Fahrten in der Übersicht löschen, Seezeichen standardmäßig an (Einstellung)
-   · 7.2 Fehlerkorrektur OneDrive-Download (Statusprüfung), Prüfung aller heruntergeladenen und importierten Datensätze */
-const APP_VERSION='7.2';
+   · 7.2 Fehlerkorrektur OneDrive-Download (Statusprüfung), Prüfung aller heruntergeladenen und importierten Datensätze
+   · 7.3 Bootsdaten (inkl. Bootsmodell und Bootsart) werden feldweise über OneDrive abgeglichen
+   · 7.4 Ersteinrichtung: zuerst OneDrive verbinden und Daten laden, dann Boot/Skipper/Steuermann auswählen */
+const APP_VERSION='7.4';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -56,6 +58,7 @@ async function editBoat(){
   d.addEventListener('close',async()=>{
     if(d.returnValue!=='ok')return;
     S.boatType=$('#bdType').value.trim();S.boatName=$('#bdName').value.trim();saveS();
+    {const ex=await boatInfo(S.boatName);if(S.boatType!==(ex.type||''))await boatPatch(S.boatName,{type:S.boatType});else applyBoatRec(ex);}
     if(rec&&confirm('Soll die laufende Fahrt ebenfalls diesem Boot zugeordnet werden?')){
       rec.trip.boat={type:S.boatType,name:S.boatName};rec.trip.updatedAt=Date.now();persist();
     }
@@ -110,6 +113,43 @@ const boatId=name=>(name||'').trim().toLowerCase().replace(/[^a-z0-9äöüß]+/g
 const BOAT_FIELDS=[['mmsi','MMSI','numeric',''],['callsign','Callsign','text',''],['reg','Bootskennzeichen','text',''],
   ['length','Länge','decimal','m'],['beam','Breite','decimal','m'],['height','Höhe','decimal','m'],['displacement','Verdrängung','decimal','t']];
 async function boatInfo(name){return (await getBoatRec(boatId(name)))||{};}
+/* Bootsdaten werden Feld für Feld abgeglichen: jedes Feld merkt sich, wann es zuletzt geändert wurde (ft).
+   So kann ein neu angelegter, leerer Datensatz auf einem zweiten Gerät keine vorhandenen Angaben überschreiben. */
+const BOAT_SYNC_FIELDS=()=>['type','kind',...BOAT_FIELDS.map(f=>f[0])];
+const fieldTime=(r,f)=>r?.ft&&isNum(r.ft[f])?r.ft[f]:(r&&r[f]?(r.updatedAt||0):-1);
+// Gleichstand oder leerer Gewinner: vorhandener Wert bleibt
+function mergeBoat(a,b){
+  const base=b||a;const out={id:base.id,name:(b?.name||a?.name||''),deleted:false,ft:{},updatedAt:Math.max(a?.updatedAt||0,b?.updatedAt||0)};
+  for(const f of BOAT_SYNC_FIELDS()){
+    const ta=fieldTime(a,f),tb=fieldTime(b,f);
+    const va=a&&a[f]!=null&&a[f]!==''?a[f]:null,vb=b&&b[f]!=null&&b[f]!==''?b[f]:null;
+    let v=tb>ta?vb:ta>tb?va:(vb??va);
+    if(v==null&&(tb>ta?ta:tb)<=0)v=vb??va; // ein leerer Wert darf nur eine bewusste (nicht voreingestellte) Angabe löschen
+    const t=Math.max(ta,tb);
+    if(v!=null)out[f]=v;
+    if(t>=0)out.ft[f]=t;
+  }
+  return out;
+}
+const boatCore=r=>JSON.stringify(BOAT_SYNC_FIELDS().map(f=>[r?.[f]??'',r?.ft?.[f]??null]));
+async function boatPatch(name,changes,weak=false){
+  // weak: nur Voreinstellungen (z. B. neues Gerät) – zählen als „uralt“ und überschreiben nie echte Angaben
+  if(!name)return;
+  const id=boatId(name),cur=(await getBoatRec(id))||{id,deleted:false,ft:{}};const now=Date.now();
+  cur.name=name;cur.ft=cur.ft||{};
+  for(const [k,v] of Object.entries(changes)){
+    if(weak){if(v==null||v==='')continue;if(cur[k]!=null&&cur[k]!=='')continue;cur[k]=v;cur.ft[k]=0;}
+    else{cur[k]=v;cur.ft[k]=now;}}
+  cur.updatedAt=now;await putBoatRec(cur);syncSoon();
+}
+/* Nach dem Abgleich: Bootsmodell und Bootsart des aktuell gewählten Boots übernehmen */
+function applyBoatRec(r){
+  if(!r||r.id!==boatId(S.boatName))return false;let ch=false;
+  if(r.type!=null&&r.type!==S.boatType){S.boatType=r.type;ch=true;}
+  if(r.kind&&r.kind!==S.boatKind){S.boatKind=r.kind;ch=true;}
+  if(ch){saveS();if(!rec)renderBoatHeader();}
+  return ch;
+}
 /* ---- Geräteübergreifende Listen: Skipper, Steuermann, Kraftstoffarten ----
    Jeder Eintrag merkt sich, wann er hinzugefügt (a) und zuletzt geändert (t) wurde; gelöschte bleiben als Vermerk (del),
    damit sie nach dem Abgleich nicht auf einem anderen Gerät wieder auftauchen. */
@@ -1129,7 +1169,7 @@ async function importFile(file){
     for(const f0 of (Array.isArray(j.fuel)?j.fuel:[])){const f=validateFuel(f0,f0?.id);if(!f){bad++;continue;}const l=await getFuel(f.id);
       if(!l||(f.updatedAt||0)>(l.updatedAt||0)){await putFuel(f);m++;}}
     for(const m0 of (Array.isArray(j.meta)?j.meta:[])){const mm=validateMeta(m0,m0?.id);if(!mm){if(m0?.id==='lists')bad++;continue;}{const mg=mergeLists(await getMeta('lists'),mm);mg.updatedAt=Date.now();await putMeta(mg);listsToS(mg);}}
-    for(const b0 of (Array.isArray(j.boats)?j.boats:[])){const b=validateBoatRec(b0,b0?.id);if(!b){bad++;continue;}const l=await getBoatRec(b.id);if(!l||(b.updatedAt||0)>(l.updatedAt||0))await putBoatRec(b);}
+    for(const b0 of (Array.isArray(j.boats)?j.boats:[])){const b=validateBoatRec(b0,b0?.id);if(!b){bad++;continue;}const l=await getBoatRec(b.id);const mg=mergeBoat(l,b);mg.updatedAt=Date.now();await putBoatRec(mg);applyBoatRec(mg);}
     toast(`${n} Fahrt(en) und ${m} Tankvorgang/-vorgänge übernommen`+(bad?` · ${bad} ungültige Einträge übersprungen`:''));enrichAll();
   }catch(e){alert('Import fehlgeschlagen: '+e.message);}
 }
@@ -1193,12 +1233,12 @@ async function odHandleRedirect(){
   if(!code&&!err)return;
   const pk=JSON.parse(localStorage.getItem('bb_od_pkce')||'null');localStorage.removeItem('bb_od_pkce');
   history.replaceState(null,'',redirectUri()+(pk?.hash||''));
-  if(err){if(pk?.silent){setSync('bitte neu verbinden');return;}alert('OneDrive-Anmeldung fehlgeschlagen: '+(p.get('error_description')||err));return;}
+  if(err){if(pk?.silent){setSync('bitte neu verbinden');return;}if(S.setupPhase==='od')return;alert('OneDrive-Anmeldung fehlgeschlagen: '+(p.get('error_description')||err));return;}
   if(!pk||pk.state!==p.get('state')){alert('Anmeldung ungültig – bitte erneut versuchen.');return;}
   try{await odTokenReq({grant_type:'authorization_code',code,redirect_uri:redirectUri(),code_verifier:pk.ver});
     odTok.rtIssued=Date.now();await saveTok();
     localStorage.setItem('bb_od_on','1');if(!pk.silent)toast('Mit OneDrive verbunden');}
-  catch(e){alert('Token-Abruf fehlgeschlagen: '+e.message);}
+  catch(e){if(S.setupPhase!=='od')alert('Token-Abruf fehlgeschlagen: '+e.message);}
 }
 async function odTokenReq(params){
   const r=await fetch(`${OD_AUTH}/token`,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},
@@ -1289,6 +1329,7 @@ function validateBoatRec(b,id){
   const out={id,name:str(b.name,120),type:str(b.type,120),updatedAt:b.updatedAt,deleted:b.deleted===true};
   if(b.kind)out.kind=b.kind==='sail'?'sail':'motor';
   for(const [k] of BOAT_FIELDS){if(b[k]!=null){if(typeof b[k]!=='string')return null;out[k]=b[k].slice(0,60);}}
+  if(b.ft!=null){if(!isObj(b.ft))return null;out.ft={};for(const f of BOAT_SYNC_FIELDS())if(isNum(b.ft[f]))out.ft[f]=b.ft[f];}
   return out;
 }
 function validateMeta(m,id){
@@ -1303,8 +1344,10 @@ function validateMeta(m,id){
 const SYNC_SETS=[
   {folder:'trips',validate:validateTrip,key:id=>id,get:getTrip,put:putTrip,all:allTrips,skipUp:t=>t.status!=='done',skipDown:id=>rec&&rec.trip.id===id},
   {folder:'fuel',validate:validateFuel,key:id=>'fuel:'+id,get:getFuel,put:putFuel,all:allFuel,skipUp:()=>false,skipDown:()=>false},
-  {folder:'boats',validate:validateBoatRec,key:id=>'boat:'+id,get:getBoatRec,put:putBoatRec,all:allBoats,skipUp:()=>false,skipDown:()=>false},
-  {folder:'meta',validate:validateMeta,key:id=>'meta:'+id,get:getMeta,put:putMeta,all:allMeta,skipUp:()=>false,skipDown:()=>false,merge:mergeLists}];
+  {folder:'boats',validate:validateBoatRec,key:id=>'boat:'+id,get:getBoatRec,put:putBoatRec,all:allBoats,skipUp:()=>false,skipDown:()=>false,
+    merge:mergeBoat,same:(m,r)=>boatCore(m)===boatCore(mergeBoat(r,r)),after:m=>{applyBoatRec(m);return true;}},
+  {folder:'meta',validate:validateMeta,key:id=>'meta:'+id,get:getMeta,put:putMeta,all:allMeta,skipUp:()=>false,skipDown:()=>false,merge:mergeLists,
+    same:(m,r)=>JSON.stringify(m.entries)===JSON.stringify(mergeLists(r,r).entries),after:m=>{if(m.id==='lists'){listsToS(m);return true;}return false;}}];
 async function syncNow(quiet,allowSilentLogin){
   if(!S.odEnabled)return;
   if(!localStorage.getItem('bb_od_on')){if(!quiet)toast('OneDrive ist nicht verbunden');return;}
@@ -1333,9 +1376,9 @@ async function syncNow(quiet,allowSilentLogin){
           const lo=await set.get(id);map[k]={remoteMod:f.lastModifiedDateTime,localUpd:lo&&!set.skipUp(lo)?0:(m?.localUpd||0)};continue;}
         const local=await set.get(id);
         if(set.merge){
-          const mg=set.merge(local,rt);const sameAsRemote=JSON.stringify(mg.entries)===JSON.stringify(set.merge(rt,rt).entries);
-          if(!sameAsRemote)mg.updatedAt=Date.now();
-          await set.put(mg);if(id==='lists'){listsToS(mg);metaChanged=true;}down++;
+          const mg=set.merge(local,rt);const sameAsRemote=set.same(mg,rt);
+          if(!sameAsRemote)mg.updatedAt=Date.now(); // lokal gab es Neueres → zusammengeführte Fassung wieder hochladen
+          await set.put(mg);if(set.after(mg))metaChanged=true;down++;
           map[k]={remoteMod:f.lastModifiedDateTime,localUpd:sameAsRemote?mg.updatedAt:0};continue;
         }
         if(!local||(rt.updatedAt||0)>(local.updatedAt||0)){await set.put(rt);down++;map[k]={remoteMod:f.lastModifiedDateTime,localUpd:rt.updatedAt};}
@@ -1357,7 +1400,7 @@ async function syncNow(quiet,allowSilentLogin){
     }
     localStorage.setItem('bb_lastsync',Date.now());
     setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:'')+(invalid?` · ${invalid} ungültige Datei(en) übersprungen`:''));
-    if(metaChanged&&(location.hash||'').startsWith('#/einstellungen'))renderSettings();
+    if(metaChanged&&(location.hash||'').startsWith('#/einstellungen')&&!(document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)))renderSettings();
     if(down){if(await refreshPre().catch(()=>false)&&!rec&&(location.hash||'#/').match(/^#\/?$/))renderHome();refreshView();enrichAll();}
     if(!quiet)toast('Synchronisation abgeschlossen');
   }catch(e){
@@ -1378,7 +1421,7 @@ async function renderSettings(){
   <a class="msel crewBtn helpBtn" href="#/hilfe" style="margin:0 auto 14px;text-decoration:none"><span class="in"><span><small>Neu hier?</small><b>Hilfe und Anleitung</b></span><span class="cbR">öffnen</span></span></a>
   <section class="panel"><h3>Boot</h3>
     <label for="sKind">Bootsart</label><select id="sKind" class="fsel"><option value="motor" ${(binfo.kind||S.boatKind)!=='sail'?'selected':''}>Motorboot</option><option value="sail" ${(binfo.kind||S.boatKind)==='sail'?'selected':''}>Segelboot</option></select>
-    <label>Bootsmodell</label><input type="text" id="sBType" value="${esc(S.boatType)}">
+    <label>Bootsmodell</label><input type="text" id="sBType" value="${esc(binfo.type??S.boatType)}">
     <label>Bootsname</label><input type="text" id="sBName" value="${esc(S.boatName)}">
     ${BOAT_FIELDS.map(([k,l,m,u])=>`<label for="sB_${k}">${l}${u?` (${u})`:''}</label><input type="text" id="sB_${k}" data-bf="${k}" inputmode="${m}" value="${esc(binfo[k]||'')}" autocomplete="off" autocapitalize="characters">`).join('')}
     <p class="hint">Bootsart, Bootsmodell und Bootsname werden bei jeder neuen Fahrt mitgespeichert. Die weiteren Angaben gehören fest zum Bootsnamen „${esc(S.boatName)}“ und erscheinen im Notfallfenster (SOS).</p>
@@ -1445,17 +1488,11 @@ async function renderSettings(){
   $('#sUnits').onchange=e=>{S.units=e.target.value;saveS();toast(S.units==='nautical'?'Einheiten: Seemeilen und Knoten':'Einheiten: Kilometer und km/h');};
   const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
   setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
-  $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();};
-  $('#sBName').onchange=e=>{S.boatName=e.target.value.trim();saveS();renderBoatHeader();renderSettings();};
+  $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();boatPatch(S.boatName,{type:S.boatType}).then(()=>toast('Bootsmodell gespeichert'));};
+  $('#sBName').onchange=async e=>{S.boatName=e.target.value.trim();saveS();const ex=await boatInfo(S.boatName);if(ex.id)applyBoatRec(ex);else if(S.boatName)await boatPatch(S.boatName,{type:S.boatType,kind:S.boatKind},true);renderBoatHeader();renderSettings();};
   if(binfo.kind&&binfo.kind!==S.boatKind){S.boatKind=binfo.kind;saveS();}
-  $('#sKind').onchange=async e=>{
-    S.boatKind=e.target.value;saveS();
-    const id=boatId(S.boatName),cur=(await getBoatRec(id))||{id,deleted:false};
-    cur.name=S.boatName;cur.type=S.boatType;cur.kind=S.boatKind;cur.updatedAt=Date.now();await putBoatRec(cur);syncSoon();toast(kindLabel(S.boatKind)+' gespeichert');};
-  view.querySelectorAll('input[data-bf]').forEach(inp=>inp.onchange=async()=>{
-    const id=boatId(S.boatName),cur=(await getBoatRec(id))||{id,deleted:false};
-    cur.name=S.boatName;cur.type=S.boatType;cur.kind=cur.kind||S.boatKind;cur[inp.dataset.bf]=inp.value.trim();cur.updatedAt=Date.now();
-    await putBoatRec(cur);syncSoon();toast('Bootsdaten gespeichert');});
+  $('#sKind').onchange=async e=>{S.boatKind=e.target.value;saveS();await boatPatch(S.boatName,{kind:S.boatKind});toast(kindLabel(S.boatKind)+' gespeichert');};
+  view.querySelectorAll('input[data-bf]').forEach(inp=>inp.onchange=async()=>{await boatPatch(S.boatName,{[inp.dataset.bf]:inp.value.trim()});toast('Bootsdaten gespeichert');});
   view.querySelectorAll('button[data-pk]').forEach(b=>b.onclick=()=>{const k=b.dataset.pk,n=b.dataset.p;
     S[k]=S[k].filter(x=>x!==n);saveS();listChange(k,n,true);
     if(k==='skippers'&&P.skipper===n)P.skipper=defSkipper();if(k==='helms'&&P.helm===n)P.helm=defHelm();saveP();
@@ -1507,6 +1544,7 @@ function renderHelp(){
   ${sec('1. App auf dem Handy installieren',`<ul>
     <li><b>iPhone/iPad:</b> Adresse in <b>Safari</b> öffnen → Teilen-Symbol → „Zum Home-Bildschirm“. Danach immer über das Symbol starten.</li>
     <li><b>Android:</b> In Chrome öffnen → Menü ⋮ → „App installieren“.</li>
+    <li>Beim allerersten Start fragt die App, ob OneDrive genutzt werden soll. Mit OneDrive meldest du dich zuerst an; Boot, Skipper, Steuerleute und Fahrten von deinen anderen Geräten werden dann übernommen und sind zur Auswahl vorbelegt. Ohne OneDrive trägst du Boot, Skipper und Steuermann direkt ein.</li>
     <li>Beim ersten Start den <b>Standortzugriff erlauben</b> (iPhone: Einstellungen → Datenschutz → Ortungsdienste → Safari-Websites → „Beim Verwenden“ und „Genauer Standort“).</li>
     <li>Einmal mit Internet öffnen, damit die App für die Nutzung ohne Netz gespeichert wird.</li></ul>`,true)}
   ${sec('2. Eine Fahrt aufzeichnen',`<ul>
@@ -1581,39 +1619,113 @@ function renderPrivacy(){
 
 /* ================= Ersteinrichtung ================= */
 function needsSetup(){return !S.boatName||!S.skippers.length||!S.helms.length;}
-function openSetup(again){
+/* Ablauf beim allerersten Start:
+   1. Frage: mit OneDrive verbinden oder ohne starten?
+   2a. Mit OneDrive: zuerst anmelden, dann vorhandene Daten laden; Boot, Skipper und Steuermann sind danach auswählbar.
+   2b. Ohne OneDrive: direkt die Eingabemaske. */
+async function openSetup(again){
+  if(again)return setupForm(true);
+  if(S.setupPhase==='od'){
+    S.setupPhase=null;saveS();
+    if(localStorage.getItem('bb_od_on')&&odTok){
+      await busy('Mit OneDrive verbunden. Deine vorhandenen Daten werden geladen …',()=>syncNow(true));
+      if(/^Fehler|neu verbinden/.test(syncMsg))toast('Laden aus OneDrive unvollständig – es wird später erneut versucht');
+      return setupForm(false);
+    }
+    return setupStart('Die Verbindung mit OneDrive wurde nicht hergestellt. Du kannst es erneut versuchen oder ohne OneDrive starten.');
+  }
+  return setupStart();
+}
+function busy(text,fn){
+  const d=document.createElement('dialog');d.className='gdlg';
+  d.innerHTML=`<div style="display:flex;gap:14px;align-items:center;padding:6px 2px"><div class="spin"></div><p style="margin:0">${esc(text)}</p></div>`;
+  d.addEventListener('cancel',e=>e.preventDefault());document.body.appendChild(d);d.showModal();
+  return Promise.resolve().then(fn).catch(e=>console.warn(e)).finally(()=>{d.close();d.remove();});
+}
+async function setupStart(msg){
+  const {v}=await modal(`<h2 style="margin:4px 0 6px">⚓ Willkommen beim Bordbuch</h2>
+    ${msg?`<p class="pending" style="font-size:14px">${esc(msg)}</p>`:''}
+    <p>Möchtest du deine Daten mit <b>OneDrive</b> synchronisieren?</p>
+    <p class="hint">Empfohlen, wenn du das Bordbuch auch auf einem anderen Gerät nutzt oder nutzen möchtest: Boot, Skipper, Steuerleute und Fahrten werden dann von dort übernommen. Du meldest dich mit deinem eigenen Microsoft-Konto an; die Daten liegen nur in deinem OneDrive.</p>
+    <p class="hint">Ohne OneDrive bleiben alle Daten nur auf diesem Gerät. Einschalten lässt es sich später jederzeit in den Einstellungen.</p>
+    <div class="row" style="flex-direction:column;align-items:stretch">
+      <button value="od" class="btn">Mit OneDrive verbinden</button>
+      <button value="local" class="btn ghost">Ohne OneDrive starten</button></div>`,
+    d=>d.addEventListener('cancel',e=>e.preventDefault()));
+  if(v==='od'){
+    if(!navigator.onLine){toast('Keine Internetverbindung – bitte später verbinden oder ohne OneDrive starten');return setupStart(msg);}
+    S.odEnabled=true;S.setupPhase='od';saveS();
+    await odLogin(false); // Weiterleitung zu Microsoft; danach geht es beim nächsten Laden der App weiter
+    return new Promise(()=>{});
+  }
+  S.odEnabled=false;saveS();
+  return setupForm(false);
+}
+async function setupForm(again){
+  const boats=uniq([S.boatName,...(await allBoats()).filter(b=>!b.deleted&&b.name).map(b=>b.name),...(await liveTrips()).map(t=>tripBoat(t).name)]).filter(Boolean);
+  const sks=S.skippers.slice(),hls=S.helms.slice();
+  const opt=(list,sel,other)=>list.map(n=>`<option value="${esc(n)}" ${n===sel?'selected':''}>${esc(n)}</option>`).join('')+`<option value="__new">${other} …</option>`;
+  const req='<b style="color:var(--stop)">*</b>';
   return new Promise(res=>{
     const d=document.createElement('dialog');d.id='setupDlg';
     d.innerHTML=`<form method="dialog" style="margin:0">
-      <h2 style="margin:4px 0 6px">⚓ Willkommen beim Bordbuch</h2>
-      <p class="hint" style="margin-top:0">Bitte einmal kurz einrichten. Alles lässt sich später in den Einstellungen ändern.</p>
-      <label for="suName">Bootsname <b style="color:var(--stop)">*</b></label><input type="text" id="suName" value="${esc(S.boatName||'')}" placeholder="zum Beispiel Seestern" autocapitalize="words">
-      <label for="suKind">Bootsart</label><select id="suKind" class="fsel"><option value="motor" ${S.boatKind!=='sail'?'selected':''}>Motorboot</option><option value="sail" ${S.boatKind==='sail'?'selected':''}>Segelboot</option></select>
-      <label for="suType">Bootsmodell</label><input type="text" id="suType" value="${esc(S.boatType||'')}" placeholder="zum Beispiel Bavaria S29">
-      <label for="suSk">Skipper <b style="color:var(--stop)">*</b></label><input type="text" id="suSk" value="${esc(S.skippers[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words" autocomplete="name">
+      <h2 style="margin:4px 0 6px">⚓ ${again?'Einrichtung':'Fast geschafft'}</h2>
+      <p class="hint" style="margin-top:0">${boats.length||sks.length?'Wähle aus den vorhandenen Angaben oder lege neue an.':'Bitte einmal kurz einrichten.'} Alles lässt sich später in den Einstellungen ändern.</p>
+      ${boats.length?`<label for="suBoatSel">Boot ${req}</label><select id="suBoatSel" class="fsel">${opt(boats,S.boatName||boats[0],'Weiteres Boot')}</select><p class="hint" id="suBoatInfo" style="margin:4px 0 0"></p>`:''}
+      <div id="suNewBoat">
+        <label for="suName">Bootsname ${req}</label><input type="text" id="suName" value="${boats.length?'':esc(S.boatName||'')}" placeholder="zum Beispiel Seestern" autocapitalize="words">
+        <label for="suKind">Bootsart</label><select id="suKind" class="fsel"><option value="motor" ${S.boatKind!=='sail'?'selected':''}>Motorboot</option><option value="sail" ${S.boatKind==='sail'?'selected':''}>Segelboot</option></select>
+        <label for="suType">Bootsmodell</label><input type="text" id="suType" value="${boats.length?'':esc(S.boatType||'')}" placeholder="zum Beispiel Bavaria S29">
+      </div>
+      <label for="${sks.length?'suSkSel':'suSk'}">Skipper ${req}</label>
+      ${sks.length?`<select id="suSkSel" class="fsel">${opt(sks,sks[0],'Weiterer Skipper')}</select>`:''}
+      <input type="text" id="suSk" placeholder="Vor- und Nachname" autocapitalize="words" autocomplete="name" ${sks.length?'style="display:none;margin-top:8px"':''}>
       <div class="check" style="margin:10px 0 4px"><input type="checkbox" id="suSame"><span>Der Skipper ist auch Steuermann</span></div>
-      <div id="suHlBox"><label for="suHl">Steuermann <b style="color:var(--stop)">*</b></label><input type="text" id="suHl" value="${esc(S.helms[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words"></div>
-      <div class="check"><input type="checkbox" id="suOd" ${S.odEnabled?'checked':''}><span>OneDrive-Synchronisation verwenden (optional, später einrichtbar)</span></div>
-      <p class="hint"><b style="color:var(--stop)">*</b> Pflichtangabe</p>
+      <div id="suHlBox"><label for="${hls.length?'suHlSel':'suHl'}">Steuermann ${req}</label>
+        ${hls.length?`<select id="suHlSel" class="fsel">${opt(hls,hls[0],'Weiterer Steuermann')}</select>`:''}
+        <input type="text" id="suHl" placeholder="Vor- und Nachname" autocapitalize="words" ${hls.length?'style="display:none;margin-top:8px"':''}></div>
+      <p class="hint">${req} Pflichtangabe${S.odEnabled&&localStorage.getItem('bb_od_on')?' · OneDrive ist verbunden':''}</p>
       <div class="row" style="justify-content:flex-end">${again?'<button value="cancel" class="btn ghost">Abbrechen</button>':''}<button value="ok" class="btn" id="suOk">Los geht’s</button></div>
     </form>`;
     document.body.appendChild(d);
     if(!again)d.addEventListener('cancel',e=>e.preventDefault()); // Pflicht: nicht wegwischbar
-    $('#suSame',d).onchange=e=>{$('#suHlBox',d).style.display=e.target.checked?'none':'';if(!e.target.checked)$('#suHl',d).focus();};
-    $('#suSk',d).oninput=()=>{if($('#suSame',d).checked)$('#suHl',d).value=$('#suSk',d).value;};
-    $('#suOk',d).onclick=e=>{
-      const nm=$('#suName',d).value.trim(),sk=$('#suSk',d).value.trim(),hl=($('#suSame',d).checked?$('#suSk',d).value:$('#suHl',d).value).trim();
-      if(!nm||!sk||!hl){e.preventDefault();toast(!nm?'Bitte einen Bootsnamen eingeben':!sk?'Bitte den Skipper eingeben':'Bitte den Steuermann eingeben');return;}
+    const bSel=$('#suBoatSel',d),skSel=$('#suSkSel',d),hlSel=$('#suHlSel',d);
+    const isNewBoat=()=>!bSel||bSel.value==='__new';
+    const showBoat=async()=>{
+      $('#suNewBoat',d).style.display=isNewBoat()?'':'none';
+      if(!isNewBoat()){const r=await boatInfo(bSel.value);
+        $('#suBoatInfo',d).textContent=[kindLabel(r.kind),r.type,r.length?`Länge ${r.length} m`:'',r.mmsi?`MMSI ${r.mmsi}`:''].filter(Boolean).join(' · ')||'Noch keine weiteren Bootsdaten hinterlegt';}
+      else if(bSel){$('#suBoatInfo',d).textContent='';$('#suName',d).focus();}
     };
+    if(bSel)bSel.onchange=showBoat;showBoat();
+    if(skSel)skSel.onchange=()=>{$('#suSk',d).style.display=skSel.value==='__new'?'':'none';if(skSel.value==='__new')$('#suSk',d).focus();};
+    if(hlSel)hlSel.onchange=()=>{$('#suHl',d).style.display=hlSel.value==='__new'?'':'none';if(hlSel.value==='__new')$('#suHl',d).focus();};
+    $('#suSame',d).onchange=e=>{$('#suHlBox',d).style.display=e.target.checked?'none':'';};
+    const clean=v=>(v||'').trim().replace(/\s+/g,' ');
+    const vals=()=>{
+      const nm=isNewBoat()?clean($('#suName',d).value):bSel.value;
+      const sk=skSel&&skSel.value!=='__new'?skSel.value:clean($('#suSk',d).value);
+      const hl=$('#suSame',d).checked?sk:(hlSel&&hlSel.value!=='__new'?hlSel.value:clean($('#suHl',d).value));
+      return {nm,sk,hl};};
+    $('#suOk',d).onclick=e=>{const {nm,sk,hl}=vals();
+      if(!nm||!sk||!hl){e.preventDefault();toast(!nm?'Bitte einen Bootsnamen eingeben':!sk?'Bitte den Skipper eingeben':'Bitte den Steuermann eingeben');}};
     d.addEventListener('close',async()=>{
       if(d.returnValue==='ok'){
-        const clean=v=>v.trim().replace(/\s+/g,' ');
-        const nm=clean($('#suName',d).value),ty=clean($('#suType',d).value),sk=clean($('#suSk',d).value),hl=clean($('#suSame',d).checked?$('#suSk',d).value:$('#suHl',d).value);
-        S.boatName=nm;S.boatType=ty;S.boatKind=$('#suKind',d).value||'motor';
-        {const id=boatId(nm),cur=(await getBoatRec(id))||{id,deleted:false};cur.name=nm;cur.type=ty;cur.kind=S.boatKind;cur.updatedAt=Date.now();await putBoatRec(cur);}S.odEnabled=$('#suOd',d).checked;S.setupDone=true;
+        const {nm,sk,hl}=vals();
+        if(isNewBoat()){
+          const ty=clean($('#suType',d).value);
+          S.boatName=nm;S.boatType=ty;S.boatKind=$('#suKind',d).value||'motor';
+          const ex=await boatInfo(nm);
+          if(ex.id&&!ty)applyBoatRec(ex);
+          const ch={};if(ty)ch.type=ty;if(S.boatKind!=='motor')ch.kind=S.boatKind;
+          if(Object.keys(ch).length)await boatPatch(nm,ch);await boatPatch(nm,{kind:S.boatKind},true);
+        }else{
+          S.boatName=nm;const r=await boatInfo(nm);
+          if(r.id)applyBoatRec(r);else{S.boatType='';await boatPatch(nm,{kind:S.boatKind},true);}
+        }
+        S.setupDone=true;
         if(!S.skippers.includes(sk)){S.skippers.unshift(sk);await listChange('skippers',sk,false);}
         if(!S.helms.includes(hl)){S.helms.unshift(hl);await listChange('helms',hl,false);}
-        // Gewählte Namen an den Anfang der Liste (Voreinstellung)
         S.skippers=uniq([sk,...S.skippers]);S.helms=uniq([hl,...S.helms]);saveS();
         if(!rec){P=freshPre();P.skipper=sk;P.helm=hl;P.auto=false;saveP();}
         F.boat=null;FU.boat=null;renderBoatHeader();
@@ -1639,7 +1751,7 @@ document.addEventListener('DOMContentLoaded',async()=>{
   const act=(await allTrips()).filter(t=>t.status==='active'&&!t.deleted).sort((a,b)=>b.start.t-a.start.t)[0];
   if(act){rec={trip:act,watch:null,wake:null,lastFix:null};beginWatch();keepAwake();toast('Laufende Fahrt wird fortgesetzt');}
   await initLists().catch(e=>console.warn(e));
-  try{const bi=await boatInfo(S.boatName);if(bi.kind&&bi.kind!==S.boatKind){S.boatKind=bi.kind;saveS();}}catch(e){}
+  try{const bi=await boatInfo(S.boatName);if(bi.id)applyBoatRec(bi);else if(S.boatName)await boatPatch(S.boatName,{type:S.boatType,kind:S.boatKind},true);}catch(e){}
   if(!S.setupDone&&!needsSetup()){S.setupDone=true;saveS();}
   if(!S.setupDone||needsSetup()){route();await openSetup(false);}
   await refreshPre().catch(()=>{});

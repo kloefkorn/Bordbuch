@@ -120,6 +120,10 @@ Wer automatischen Abgleich zwischen iPhone, iPad und Mac möchte, nimmt am einfa
 - Kartenausschnitte werden höchstens 1.500 Stück bzw. 90 Tage gespeichert (ca. 20–40 MB). Seezeichen werden nicht offline gespeichert.
 - Wichtigster Schutz bleibt das GitHub-Konto des Betreibers: Zwei-Faktor-Anmeldung einschalten und niemandem Schreibrechte geben.
 
+## Kein Zugriff für den Entwickler
+
+Wer die App bereitstellt, hat keinen Zugriff auf das OneDrive oder die Aufzeichnungen der Nutzer: Es gibt keinen Server, die Microsoft-Anmeldung läuft direkt zwischen Gerät und Microsoft, die App-Registrierung hat nur vom Nutzer selbst erteilte („delegierte“) Rechte auf den Ordner „Apps › Bordbuch“ und kein Passwort für eigenen Zugriff. Voraussetzung dafür ist, dass der Programmcode so bleibt – deshalb gilt: GitHub-Konto mit Zwei-Faktor-Anmeldung schützen und in der Azure-Registrierung keine Anwendungsberechtigungen und keine geheimen Schlüssel („Client Secrets“) anlegen.
+
 ## Datenquellen
 
 Karten © OpenStreetMap-Mitwirkende, Seezeichen © OpenSeaMap, Ortsnamen über Nominatim (OpenStreetMap), Wetter von Open-Meteo.com (CC BY 4.0). Alle kostenlos und ohne API-Schlüssel.
@@ -156,3 +160,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 7.2 | Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft |
 | 7.3 | Bootsdaten inkl. Bootsmodell und Bootsart werden feldweise über OneDrive abgeglichen; ein neues Gerät überschreibt keine vorhandenen Angaben mehr |
 | 7.4 | Ersteinrichtung: zuerst Frage nach OneDrive; mit OneDrive erst anmelden und vorhandene Daten laden, dann Boot, Skipper und Steuermann aus Listen wählen |
+| 7.5 | Hinweis auf Startseite, Begrüßung, Einstellungen und Datenschutz: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen |

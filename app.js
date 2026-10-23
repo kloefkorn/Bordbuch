@@ -19,8 +19,9 @@
    · 7.1 Fahrten in der Übersicht löschen, Seezeichen standardmäßig an (Einstellung)
    · 7.2 Fehlerkorrektur OneDrive-Download (Statusprüfung), Prüfung aller heruntergeladenen und importierten Datensätze
    · 7.3 Bootsdaten (inkl. Bootsmodell und Bootsart) werden feldweise über OneDrive abgeglichen
-   · 7.4 Ersteinrichtung: zuerst OneDrive verbinden und Daten laden, dann Boot/Skipper/Steuermann auswählen */
-const APP_VERSION='7.4';
+   · 7.4 Ersteinrichtung: zuerst OneDrive verbinden und Daten laden, dann Boot/Skipper/Steuermann auswählen
+   · 7.5 Hinweis: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen */
+const APP_VERSION='7.5';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -629,7 +630,7 @@ function renderHome(){
     <button class="msel noteBtn" id="bNote"><span class="in">📝 Ereignis an aktueller Position notieren</span></button>
     <p class="hint">Lass die App im Vordergrund geöffnet – das Display bleibt dafür an. Wird sie in den Hintergrund geschickt oder das Gerät gesperrt, pausiert der Browser das GPS; die Lücke wird als gerade Linie verbunden.</p>
   </section>`:''}
-  <div class="ver">Version ${APP_VERSION}</div></div>`;
+  <div class="ver"><span>Version ${APP_VERSION}</span><span class="verNote">Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn. <a href="#/datenschutz">Datenschutz</a></span></div></div>`;
   $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;$('#bFuel').onclick=()=>openFuelDlg(null);$('#bSos').onclick=openSos;bindCrewBar();
   if(r){$('#bNote').onclick=async()=>{
     const t=rec.trip;const p=t.points[t.points.length-1];
@@ -1469,6 +1470,7 @@ async function renderSettings(){
       <p class="hint">Umleitungs-URI für eine eigene Registrierung (Plattform „Single-Page-Anwendung“):<br><code>${esc(redirectUri())}</code></p>
     </div></details>
     <p class="hint">Microsoft lässt Web-Apps nur 24 Stunden ohne neue Anmeldung zu. Die App erneuert die Anmeldung deshalb beim Öffnen automatisch im Hintergrund (kurzer Seitenwechsel). Damit das ohne Eingabe klappt, bei der Microsoft-Anmeldung „Angemeldet bleiben?“ mit „Ja“ beantworten.</p>
+    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn. Microsoft gibt den Zugang ausschließlich an diese App auf deinem Gerät heraus; es gibt keinen Server, über den der Entwickler mitlesen könnte.</p>
     <p class="hint">Die Fahrten liegen in deinem OneDrive unter <i>Apps › Bordbuch › trips</i>. Jedes Gerät mit derselben Client-ID und demselben Microsoft-Konto sieht dieselben Fahrten.</p>
   `:`<p class="hint">Ausgeschaltet: Alle Daten bleiben nur auf diesem Gerät. Sichern kannst du sie unten mit „Sicherung exportieren“. Einschalten lohnt sich, wenn du die App auf mehreren Geräten nutzen möchtest – die Einrichtung ist in der Hilfe beschrieben.</p>`}
   </section>
@@ -1480,6 +1482,7 @@ async function renderSettings(){
     <p class="hint">${n} Fahrt(en) und ${nf} Tankvorgang/-vorgänge auf diesem Gerät gespeichert.</p>
     <div class="row"><button class="btn ghost" id="enr">Orte &amp; Wetter jetzt nachladen</button></div>
     <p class="hint">Version ${APP_VERSION}</p>
+    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn. Die Anmeldung bei Microsoft gilt nur für dich und nur für den Ordner „Apps › Bordbuch“ in deinem eigenen OneDrive.</p>
     <div class="row"><button class="btn ghost" id="updNow">Nach neuer Version suchen</button></div>
     <p class="hint">Lädt die App neu aus dem Internet. Deine Fahrten und Tankvorgänge bleiben dabei erhalten.</p>
     <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap · Synchronisation: Microsoft Graph</p>
@@ -1599,6 +1602,8 @@ function renderPrivacy(){
   view.innerHTML=`<div class="priv">
   <h2>Datenschutzerklärung</h2>
   <p>Stand: Version ${APP_VERSION}. Das Bordbuch ist eine Web-App ohne eigenen Server. Es gibt kein Benutzerkonto beim Anbieter, keine Werbung, keine Analyse- oder Tracking-Dienste und keine Cookies der App. <b>Wer dir die App bereitstellt, erhält keine deiner Daten.</b></p>
+  <h3>Kein Zugriff für den Entwickler</h3>
+  <p>Der Entwickler der App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die Microsoft-Anmeldung erfolgt direkt zwischen deinem Gerät und Microsoft; die Zugangsdaten bleiben verschlüsselt auf deinem Gerät und werden ausschließlich an Microsoft gesendet. Die bei Microsoft hinterlegte App-Registrierung hat nur Rechte, die du bei der Anmeldung selbst erteilst („Delegierte Berechtigung“, nur der Ordner „Apps › Bordbuch“), aber keine eigenen Zugriffsrechte und kein Passwort, mit dem der Entwickler selbst auf Konten zugreifen könnte. Die App enthält keine Funktion, die Daten an den Entwickler schickt; der Programmcode ist öffentlich einsehbar.</p>
   <h3>1. Was auf deinem Gerät gespeichert wird</h3>
   <p>Fahrten mit GPS-Strecke, Zeiten, Kommentaren und Besatzung (Namen), Tankvorgänge, Bootsdaten, Einstellungen, Namenslisten und erstellte PDF-Logbucheinträge. Die Daten liegen im Speicher dieser App im Browser (IndexedDB bzw. Local Storage) und verlassen das Gerät nur in den unten beschriebenen Fällen. Bei aktivem OneDrive wird zusätzlich ein verschlüsselter Anmeldeschlüssel gespeichert.</p>
   <h3>2. Standort</h3>
@@ -1648,6 +1653,7 @@ async function setupStart(msg){
     <p>Möchtest du deine Daten mit <b>OneDrive</b> synchronisieren?</p>
     <p class="hint">Empfohlen, wenn du das Bordbuch auch auf einem anderen Gerät nutzt oder nutzen möchtest: Boot, Skipper, Steuerleute und Fahrten werden dann von dort übernommen. Du meldest dich mit deinem eigenen Microsoft-Konto an; die Daten liegen nur in deinem OneDrive.</p>
     <p class="hint">Ohne OneDrive bleiben alle Daten nur auf diesem Gerät. Einschalten lässt es sich später jederzeit in den Einstellungen.</p>
+    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn.</p>
     <div class="row" style="flex-direction:column;align-items:stretch">
       <button value="od" class="btn">Mit OneDrive verbinden</button>
       <button value="local" class="btn ghost">Ohne OneDrive starten</button></div>`,

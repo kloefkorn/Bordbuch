@@ -14,8 +14,9 @@
    · 5.0 Für alle nutzbar: Ersteinrichtung (Boot, Skipper, Steuermann), OneDrive abschaltbar, Hilfe
    · 5.1 Eingebaute Microsoft-Client-ID; Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld
    · 5.2 Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP)
-   · 6.0 Bootsart Motor-/Segelboot, Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive) */
-const APP_VERSION='6.0';
+   · 6.0 Bootsart Motor-/Segelboot, Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)
+   · 7.0 Einheiten km/sm, Datenschutzerklärung, Anmeldedaten nicht mehr im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt */
+const APP_VERSION='7.0';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -26,7 +27,7 @@ let toastT;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
 
 const DEFAULT_BOAT_TYPE='',DEFAULT_BOAT_NAME='';
-const DEF={minDist:25,boatKind:'motor',maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin'],skippers:[],helms:[],odEnabled:undefined,setupDone:false};
+const DEF={minDist:25,boatKind:'motor',units:'metric',maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin'],skippers:[],helms:[],odEnabled:undefined,setupDone:false};
 let S=Object.assign({},DEF,JSON.parse(localStorage.getItem('bb_settings')||'{}'));
 const saveS=()=>localStorage.setItem('bb_settings',JSON.stringify(S));
 const BUILTIN_FUELS=['Diesel','Benzin'];
@@ -66,8 +67,12 @@ const fmtDateS=t=>new Date(t).toLocaleDateString('de-DE',{day:'2-digit',month:'2
 const fmtTime=(t,sec)=>new Date(t).toLocaleTimeString('de-DE',sec?{hour:'2-digit',minute:'2-digit',second:'2-digit'}:{hour:'2-digit',minute:'2-digit'});
 const fmtDur=ms=>{const m=Math.max(0,Math.round(ms/60000));return `${Math.floor(m/60)} h ${String(m%60).padStart(2,'0')} min`;};
 const num=(v,d=1)=>v.toLocaleString('de-DE',{minimumFractionDigits:d,maximumFractionDigits:d});
-const fmtKm=m=>num(m/1000)+' km';
-const kmh=ms=>ms==null||isNaN(ms)?'–':num(ms*3.6)+' km/h';
+const NAUT=()=>S.units==='nautical';
+const distU=()=>NAUT()?'sm':'km', distWord=()=>NAUT()?'Seemeile':'Kilometer';
+const perDist=m=>m/(NAUT()?1852:1000);
+const fmtKm=m=>num(perDist(m))+' '+distU();
+const windTxt=v=>v==null?'–':NAUT()?num(v/1.852,0)+' kn':num(v,0)+' km/h';
+const kmh=ms=>ms==null||isNaN(ms)?'–':NAUT()?num(ms*1.943844)+' kn':num(ms*3.6)+' km/h';
 function dm(v,pos,neg,w){const h=v>=0?pos:neg;v=Math.abs(v);const d=Math.floor(v);const m=(v-d)*60;return `${String(d).padStart(w,'0')}°${m.toFixed(3).replace('.',',').padStart(6,'0')}′${h}`;}
 const fmtCoord=(lat,lon)=>lat==null?'Position unbekannt':dm(lat,'N','S',2)+' '+dm(lon,'E','W',3);
 
@@ -79,12 +84,13 @@ function trackDist(pts){let s=0;for(let i=1;i<pts.length;i++){const d=hav(pts[i-
 
 /* ================= Datenbank (IndexedDB) ================= */
 let dbp;
-function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',5);
+function db(){return dbp||(dbp=new Promise((res,rej)=>{const r=indexedDB.open('bordbuch',6);
   r.onupgradeneeded=()=>{const d=r.result;if(!d.objectStoreNames.contains('trips'))d.createObjectStore('trips',{keyPath:'id'});
     if(!d.objectStoreNames.contains('fuel'))d.createObjectStore('fuel',{keyPath:'id'});
     if(!d.objectStoreNames.contains('boats'))d.createObjectStore('boats',{keyPath:'id'});
     if(!d.objectStoreNames.contains('meta'))d.createObjectStore('meta',{keyPath:'id'});
-    if(!d.objectStoreNames.contains('pdfs'))d.createObjectStore('pdfs',{keyPath:'id'});};
+    if(!d.objectStoreNames.contains('pdfs'))d.createObjectStore('pdfs',{keyPath:'id'});
+    if(!d.objectStoreNames.contains('secrets'))d.createObjectStore('secrets',{keyPath:'id'});};
   r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}));}
 const rq=r=>new Promise((res,rej)=>{r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);});
 async function getTrip(id){return rq((await db()).transaction('trips').objectStore('trips').get(id));}
@@ -147,7 +153,7 @@ const bft=k=>{const l=[1,6,12,20,29,39,50,62,75,89,103,118];let b=0;while(b<12&&
 function wxTxt(w,short){
   if(!w)return '<span class="pending">wird geladen, sobald online</span>';
   if(short)return `${w.icon} ${num(w.temp,0)}°`;
-  return `${w.icon} ${esc(w.desc)}<br>🌡 ${num(w.temp)} °C<br>💨 Wind aus ${w.dir}, ${num(w.wind,0)} km/h${w.gust!=null?`, Böen ${num(w.gust,0)} km/h`:''}`;
+  return `${w.icon} ${esc(w.desc)}<br>🌡 ${num(w.temp)} °C<br>💨 Wind aus ${w.dir}, ${windTxt(w.wind)}${w.gust!=null?`, Böen ${windTxt(w.gust)}`:''}`;
 }
 async function weatherAt(lat,lon,t){
   const day=new Date(t).toISOString().slice(0,10);
@@ -322,6 +328,7 @@ function route(){
   if(parts[1]==='verbrauch')return renderFuel();
   if(parts[1]==='einstellungen')return renderSettings();
   if(parts[1]==='hilfe')return renderHelp();
+  if(parts[1]==='datenschutz')return renderPrivacy();
   renderHome();
 }
 function refreshView(){
@@ -725,7 +732,7 @@ function nearestIdx(pts,ll){let bi=0,bd=Infinity;const c=Math.cos(ll.lat*Math.PI
 function buildMap(t,focusKey){
   if(!window.L){$('#map').innerHTML='<p class="empty">Karte nicht verfügbar (offline und noch nicht zwischengespeichert). Die Daten sind trotzdem gesichert.</p>';renderWp();return;}
   map=L.map('map',{preferCanvas:true});
-  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap'}).addTo(map);
+  L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',crossOrigin:true}).addTo(map);
   const sea=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenSeaMap'});
   L.control.layers(null,{'Seezeichen (OpenSeaMap)':sea}).addTo(map);
   map.createPane('hl').style.zIndex=650;
@@ -905,7 +912,7 @@ async function renderFuel(){
   <div id="uSince"></div><div id="uKpi"></div>
   <h3>Tankvorgänge</h3><div id="uList"></div>
   <div class="row"><button class="btn" id="uAdd">⛽ Tankvorgang erfassen</button><button class="btn ghost" id="uCsv">Als CSV exportieren (Excel)</button></div>
-  <p class="hint">So wird gerechnet: Verbrauch = getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“. Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang dient als Ausgangswert.</p>`;
+  <p class="hint">So wird gerechnet: Verbrauch = getankte Liter ÷ gefahrene ${NAUT()?'Seemeilen':'Kilometer'} zwischen zwei Tankvorgängen mit „Vollgetankt“. Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang dient als Ausgangswert.</p>`;
   $('#uBoat').value=FU.boat;$('#uType').value=FU.type;$('#uFrom').value=FU.from;$('#uTo').value=FU.to;
   const all=analyzeFuel(fuels,trips);let shown=[];
   const draw=()=>{
@@ -930,14 +937,14 @@ async function renderFuel(){
       <div><b>${eur(C)}</b><small>Kosten gesamt</small></div>
       <div><b>${L>0?num(C/L,3)+' €/l':'–'}</b><small>Durchschnittspreis je Liter</small></div>
       <div><b>${fmtKm(tKm)}</b><small>Gefahren zwischen den Tankvorgängen (${fmtDur(tMs)})</small></div>
-      <div><b>${cKm>0?num(cL/(cKm/1000),2)+' l/km':'–'}</b><small>Durchschnittsverbrauch je Kilometer</small></div>
+      <div><b>${cKm>0?num(cL/perDist(cKm),2)+' l/'+distU():'–'}</b><small>Durchschnittsverbrauch je ${distWord()}</small></div>
       <div><b>${cH>0?num(cL/cH,1)+' l/h':'–'}</b><small>Durchschnittsverbrauch je Stunde</small></div>
-      <div class="wide"><b>${cKm>0?eur(cC/(cKm/1000))+' je km':'–'}</b><small>Kraftstoffkosten je Kilometer</small></div>
+      <div class="wide"><b>${cKm>0?eur(cC/perDist(cKm))+' je '+distU():'–'}</b><small>Kraftstoffkosten je ${distWord()}</small></div>
     </div>`;
     $('#uList').innerHTML=shown.length?`<div class="tblwrap"><table class="tbl fuelTbl"><thead><tr><th>Datum / Ort</th><th class="num">Menge / Preis</th><th class="num">Strecke / Verbrauch</th><th></th></tr></thead><tbody>${
       shown.map((r,i)=>`<tr data-id="${r.f.id}"><td>${fmtDateS(r.f.t)} ${fmtTime(r.f.t)}<br><small class="hint">${esc(r.f.place||(r.f.lat!=null?fmtCoord(r.f.lat,r.f.lon):'ohne Ort'))}${FU.boat==='*'?' · '+esc(r.f.boat.name):''}</small></td>
         <td class="num"><b>${lit(r.f.liters)}</b> ${esc(r.f.fuelType)}${r.f.full===false?'<br><span class="badge">Teilbetankung</span>':''}<br><small class="hint">${num(r.f.price,3)} €/l · ${eur(r.f.liters*r.f.price)}</small></td>
-        <td class="num">${r.sp?fmtKm(r.sp.km):'<small class="hint">Ausgangswert</small>'}<br><small class="hint">${r.cons?num(r.cons.l/(r.cons.km/1000),2)+' l/km':'–'}</small></td><td><button class="delBtn" data-del="${r.f.id}" aria-label="Tankvorgang löschen">🗑</button></td></tr>`).join('')
+        <td class="num">${r.sp?fmtKm(r.sp.km):'<small class="hint">Ausgangswert</small>'}<br><small class="hint">${r.cons?num(r.cons.l/perDist(r.cons.km),2)+' l/'+distU():'–'}</small></td><td><button class="delBtn" data-del="${r.f.id}" aria-label="Tankvorgang löschen">🗑</button></td></tr>`).join('')
     }</tbody></table></div>`:'<p class="empty">Keine Tankvorgänge für diese Auswahl.</p>';
     $('#uList').querySelectorAll('tr[data-id]').forEach(tr=>tr.onclick=()=>openFuelDlg(tr.dataset.id));
     $('#uList').querySelectorAll('button[data-del]').forEach(b=>b.onclick=async e=>{e.stopPropagation();
@@ -953,8 +960,8 @@ async function renderFuel(){
   $('#uAdd').onclick=()=>openFuelDlg(null);
   $('#uCsv').onclick=()=>{
     const c=x=>'"'+String(x??'').replace(/"/g,'""')+'"';const n=(v,d)=>v==null||!isFinite(v)?'':v.toFixed(d).replace('.',',');
-    const lines=[['Datum','Uhrzeit','Boot','Ort','Breite','Länge','Kraftstoffart','Liter','Preis je Liter (€)','Betrag (€)','Vollgetankt','Kilometer seit letztem Tanken','Verbrauch (l/km)'].map(c).join(';')];
-    shown.slice().reverse().forEach(r=>lines.push([fmtDateS(r.f.t),fmtTime(r.f.t),boatLabel(r.f.boat),r.f.place||'',r.f.lat??'',r.f.lon??'',r.f.fuelType,n(r.f.liters,2),n(r.f.price,3),n(r.f.liters*r.f.price,2),r.f.full===false?'nein':'ja',r.sp?n(r.sp.km/1000,1):'',r.cons?n(r.cons.l/(r.cons.km/1000),3):''].map(c).join(';')));
+    const lines=[['Datum','Uhrzeit','Boot','Ort','Breite','Länge','Kraftstoffart','Liter','Preis je Liter (€)','Betrag (€)','Vollgetankt',`${NAUT()?'Seemeilen':'Kilometer'} seit letztem Tanken`,`Verbrauch (l/${distU()})`].map(c).join(';')];
+    shown.slice().reverse().forEach(r=>lines.push([fmtDateS(r.f.t),fmtTime(r.f.t),boatLabel(r.f.boat),r.f.place||'',r.f.lat??'',r.f.lon??'',r.f.fuelType,n(r.f.liters,2),n(r.f.price,3),n(r.f.liters*r.f.price,2),r.f.full===false?'nein':'ja',r.sp?n(perDist(r.sp.km),1):'',r.cons?n(r.cons.l/perDist(r.cons.km),3):''].map(c).join(';')));
     saveFile('bordbuch_tankvorgaenge.csv','﻿'+lines.join('\r\n'),'text/csv');
   };
   draw();
@@ -1015,7 +1022,7 @@ class Pdf{
   }
 }
 const coordTxt=(lat,lon)=>lat==null?'Position unbekannt':fmtCoord(lat,lon).replace(/′/g,"'");
-const wxPdf=w=>w?`${w.desc}, ${num(w.temp)} °C, Wind aus ${w.dir} ${num(w.wind,0)} km/h${w.gust!=null?`, Böen ${num(w.gust,0)} km/h`:''}`:'nicht verfügbar';
+const wxPdf=w=>w?`${w.desc}, ${num(w.temp)} °C, Wind aus ${w.dir} ${windTxt(w.wind)}${w.gust!=null?`, Böen ${windTxt(w.gust)}`:''}`:'nicht verfügbar';
 async function exportLogPdf(t){
   if(t.status!=='done'){toast('Die Fahrt läuft noch');return;}
   const now=Date.now(),boat=tripBoat(t),bi=await boatInfo(boat.name);
@@ -1125,8 +1132,36 @@ const GRAPH='https://graph.microsoft.com/v1.0';
 const OD_SCOPE='Files.ReadWrite.AppFolder offline_access openid profile';
 const RT_LIFE=24*36e5,RT_RENEW=18*36e5; // Microsoft: Browser-Apps erhalten max. 24 h gültige Anmeldungen
 const redirectUri=()=>location.origin+location.pathname;
-let odTok=JSON.parse(localStorage.getItem('bb_od')||'null');
-const saveTok=()=>odTok?localStorage.setItem('bb_od',JSON.stringify(odTok)):localStorage.removeItem('bb_od');
+/* Anmeldedaten:
+   - Zugangstoken (1 h gültig) nur im Arbeitsspeicher, nie gespeichert.
+   - Refresh-Token (max. 24 h gültig) AES-verschlüsselt in IndexedDB („secrets“, wird nie synchronisiert).
+     Der Schlüssel ist nicht exportierbar (WebCrypto), kann also nicht ausgelesen oder kopiert werden.
+   Hinweis: Gegen Schadcode, der direkt in dieser App läuft, schützt keine Speicherart vollständig –
+   dafür sorgt die Sicherheitsrichtlinie (CSP), die fremden Code gar nicht erst ausführt. */
+let odTok=null;
+async function secStore(mode){return (await db()).transaction('secrets',mode).objectStore('secrets');}
+async function secKey(){
+  let k=await rq((await secStore()).get('key'));
+  if(!k){const key=await crypto.subtle.generateKey({name:'AES-GCM',length:256},false,['encrypt','decrypt']);
+    await rq((await secStore('readwrite')).put({id:'key',key}));k={key};}
+  return k.key;}
+async function saveTok(){
+  try{
+    if(!odTok||!odTok.refresh){await rq((await secStore('readwrite')).delete('od'));return;}
+    const iv=crypto.getRandomValues(new Uint8Array(12));
+    const data=await crypto.subtle.encrypt({name:'AES-GCM',iv},await secKey(),new TextEncoder().encode(odTok.refresh));
+    await rq((await secStore('readwrite')).put({id:'od',iv,data,rtIssued:odTok.rtIssued||Date.now()}));
+  }catch(e){console.warn('Token speichern',e);}
+}
+async function loadTok(){
+  try{
+    const old=localStorage.getItem('bb_od'); // Übernahme aus Version 6 und älter
+    if(old){localStorage.removeItem('bb_od');const o=JSON.parse(old);if(o?.refresh){odTok={refresh:o.refresh,rtIssued:o.rtIssued||Date.now(),exp:0};await saveTok();}}
+    const r=await rq((await secStore()).get('od'));
+    if(r){const pt=await crypto.subtle.decrypt({name:'AES-GCM',iv:r.iv},await secKey(),r.data);
+      odTok={refresh:new TextDecoder().decode(pt),rtIssued:r.rtIssued,exp:0};}
+  }catch(e){console.warn('Token laden',e);odTok=null;}
+}
 const b64u=buf=>btoa(String.fromCharCode(...new Uint8Array(buf))).replace(/\+/g,'-').replace(/\//g,'_').replace(/=+$/,'');
 function setSync(m){syncMsg=m;updateStatus();const e=$('#odState');if(e)e.textContent=m;}
 
@@ -1149,7 +1184,7 @@ async function odHandleRedirect(){
   if(err){if(pk?.silent){setSync('bitte neu verbinden');return;}alert('OneDrive-Anmeldung fehlgeschlagen: '+(p.get('error_description')||err));return;}
   if(!pk||pk.state!==p.get('state')){alert('Anmeldung ungültig – bitte erneut versuchen.');return;}
   try{await odTokenReq({grant_type:'authorization_code',code,redirect_uri:redirectUri(),code_verifier:pk.ver});
-    odTok.rtIssued=Date.now();saveTok();
+    odTok.rtIssued=Date.now();await saveTok();
     localStorage.setItem('bb_od_on','1');if(!pk.silent)toast('Mit OneDrive verbunden');}
   catch(e){alert('Token-Abruf fehlgeschlagen: '+e.message);}
 }
@@ -1160,15 +1195,19 @@ async function odTokenReq(params){
   odTok={access:j.access_token,refresh:j.refresh_token||odTok?.refresh,exp:Date.now()+(j.expires_in-120)*1000,rtIssued:odTok?.rtIssued||Date.now()};
   if(j.id_token){try{const c=JSON.parse(decodeURIComponent(escape(atob(j.id_token.split('.')[1].replace(/-/g,'+').replace(/_/g,'/')))));
     const u=c.preferred_username||c.email||c.login_hint;if(u)localStorage.setItem('bb_od_user',u);}catch(e){}}
-  saveTok();
+  await saveTok();
 }
 async function odAccess(){
   if(odTok&&Date.now()<odTok.exp)return odTok.access;
   if(odTok?.refresh){try{await odTokenReq({grant_type:'refresh_token',refresh_token:odTok.refresh});return odTok.access;}catch(e){}}
-  odTok=null;saveTok();const e=new Error('Anmeldung abgelaufen');e.relogin=true;throw e;
+  odTok=null;await saveTok();const e=new Error('Anmeldung abgelaufen');e.relogin=true;throw e;
 }
-async function g(path,opts={}){const tok=await odAccess();
-  return fetch(path.startsWith('http')?path:GRAPH+path,{...opts,headers:{...(opts.headers||{}),Authorization:'Bearer '+tok}});}
+async function g(path,opts={}){
+  // Zugangstoken ausschließlich an Microsoft Graph senden – nie an andere Server
+  const url=new URL(path.startsWith('http')?path:GRAPH+path);
+  if(url.protocol!=='https:'||url.hostname!=='graph.microsoft.com')throw new Error('Unzulässiges Ziel für Microsoft-Token: '+url.hostname);
+  const tok=await odAccess();
+  return fetch(url.href,{...opts,credentials:'omit',headers:{...(opts.headers||{}),Authorization:'Bearer '+tok}});}
 
 /* Stille Erneuerung der Microsoft-Anmeldung, bevor sie nach 24 h abläuft (nur ohne laufende Fahrt) */
 function maybeRenew(){
@@ -1200,7 +1239,7 @@ async function syncNow(quiet,allowSilentLogin){
         if(m&&m.remoteMod===f.lastModifiedDateTime)continue;
         if(set.skipDown(id))continue;
         const dl=f['@microsoft.graph.downloadUrl'];
-        const r=dl?await fetch(dl):await g(`/me/drive/items/${f.id}/content`);if(!r.ok)throw new Error('Download '+r.status);
+        const r=dl?await fetch(dl,{credentials:'omit'}):await g(`/me/drive/items/${f.id}/content`); // downloadUrl ist vorab signiert, ohne Tokenif(!r.ok)throw new Error('Download '+r.status);
         const rt=await r.json();const local=await set.get(id);
         if(set.merge){
           const mg=set.merge(local,rt);const sameAsRemote=JSON.stringify(mg.entries)===JSON.stringify(set.merge(rt,rt).entries);
@@ -1247,7 +1286,7 @@ async function renderSettings(){
   view.innerHTML=`
   <a class="msel crewBtn helpBtn" href="#/hilfe" style="margin:0 auto 14px;text-decoration:none"><span class="in"><span><small>Neu hier?</small><b>Hilfe und Anleitung</b></span><span class="cbR">öffnen</span></span></a>
   <section class="panel"><h3>Boot</h3>
-    <label>Bootsart</label><div class="seg" id="sKind" role="radiogroup"><button type="button" data-k="motor" class="${(binfo.kind||S.boatKind)==='sail'?'':'on'}">🛥️ Motorboot</button><button type="button" data-k="sail" class="${(binfo.kind||S.boatKind)==='sail'?'on':''}">⛵ Segelboot</button></div>
+    <label for="sKind">Bootsart</label><select id="sKind" class="fsel"><option value="motor" ${(binfo.kind||S.boatKind)!=='sail'?'selected':''}>Motorboot</option><option value="sail" ${(binfo.kind||S.boatKind)==='sail'?'selected':''}>Segelboot</option></select>
     <label>Bootsmodell</label><input type="text" id="sBType" value="${esc(S.boatType)}">
     <label>Bootsname</label><input type="text" id="sBName" value="${esc(S.boatName)}">
     ${BOAT_FIELDS.map(([k,l,m,u])=>`<label for="sB_${k}">${l}${u?` (${u})`:''}</label><input type="text" id="sB_${k}" data-bf="${k}" inputmode="${m}" value="${esc(binfo[k]||'')}" autocomplete="off" autocapitalize="characters">`).join('')}
@@ -1265,6 +1304,11 @@ async function renderSettings(){
     <div class="chips">${S.fuelTypes.map(f=>`<span class="chip">${esc(f)}${BUILTIN_FUELS.includes(f)?'':`<button data-f="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
     <div class="row" style="flex-wrap:nowrap"><input type="text" id="sFuelNew" placeholder="Weitere Kraftstoffart, zum Beispiel Super E10"><button class="btn" id="sFuelAdd">Hinzufügen</button></div>
     <p class="hint">Voreingestellt beim Tanken ist „Diesel“. Die Liste wird über OneDrive mit deinen anderen Geräten abgeglichen.</p>
+  </section>
+  <section class="panel"><h3>Einheiten</h3>
+    <label for="sUnits">Strecke und Geschwindigkeit</label>
+    <select id="sUnits" class="fsel"><option value="metric" ${S.units!=='nautical'?'selected':''}>Kilometer und km/h</option><option value="nautical" ${S.units==='nautical'?'selected':''}>Seemeilen (sm) und Knoten (kn)</option></select>
+    <p class="hint">Gilt für alle Anzeigen, Auswertungen, Wind und das PDF. Gespeichert wird intern immer in Metern, ein Wechsel ist jederzeit möglich.</p>
   </section>
   <section class="panel"><h3>Aufzeichnung</h3>
     <label>Mindestabstand zwischen Wegpunkten (m)</label><input type="number" id="sMin" min="1" value="${S.minDist}">
@@ -1300,18 +1344,19 @@ async function renderSettings(){
     <p class="hint">Version ${APP_VERSION}</p>
     <div class="row"><button class="btn ghost" id="updNow">Nach neuer Version suchen</button></div>
     <p class="hint">Lädt die App neu aus dem Internet. Deine Fahrten und Tankvorgänge bleiben dabei erhalten.</p>
-    <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap</p>
+    <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap · Synchronisation: Microsoft Graph</p>
+    <div class="row"><a class="btn ghost" href="#/datenschutz" style="text-decoration:none">Datenschutzerklärung</a></div>
   </section>`;
+  $('#sUnits').onchange=e=>{S.units=e.target.value;saveS();toast(S.units==='nautical'?'Einheiten: Seemeilen und Knoten':'Einheiten: Kilometer und km/h');};
   const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
   setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
   $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();};
   $('#sBName').onchange=e=>{S.boatName=e.target.value.trim();saveS();renderBoatHeader();renderSettings();};
   if(binfo.kind&&binfo.kind!==S.boatKind){S.boatKind=binfo.kind;saveS();}
-  $('#sKind').querySelectorAll('button').forEach(bt=>bt.onclick=async()=>{
-    S.boatKind=bt.dataset.k;saveS();
-    $('#sKind').querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===bt));
+  $('#sKind').onchange=async e=>{
+    S.boatKind=e.target.value;saveS();
     const id=boatId(S.boatName),cur=(await getBoatRec(id))||{id,deleted:false};
-    cur.name=S.boatName;cur.type=S.boatType;cur.kind=S.boatKind;cur.updatedAt=Date.now();await putBoatRec(cur);syncSoon();toast(kindLabel(S.boatKind)+' gespeichert');});
+    cur.name=S.boatName;cur.type=S.boatType;cur.kind=S.boatKind;cur.updatedAt=Date.now();await putBoatRec(cur);syncSoon();toast(kindLabel(S.boatKind)+' gespeichert');};
   view.querySelectorAll('input[data-bf]').forEach(inp=>inp.onchange=async()=>{
     const id=boatId(S.boatName),cur=(await getBoatRec(id))||{id,deleted:false};
     cur.name=S.boatName;cur.type=S.boatType;cur.kind=cur.kind||S.boatKind;cur[inp.dataset.bf]=inp.value.trim();cur.updatedAt=Date.now();
@@ -1329,7 +1374,7 @@ async function renderSettings(){
   $('#sOdEn').onchange=e=>{S.odEnabled=e.target.checked;saveS();updateStatus();renderSettings();if(S.odEnabled)syncNow(true);};
   if($('#odCon'))$('#odCon').onclick=()=>{S.odClientId=($('#sCid')?.value||'').trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};
   if($('#odSync'))$('#odSync').onclick=()=>syncNow(false);
-  if($('#odOff'))$('#odOff').onclick=()=>{['bb_od','bb_od_on','bb_odmap'].forEach(k=>localStorage.removeItem(k));odTok=null;syncMsg='';renderSettings();};
+  if($('#odOff'))$('#odOff').onclick=()=>{['bb_od','bb_od_on','bb_odmap','bb_od_user'].forEach(k=>localStorage.removeItem(k));odTok=null;saveTok();syncMsg='';renderSettings();};
   $('#exp').onclick=exportAll;
   $('#updNow').onclick=forceUpdate;
   $('#imp').onchange=e=>{const f=e.target.files[0];if(f)importFile(f).then(renderSettings);};
@@ -1399,10 +1444,44 @@ function renderHelp(){
     <li><b>OneDrive (freiwillig):</b> gleicht Fahrten, Tankvorgänge, Bootsdaten und Namenslisten automatisch zwischen deinen Geräten ab. Dafür in den Einstellungen „OneDrive-Synchronisation verwenden“ einschalten, „Mit OneDrive verbinden“ tippen und mit deinem Microsoft-Konto anmelden. Bei der Frage „Angemeldet bleiben?“ „Ja“ wählen.</li>
     <li>Eine eigene Microsoft-Registrierung ist nicht nötig: Die App bringt alles mit. Deine Daten landen nur in deinem eigenen OneDrive (Ordner <i>Apps › Bordbuch</i>); die App hat auch nur auf diesen Ordner Zugriff.</li></ul>`)}
   ${sec('8. Updates',`<ul><li>Neue Versionen lädt die App mit Internet automatisch. Die Versionsnummer steht unten links auf der Startseite. Einstellungen → „Nach neuer Version suchen“ erzwingt ein Update; deine Daten bleiben erhalten.</li></ul>`)}
-  ${sec('Datenquellen und Datenschutz',`<p class="hint">Karten © OpenStreetMap-Mitwirkende, Seezeichen © OpenSeaMap, Ortsnamen über Nominatim (OpenStreetMap), Wetter von Open-Meteo.com. Für Ortsnamen und Wetter werden nur die Koordinaten von Fahrtbeginn und -ende an diese Dienste geschickt.</p>`)}
+  ${sec('Datenquellen und Datenschutz',`<p>Karten © OpenStreetMap-Mitwirkende, Seezeichen © OpenSeaMap, Ortsnamen über Nominatim (OpenStreetMap), Wetter von Open-Meteo.com, Synchronisation über Microsoft Graph (nur bei eingeschaltetem OneDrive).</p><p><a href="#/datenschutz"><b>Datenschutzerklärung lesen</b></a> – welche Dienste wann kontaktiert werden und welche Daten dabei übertragen werden.</p>`)}
   <div class="row"><button class="btn ghost" id="hSetup">Ersteinrichtung erneut öffnen</button></div>`;
   $('#hSetup').onclick=()=>openSetup(true);
 }
+
+/* ================= Datenschutz ================= */
+function renderPrivacy(){
+  setTitle('Datenschutz',true);
+  const L=(u,t)=>`<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`;
+  const rows=[
+    ['GitHub Pages (GitHub Inc., USA)','Beim Öffnen der App mit Internet und bei der Suche nach Updates.','IP-Adresse, Browserkennung, Uhrzeit, abgerufene Datei. Keine Inhalte aus deinem Bordbuch.',L('https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement','Datenschutz GitHub')],
+    ['OpenStreetMap – Kartenkacheln (OpenStreetMap Foundation, Großbritannien)','Wenn eine Fahrt mit Karte angezeigt wird. Einmal geladene Ausschnitte bleiben begrenzt auf dem Gerät gespeichert.','IP-Adresse, Browserkennung, welcher Kartenausschnitt geladen wird (damit grob, welches Gebiet du ansiehst).',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')],
+    ['OpenSeaMap – Seezeichen','Nur wenn du in der Karte die Ebene „Seezeichen“ einschaltest.','IP-Adresse, Browserkennung, geladener Kartenausschnitt.',L('https://www.openseamap.org','openseamap.org')],
+    ['Nominatim – Ortsnamen (OpenStreetMap Foundation)','Sobald Internet besteht: einmal für Fahrtbeginn, einmal für Fahrtende und je Tankvorgang.','Die Koordinaten dieser Orte, IP-Adresse, Browserkennung. Keine Namen, keine Strecke.',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')+' · '+L('https://operations.osmfoundation.org/policies/nominatim/','Nutzungsregeln')],
+    ['Open-Meteo – Wetter (Open-Meteo.com)','Sobald Internet besteht: je einmal für Fahrtbeginn und Fahrtende.','Koordinaten und Datum von Fahrtbeginn bzw. -ende, IP-Adresse.',L('https://open-meteo.com/en/terms','Nutzungs- und Datenschutzbedingungen')],
+    ['Microsoft – Anmeldung und Microsoft Graph/OneDrive (Microsoft Corp., USA)','Nur wenn OneDrive eingeschaltet und verbunden ist: bei der Anmeldung (etwa einmal täglich), beim Öffnen, nach Änderungen und alle 5 Minuten bei geöffneter App.','Dein Microsoft-Konto für die Anmeldung; Fahrten (mit Strecke), Tankvorgänge, Bootsdaten, Namenslisten und PDF-Logbucheinträge werden in deinem eigenen OneDrive im Ordner „Apps › Bordbuch“ gespeichert.',L('https://privacy.microsoft.com/de-de/privacystatement','Datenschutz Microsoft')]
+  ];
+  view.innerHTML=`<div class="priv">
+  <h2>Datenschutzerklärung</h2>
+  <p>Stand: Version ${APP_VERSION}. Das Bordbuch ist eine Web-App ohne eigenen Server. Es gibt kein Benutzerkonto beim Anbieter, keine Werbung, keine Analyse- oder Tracking-Dienste und keine Cookies der App. <b>Wer dir die App bereitstellt, erhält keine deiner Daten.</b></p>
+  <h3>1. Was auf deinem Gerät gespeichert wird</h3>
+  <p>Fahrten mit GPS-Strecke, Zeiten, Kommentaren und Besatzung (Namen), Tankvorgänge, Bootsdaten, Einstellungen, Namenslisten und erstellte PDF-Logbucheinträge. Die Daten liegen im Speicher dieser App im Browser (IndexedDB bzw. Local Storage) und verlassen das Gerät nur in den unten beschriebenen Fällen. Bei aktivem OneDrive wird zusätzlich ein verschlüsselter Anmeldeschlüssel gespeichert.</p>
+  <h3>2. Standort</h3>
+  <p>Den Standort fragt die App nur ab, während eine Fahrt aufgezeichnet wird, beim Erfassen eines Tankvorgangs und solange das Notfallfenster (S.O.S) geöffnet ist. Die Strecke wird nur auf dem Gerät gespeichert (und bei aktivem OneDrive in deinem OneDrive).</p>
+  <h3>3. Welche Dienste wann kontaktiert werden</h3>
+  ${rows.map(r=>`<div class="panel privCard"><b>${r[0]}</b><p><span class="hint">Wann:</span> ${r[1]}</p><p><span class="hint">Welche Daten:</span> ${r[2]}</p><p>${r[3]}</p></div>`).join('')}
+  <p class="hint">Bei jedem Abruf erfährt der jeweilige Dienst technisch bedingt deine IP-Adresse. Andere Verbindungen lässt die eingebaute Sicherheitsrichtlinie (Content-Security-Policy) gar nicht zu.</p>
+  <h3>4. Telefon und Teilen</h3>
+  <p>Der Anruf aus dem Notfallfenster wird von deinem Telefon ausgeführt. Exportierte Dateien (PDF, GPX, CSV, Sicherung) gibst du selbst über das Teilen-Menü weiter; die App sendet sie nicht von sich aus – außer PDF-Logbucheinträge in dein eigenes OneDrive, wenn es eingeschaltet ist.</p>
+  <h3>5. Personen an Bord</h3>
+  <p>Wenn du Namen anderer Personen einträgst, informiere sie bitte darüber. Die Namen bleiben auf deinem Gerät bzw. in deinem OneDrive.</p>
+  <h3>6. Löschen und Kontrolle</h3>
+  <p>Einzelne Fahrten und Tankvorgänge löschst du in der App. Alle Daten entfernst du, indem du die App vom Home-Bildschirm löschst bzw. die Website-Daten im Browser löschst. OneDrive-Daten liegen in deinem OneDrive unter „Apps › Bordbuch“ und lassen sich dort löschen; den Zugriff der App entziehst du unter account.live.com/consent/Manage. OneDrive kannst du in den Einstellungen jederzeit ausschalten.</p>
+  <h3>7. Rechtsgrundlage</h3>
+  <p>Die Verarbeitung erfolgt auf deinem eigenen Gerät zu deinen eigenen Zwecken. Die genannten Dienste werden nur kontaktiert, um die jeweilige Funktion (Karte, Ortsname, Wetter, Synchronisation) bereitzustellen.</p>
+  </div>`;
+}
+
 /* ================= Ersteinrichtung ================= */
 function needsSetup(){return !S.boatName||!S.skippers.length||!S.helms.length;}
 function openSetup(again){
@@ -1412,7 +1491,7 @@ function openSetup(again){
       <h2 style="margin:4px 0 6px">⚓ Willkommen beim Bordbuch</h2>
       <p class="hint" style="margin-top:0">Bitte einmal kurz einrichten. Alles lässt sich später in den Einstellungen ändern.</p>
       <label for="suName">Bootsname <b style="color:var(--stop)">*</b></label><input type="text" id="suName" value="${esc(S.boatName||'')}" placeholder="zum Beispiel Seestern" autocapitalize="words">
-      <label>Bootsart</label><div class="seg" id="suKind" role="radiogroup"><button type="button" data-k="motor" class="${S.boatKind==='sail'?'':'on'}">🛥️ Motorboot</button><button type="button" data-k="sail" class="${S.boatKind==='sail'?'on':''}">⛵ Segelboot</button></div>
+      <label for="suKind">Bootsart</label><select id="suKind" class="fsel"><option value="motor" ${S.boatKind!=='sail'?'selected':''}>Motorboot</option><option value="sail" ${S.boatKind==='sail'?'selected':''}>Segelboot</option></select>
       <label for="suType">Bootsmodell</label><input type="text" id="suType" value="${esc(S.boatType||'')}" placeholder="zum Beispiel Bavaria S29">
       <label for="suSk">Skipper <b style="color:var(--stop)">*</b></label><input type="text" id="suSk" value="${esc(S.skippers[0]||'')}" placeholder="Vor- und Nachname" autocapitalize="words" autocomplete="name">
       <div class="check" style="margin:10px 0 4px"><input type="checkbox" id="suSame"><span>Der Skipper ist auch Steuermann</span></div>
@@ -1423,7 +1502,6 @@ function openSetup(again){
     </form>`;
     document.body.appendChild(d);
     if(!again)d.addEventListener('cancel',e=>e.preventDefault()); // Pflicht: nicht wegwischbar
-    $('#suKind',d).querySelectorAll('button').forEach(bt=>bt.onclick=()=>{$('#suKind',d).querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===bt));d.dataset.kind=bt.dataset.k;});
     $('#suSame',d).onchange=e=>{$('#suHlBox',d).style.display=e.target.checked?'none':'';if(!e.target.checked)$('#suHl',d).focus();};
     $('#suSk',d).oninput=()=>{if($('#suSame',d).checked)$('#suHl',d).value=$('#suSk',d).value;};
     $('#suOk',d).onclick=e=>{
@@ -1434,7 +1512,7 @@ function openSetup(again){
       if(d.returnValue==='ok'){
         const clean=v=>v.trim().replace(/\s+/g,' ');
         const nm=clean($('#suName',d).value),ty=clean($('#suType',d).value),sk=clean($('#suSk',d).value),hl=clean($('#suSame',d).checked?$('#suSk',d).value:$('#suHl',d).value);
-        S.boatName=nm;S.boatType=ty;S.boatKind=d.dataset.kind||S.boatKind||'motor';
+        S.boatName=nm;S.boatType=ty;S.boatKind=$('#suKind',d).value||'motor';
         {const id=boatId(nm),cur=(await getBoatRec(id))||{id,deleted:false};cur.name=nm;cur.type=ty;cur.kind=S.boatKind;cur.updatedAt=Date.now();await putBoatRec(cur);}S.odEnabled=$('#suOd',d).checked;S.setupDone=true;
         if(!S.skippers.includes(sk)){S.skippers.unshift(sk);await listChange('skippers',sk,false);}
         if(!S.helms.includes(hl)){S.helms.unshift(hl);await listChange('helms',hl,false);}
@@ -1459,6 +1537,7 @@ setInterval(()=>{if(document.visibilityState==='visible')syncNow(true);},5*60*10
 document.addEventListener('DOMContentLoaded',async()=>{
   if('serviceWorker' in navigator&&(location.protocol==='https:'||location.hostname==='localhost'))
     setupUpdates();
+  await loadTok();
   await odHandleRedirect();
   const act=(await allTrips()).filter(t=>t.status==='active'&&!t.deleted).sort((a,b)=>b.start.t-a.start.t)[0];
   if(act){rec={trip:act,watch:null,wake:null,lastFix:null};beginWatch();keepAwake();toast('Laufende Fahrt wird fortgesetzt');}

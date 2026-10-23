@@ -64,7 +64,9 @@ Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bord
 - **Einstellungen → Kraftstoffarten:** weitere Kraftstoffarten hinzufügen (zum Beispiel Super E10) oder selbst angelegte wieder entfernen.
 - **Sicherheitsunterweisung:** Sind beim Start mehr als eine Person an Bord, fragt die App „Sicherheitsunterweisung der Crew durchgeführt?“ (Ja/Nein). Die Antwort wird mit der Fahrt gespeichert und erscheint in der Fahrt und im PDF.
 - **Logbucheintrag als PDF:** In einer beendeten Fahrt erstellt „Logbucheintrag als PDF exportieren“ ein PDF mit Fahrtdaten, Wetter, Besatzung, Sicherheitsunterweisung, Tankvorgängen, Kommentaren, Streckenskizze und einer Unterschriftenzeile für den Skipper mit Datum und Uhrzeit der Erstellung. Das PDF wird auf dem Gerät gespeichert (Teilen-Menü → „In Dateien sichern“) und – wenn OneDrive eingeschaltet ist – in `OneDrive/Apps/Bordbuch/pdf/` abgelegt. Frühere Exporte stehen unter der Fahrt und lassen sich erneut öffnen.
-- **Einstellungen → Boot → Bootsart:** Schieber Motorboot/Segelboot. Die Bootsart gehört fest zum Bootsnamen und erscheint im Notfallfenster und im PDF.
+- **Einstellungen → Boot → Bootsart:** Auswahl Motorboot oder Segelboot. Die Bootsart gehört fest zum Bootsnamen und erscheint im Notfallfenster und im PDF.
+- **Einstellungen → Einheiten:** „Kilometer und km/h“ (Standard) oder „Seemeilen (sm) und Knoten (kn)“. Gilt für alle Anzeigen, Verbrauch, Wind und das PDF.
+- **Datenschutz:** Menü ☰ → „Datenschutz“ (auch unter Einstellungen und in der Hilfe) erklärt, welche Dienste wann kontaktiert werden und welche Daten dabei übertragen werden.
 - **Menü ☰ → Kommentare:** alle Kommentare als Tabelle, durchsuchbar, Tipp auf eine Zeile springt zur Stelle in der Karte. CSV-Export für Excel.
 - Pro Fahrt: **GPX-Export** (zum Beispiel für Navionics, OpenCPN, Google Earth).
 
@@ -110,6 +112,9 @@ Wer automatischen Abgleich zwischen iPhone, iPad und Mac möchte, nimmt am einfa
 
 - Die App lädt keinen fremden Programmcode: App und Kartenbibliothek liegen vollständig im eigenen Repository.
 - Eine Sicherheitsrichtlinie (Content-Security-Policy in `index.html`) erlaubt Programmcode nur aus dem eigenen Repository und Verbindungen nur zu OpenStreetMap (Karte, Ortsnamen), OpenSeaMap, Open-Meteo und Microsoft (Anmeldung, OneDrive).
+- Microsoft-Zugangstoken (1 Stunde gültig) liegen nur im Arbeitsspeicher. Der Refresh-Token (höchstens 24 Stunden gültig) wird verschlüsselt in der App-Datenbank gespeichert, mit einem nicht exportierbaren Schlüssel; er wird nie mit OneDrive synchronisiert. Token werden ausschließlich an graph.microsoft.com gesendet.
+- Grenze jeder Web-App: Gegen Schadcode, der direkt in der App läuft, schützt keine Speicherart vollständig – auch keine Anmeldebibliothek wie MSAL. Deshalb verhindert die Sicherheitsrichtlinie, dass fremder Code überhaupt ausgeführt wird, und der Zugriff ist auf den App-Ordner im OneDrive beschränkt.
+- Kartenausschnitte werden höchstens 1.500 Stück bzw. 90 Tage gespeichert (ca. 20–40 MB). Seezeichen werden nicht offline gespeichert.
 - Wichtigster Schutz bleibt das GitHub-Konto des Betreibers: Zwei-Faktor-Anmeldung einschalten und niemandem Schreibrechte geben.
 
 ## Datenquellen
@@ -143,3 +148,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 5.1 | Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld |
 | 5.2 | Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in `app.js`, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste |
 | 6.0 | Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive) |
+| 7.0 | Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation |

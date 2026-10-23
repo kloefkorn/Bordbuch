@@ -114,6 +114,7 @@ Wer automatischen Abgleich zwischen iPhone, iPad und Mac möchte, nimmt am einfa
 - Eine Sicherheitsrichtlinie (Content-Security-Policy in `index.html`) erlaubt Programmcode nur aus dem eigenen Repository und Verbindungen nur zu OpenStreetMap (Karte, Ortsnamen), OpenSeaMap, Open-Meteo und Microsoft (Anmeldung, OneDrive).
 - Microsoft-Zugangstoken (1 Stunde gültig) liegen nur im Arbeitsspeicher. Der Refresh-Token (höchstens 24 Stunden gültig) wird verschlüsselt in der App-Datenbank gespeichert, mit einem nicht exportierbaren Schlüssel; er wird nie mit OneDrive synchronisiert. Token werden ausschließlich an graph.microsoft.com gesendet.
 - Grenze jeder Web-App: Gegen Schadcode, der direkt in der App läuft, schützt keine Speicherart vollständig – auch keine Anmeldebibliothek wie MSAL. Deshalb verhindert die Sicherheitsrichtlinie, dass fremder Code überhaupt ausgeführt wird, und der Zugriff ist auf den App-Ordner im OneDrive beschränkt.
+- Aus OneDrive geladene und aus Sicherungsdateien importierte Datensätze werden vor dem Speichern auf Vollständigkeit und Plausibilität geprüft; ungültige Dateien werden übersprungen und in der Statuszeile gemeldet.
 - Kartenausschnitte werden höchstens 1.500 Stück bzw. 90 Tage gespeichert (ca. 20–40 MB). Seezeichen werden nicht offline gespeichert.
 - Wichtigster Schutz bleibt das GitHub-Konto des Betreibers: Zwei-Faktor-Anmeldung einschalten und niemandem Schreibrechte geben.
 
@@ -150,3 +151,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 6.0 | Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive) |
 | 7.0 | Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation |
 | 7.1 | Fahrten direkt in der Übersicht löschen; Seezeichen standardmäßig an, Einstellung unter „Karte“ |
+| 7.2 | Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft |

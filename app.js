@@ -16,8 +16,9 @@
    · 5.2 Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP)
    · 6.0 Bootsart Motor-/Segelboot, Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)
    · 7.0 Einheiten km/sm, Datenschutzerklärung, Anmeldedaten nicht mehr im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt
-   · 7.1 Fahrten in der Übersicht löschen, Seezeichen standardmäßig an (Einstellung) */
-const APP_VERSION='7.1';
+   · 7.1 Fahrten in der Übersicht löschen, Seezeichen standardmäßig an (Einstellung)
+   · 7.2 Fehlerkorrektur OneDrive-Download (Statusprüfung), Prüfung aller heruntergeladenen und importierten Datensätze */
+const APP_VERSION='7.2';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -1122,13 +1123,14 @@ async function importFile(file){
     const j=JSON.parse(await file.text());const list=Array.isArray(j)?j:j.trips;
     if(!Array.isArray(list))throw new Error('Keine Bordbuch-Sicherung');
     let n=0,m=0;
-    for(const t of list){if(!t||!t.id||!t.start)continue;const l=await getTrip(t.id);
+    let bad=0;
+    for(const t0 of list){const t=validateTrip(t0,t0?.id);if(!t){bad++;continue;}const l=await getTrip(t.id);
       if(!l||(t.updatedAt||0)>(l.updatedAt||0)){if(rec&&rec.trip.id===t.id)continue;await putTrip(t);n++;}}
-    for(const f of (j.fuel||[])){if(!f||!f.id||!f.t)continue;const l=await getFuel(f.id);
+    for(const f0 of (Array.isArray(j.fuel)?j.fuel:[])){const f=validateFuel(f0,f0?.id);if(!f){bad++;continue;}const l=await getFuel(f.id);
       if(!l||(f.updatedAt||0)>(l.updatedAt||0)){await putFuel(f);m++;}}
-    for(const mm of (j.meta||[])){if(mm?.id==='lists'){const mg=mergeLists(await getMeta('lists'),mm);mg.updatedAt=Date.now();await putMeta(mg);listsToS(mg);}}
-    for(const b of (j.boats||[])){if(!b||!b.id)continue;const l=await getBoatRec(b.id);if(!l||(b.updatedAt||0)>(l.updatedAt||0))await putBoatRec(b);}
-    toast(`${n} Fahrt(en) und ${m} Tankvorgang/-vorgänge übernommen`);enrichAll();
+    for(const m0 of (Array.isArray(j.meta)?j.meta:[])){const mm=validateMeta(m0,m0?.id);if(!mm){if(m0?.id==='lists')bad++;continue;}{const mg=mergeLists(await getMeta('lists'),mm);mg.updatedAt=Date.now();await putMeta(mg);listsToS(mg);}}
+    for(const b0 of (Array.isArray(j.boats)?j.boats:[])){const b=validateBoatRec(b0,b0?.id);if(!b){bad++;continue;}const l=await getBoatRec(b.id);if(!l||(b.updatedAt||0)>(l.updatedAt||0))await putBoatRec(b);}
+    toast(`${n} Fahrt(en) und ${m} Tankvorgang/-vorgänge übernommen`+(bad?` · ${bad} ungültige Einträge übersprungen`:''));enrichAll();
   }catch(e){alert('Import fehlgeschlagen: '+e.message);}
 }
 
@@ -1229,28 +1231,107 @@ function maybeRenew(){
 }
 let syncing=false,syncTimer;
 function syncSoon(){clearTimeout(syncTimer);syncTimer=setTimeout(()=>syncNow(true),4000);}
+/* ---- Prüfung von Datensätzen aus OneDrive und Sicherungsdateien ----
+   Nur vollständige, plausible Datensätze werden übernommen. Texte werden in der Länge begrenzt
+   (angezeigt werden sie ohnehin immer maskiert, nie als HTML). */
+const MAX_REC_BYTES=20*1024*1024;
+const isNum=v=>typeof v==='number'&&isFinite(v);
+const isLat=v=>isNum(v)&&v>=-90&&v<=90, isLon=v=>isNum(v)&&v>=-180&&v<=180;
+const str=(v,max=500)=>typeof v==='string'?v.slice(0,max):'';
+const optStr=(v,max=500)=>v==null?null:typeof v==='string'?v.slice(0,max):undefined;
+const isObj=v=>v!==null&&typeof v==='object'&&!Array.isArray(v);
+const ID_RE=/^[\p{L}\p{N}_.-]{1,100}$/u;
+function vPos(p,needT=true){if(!isObj(p))return null;if(needT&&!isNum(p.t))return null;
+  if(p.lat!=null&&!isLat(p.lat))return null;if(p.lon!=null&&!isLon(p.lon))return null;
+  return {t:p.t,lat:p.lat??null,lon:p.lon??null,acc:isNum(p.acc)?p.acc:null};}
+function vWx(w){if(w==null)return null;if(!isObj(w)||!isNum(w.temp)||!isNum(w.wind))return undefined;
+  return {code:isNum(w.code)?w.code:null,desc:str(w.desc,80),icon:str(w.icon,8),temp:w.temp,wind:w.wind,gust:isNum(w.gust)?w.gust:null,dir:str(w.dir,30),bft:isNum(w.bft)?w.bft:null,src:str(w.src,40)};}
+function vBoat(b){if(b==null)return undefined;if(!isObj(b))return null;return {type:str(b.type,120),name:str(b.name,120),...(b.kind?{kind:b.kind==='sail'?'sail':'motor'}:{})};}
+function validateTrip(t,id){
+  if(!isObj(t)||t.id!==id||!ID_RE.test(id))return null;
+  if(!['done','active'].includes(t.status)||!isNum(t.updatedAt))return null;
+  const start=vPos(t.start);if(!start)return null;
+  const end=t.end==null?null:vPos(t.end);if(t.end!=null&&!end)return null;
+  if(t.status==='done'&&!end&&!t.deleted)return null;
+  if(!Array.isArray(t.points||[])||(t.points||[]).length>500000)return null;
+  const points=[];for(const p of t.points||[]){if(!isObj(p)||!isNum(p.t)||!isLat(p.lat)||!isLon(p.lon))return null;
+    points.push({t:p.t,lat:p.lat,lon:p.lon,acc:isNum(p.acc)?p.acc:null,spd:isNum(p.spd)?p.spd:null});}
+  const notes={};if(t.notes!=null){if(!isObj(t.notes))return null;
+    for(const [k,n] of Object.entries(t.notes)){if(!/^\d{1,15}$/.test(k)||!isObj(n)||typeof n.text!=='string')return null;notes[k]={text:n.text.slice(0,4000),updatedAt:isNum(n.updatedAt)?n.updatedAt:0};}}
+  const helms=[];if(t.helms!=null){if(!Array.isArray(t.helms)||t.helms.length>500)return null;
+    for(const h of t.helms){if(!isObj(h)||!isNum(h.t)||typeof h.name!=='string')return null;helms.push({t:h.t,name:h.name.slice(0,120)});}}
+  let crew;if(t.crew!=null){if(!isObj(t.crew)||!isNum(t.crew.pax)||t.crew.pax<0||t.crew.pax>12||!Array.isArray(t.crew.guests||[]))return null;
+    crew={pax:Math.round(t.crew.pax),guests:(t.crew.guests||[]).slice(0,12).map(g=>str(g,120))};}
+  const wS=vWx(t.weatherStart),wE=vWx(t.weatherEnd);if(wS===undefined||wE===undefined)return null;
+  const boat=vBoat(t.boat);if(boat===null)return null;
+  const ps=optStr(t.placeStart,200),pe=optStr(t.placeEnd,200);if(ps===undefined||pe===undefined)return null;
+  const out={id,v:isNum(t.v)?t.v:1,status:t.status,createdAt:isNum(t.createdAt)?t.createdAt:start.t,updatedAt:t.updatedAt,deleted:t.deleted===true,
+    start,end,points,distance:isNum(t.distance)&&t.distance>=0?t.distance:0,maxSpd:isNum(t.maxSpd)&&t.maxSpd>=0?t.maxSpd:0,
+    placeStart:ps,placeEnd:pe,weatherStart:wS,weatherEnd:wE,note:str(t.note,8000),notes};
+  if(boat)out.boat=boat;
+  if(t.skipper!=null)out.skipper=str(t.skipper,120);
+  if(t.helms!=null)out.helms=helms;
+  if(crew)out.crew=crew;
+  if(isObj(t.briefing)&&isNum(t.briefing.t))out.briefing={done:t.briefing.done===true,t:t.briefing.t};
+  return out;
+}
+function validateFuel(f,id){
+  if(!isObj(f)||f.id!==id||!ID_RE.test(id)||!isNum(f.t)||!isNum(f.updatedAt))return null;
+  if(!f.deleted&&(!isNum(f.liters)||f.liters<=0||f.liters>100000||!isNum(f.price)||f.price<0||f.price>1000))return null;
+  if(f.lat!=null&&!isLat(f.lat))return null;if(f.lon!=null&&!isLon(f.lon))return null;
+  const boat=vBoat(f.boat);if(!boat)return null;
+  return {id,t:f.t,createdAt:isNum(f.createdAt)?f.createdAt:f.t,updatedAt:f.updatedAt,deleted:f.deleted===true,boat,
+    liters:isNum(f.liters)?f.liters:0,price:isNum(f.price)?f.price:0,fuelType:str(f.fuelType,60)||'Diesel',full:f.full!==false,
+    lat:f.lat??null,lon:f.lon??null,acc:isNum(f.acc)?f.acc:null,place:optStr(f.place,200)??null};
+}
+function validateBoatRec(b,id){
+  if(!isObj(b)||b.id!==id||!ID_RE.test(id)||!isNum(b.updatedAt))return null;
+  const out={id,name:str(b.name,120),type:str(b.type,120),updatedAt:b.updatedAt,deleted:b.deleted===true};
+  if(b.kind)out.kind=b.kind==='sail'?'sail':'motor';
+  for(const [k] of BOAT_FIELDS){if(b[k]!=null){if(typeof b[k]!=='string')return null;out[k]=b[k].slice(0,60);}}
+  return out;
+}
+function validateMeta(m,id){
+  if(id!=='lists'||!isObj(m)||m.id!=='lists'||!isObj(m.entries))return null;
+  const out={id:'lists',updatedAt:isNum(m.updatedAt)?m.updatedAt:0,entries:{}};
+  for(const k of LIST_KEYS){const e=m.entries[k];if(e==null){out.entries[k]={};continue;}if(!isObj(e))return null;
+    const o={};let n=0;for(const [name,v] of Object.entries(e)){if(++n>500)break;if(!isObj(v)||typeof name!=='string'||!name.trim()||name.length>120)return null;
+      o[name]={a:isNum(v.a)?v.a:0,t:isNum(v.t)?v.t:0,del:v.del===true};}
+    out.entries[k]=o;}
+  return out;
+}
 const SYNC_SETS=[
-  {folder:'trips',key:id=>id,get:getTrip,put:putTrip,all:allTrips,skipUp:t=>t.status!=='done',skipDown:id=>rec&&rec.trip.id===id},
-  {folder:'fuel',key:id=>'fuel:'+id,get:getFuel,put:putFuel,all:allFuel,skipUp:()=>false,skipDown:()=>false},
-  {folder:'boats',key:id=>'boat:'+id,get:getBoatRec,put:putBoatRec,all:allBoats,skipUp:()=>false,skipDown:()=>false},
-  {folder:'meta',key:id=>'meta:'+id,get:getMeta,put:putMeta,all:allMeta,skipUp:()=>false,skipDown:()=>false,merge:mergeLists}];
+  {folder:'trips',validate:validateTrip,key:id=>id,get:getTrip,put:putTrip,all:allTrips,skipUp:t=>t.status!=='done',skipDown:id=>rec&&rec.trip.id===id},
+  {folder:'fuel',validate:validateFuel,key:id=>'fuel:'+id,get:getFuel,put:putFuel,all:allFuel,skipUp:()=>false,skipDown:()=>false},
+  {folder:'boats',validate:validateBoatRec,key:id=>'boat:'+id,get:getBoatRec,put:putBoatRec,all:allBoats,skipUp:()=>false,skipDown:()=>false},
+  {folder:'meta',validate:validateMeta,key:id=>'meta:'+id,get:getMeta,put:putMeta,all:allMeta,skipUp:()=>false,skipDown:()=>false,merge:mergeLists}];
 async function syncNow(quiet,allowSilentLogin){
   if(!S.odEnabled)return;
   if(!localStorage.getItem('bb_od_on')){if(!quiet)toast('OneDrive ist nicht verbunden');return;}
   if(syncing||!navigator.onLine)return;syncing=true;setSync('synchronisiere …');
-  const map=JSON.parse(localStorage.getItem('bb_odmap')||'{}');let down=0,up=0,metaChanged=false;
+  const map=JSON.parse(localStorage.getItem('bb_odmap')||'{}');let down=0,up=0,invalid=0,metaChanged=false;
   try{
     for(const set of SYNC_SETS){
       const remote=[];let url=`/me/drive/special/approot:/${set.folder}:/children?$top=200`;
       while(url){const r=await g(url);if(r.status===404)break;if(!r.ok)throw new Error('Liste '+r.status);
-        const j=await r.json();remote.push(...j.value.filter(f=>f.name.endsWith('.json')));url=j['@odata.nextLink']||null;}
+        const j=await r.json();if(!Array.isArray(j?.value))throw new Error('Unerwartete Antwort von OneDrive');
+        remote.push(...j.value.filter(f=>typeof f?.name==='string'&&f.name.endsWith('.json')));
+        url=typeof j['@odata.nextLink']==='string'&&j['@odata.nextLink'].startsWith(GRAPH+'/')?j['@odata.nextLink']:null;}
       for(const f of remote){
         const id=f.name.slice(0,-5),k=set.key(id),m=map[k];
         if(m&&m.remoteMod===f.lastModifiedDateTime)continue;
         if(set.skipDown(id))continue;
         const dl=f['@microsoft.graph.downloadUrl'];
-        const r=dl?await fetch(dl,{credentials:'omit'}):await g(`/me/drive/items/${f.id}/content`); // downloadUrl ist vorab signiert, ohne Tokenif(!r.ok)throw new Error('Download '+r.status);
-        const rt=await r.json();const local=await set.get(id);
+        // downloadUrl ist vorab signiert und wird ohne Token und ohne Cookies abgerufen
+        const r=dl?await fetch(dl,{credentials:'omit'}):await g(`/me/drive/items/${f.id}/content`);
+        if(!r.ok)throw new Error('Download '+r.status);
+        const raw=await r.text();
+        let rt=null;
+        try{rt=raw.length<=MAX_REC_BYTES?set.validate(JSON.parse(raw),id):null;}catch(e){rt=null;}
+        if(!rt){ // ungültige Datei: nicht speichern; ist lokal eine gültige Fassung vorhanden, wird sie wieder hochgeladen
+          console.warn('Ungültiger Datensatz übersprungen:',set.folder,f.name);invalid++;
+          const lo=await set.get(id);map[k]={remoteMod:f.lastModifiedDateTime,localUpd:lo&&!set.skipUp(lo)?0:(m?.localUpd||0)};continue;}
+        const local=await set.get(id);
         if(set.merge){
           const mg=set.merge(local,rt);const sameAsRemote=JSON.stringify(mg.entries)===JSON.stringify(set.merge(rt,rt).entries);
           if(!sameAsRemote)mg.updatedAt=Date.now();
@@ -1275,7 +1356,7 @@ async function syncNow(quiet,allowSilentLogin){
       if((location.hash||'').startsWith('#/fahrt/'))drawPdfList&&drawPdfList();
     }
     localStorage.setItem('bb_lastsync',Date.now());
-    setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:''));
+    setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:'')+(invalid?` · ${invalid} ungültige Datei(en) übersprungen`:''));
     if(metaChanged&&(location.hash||'').startsWith('#/einstellungen'))renderSettings();
     if(down){if(await refreshPre().catch(()=>false)&&!rec&&(location.hash||'#/').match(/^#\/?$/))renderHome();refreshView();enrichAll();}
     if(!quiet)toast('Synchronisation abgeschlossen');

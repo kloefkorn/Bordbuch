@@ -164,6 +164,9 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
   background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 16 16'%3E%3Cpath d='M3.5 6l4.5 4.5L12.5 6' fill='none' stroke='%237f93a8' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 11px center;background-size:15px}
 .priv h2{margin:4px 0 8px;font-size:20px}.priv h3{margin:20px 0 6px}.priv p{margin:6px 0;line-height:1.5}
 .priv a{color:var(--accent)}.privCard{padding:12px 14px}.privCard p{margin:6px 0;font-size:14.5px}
+.card{position:relative;padding-right:52px !important}
+.cardDel{position:absolute;right:8px;bottom:8px;border:0;background:var(--panel2);color:var(--stop);font-size:17px;width:38px;height:38px;border-radius:10px;cursor:pointer;z-index:2}
+.cardDel:active{transform:scale(.95)}
 .boatTag{display:inline-block;font-size:12px;color:var(--muted);background:var(--panel2);border-radius:6px;padding:0 6px;margin-left:6px}
 .live{max-width:430px;width:100%;margin:20px auto 0;border-radius:18px;padding:12px 12px 14px;border:1.5px solid transparent;
   background:linear-gradient(var(--panel),var(--panel)) padding-box,conic-gradient(from 210deg,#f7f9fb,#8e979f 12%,#ffffff 25%,#79828b 40%,#eef1f4 55%,#9aa2ab 70%,#ffffff 85%,#f7f9fb) border-box;box-shadow:0 8px 18px rgba(0,0,0,.28)}

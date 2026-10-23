@@ -15,8 +15,9 @@
    · 5.1 Eingebaute Microsoft-Client-ID; Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld
    · 5.2 Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP)
    · 6.0 Bootsart Motor-/Segelboot, Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)
-   · 7.0 Einheiten km/sm, Datenschutzerklärung, Anmeldedaten nicht mehr im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt */
-const APP_VERSION='7.0';
+   · 7.0 Einheiten km/sm, Datenschutzerklärung, Anmeldedaten nicht mehr im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt
+   · 7.1 Fahrten in der Übersicht löschen, Seezeichen standardmäßig an (Einstellung) */
+const APP_VERSION='7.1';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -27,7 +28,7 @@ let toastT;
 function toast(msg){const t=$('#toast');t.textContent=msg;t.classList.add('show');clearTimeout(toastT);toastT=setTimeout(()=>t.classList.remove('show'),3000);}
 
 const DEFAULT_BOAT_TYPE='',DEFAULT_BOAT_NAME='';
-const DEF={minDist:25,boatKind:'motor',units:'metric',maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin'],skippers:[],helms:[],odEnabled:undefined,setupDone:false};
+const DEF={minDist:25,seamarks:true,boatKind:'motor',units:'metric',maxInterval:30,maxAcc:50,wake:true,odClientId:'',boatType:DEFAULT_BOAT_TYPE,boatName:DEFAULT_BOAT_NAME,fuelTypes:['Diesel','Benzin'],skippers:[],helms:[],odEnabled:undefined,setupDone:false};
 let S=Object.assign({},DEF,JSON.parse(localStorage.getItem('bb_settings')||'{}'));
 const saveS=()=>localStorage.setItem('bb_settings',JSON.stringify(S));
 const BUILTIN_FUELS=['Diesel','Benzin'];
@@ -636,13 +637,20 @@ async function renderList(){
       const dur=(active?Date.now():t.end.t)-t.start.t;
       const dist=active?trackDist(t.points):t.distance;
       const pend=(!t.placeStart||(!active&&!t.placeEnd)||!t.weatherStart||(!active&&!t.weatherEnd));
-      return `<a class="card" href="#/fahrt/${encodeURIComponent(t.id)}">
+      return `<a class="card" href="#/fahrt/${encodeURIComponent(t.id)}">${active?'':`<button class="cardDel" data-del="${esc(t.id)}" aria-label="Fahrt löschen" title="Fahrt löschen">🗑</button>`}
         <div class="c1"><span>${fmtDate(t.start.t)}${F.boat==='*'?`<span class="boatTag">${esc(tripBoat(t).name)}</span>`:''}</span><span>${fmtTime(t.start.t)} – ${active?'<span class="rec">läuft</span>':fmtTime(t.end.t)}</span></div>
         <div class="c2">${esc(t.placeStart||'…')} → ${esc(active?'unterwegs':(t.placeEnd||'…'))}</div>
         <div class="c3">${fmtKm(dist)} · ${fmtDur(dur)}${t.weatherStart?' · '+wxTxt(t.weatherStart,true):''}${n?` · 📝 ${n}`:''}</div>
         ${t.skipper?`<div class="c3">Skipper ${esc(t.skipper)} · ${tripPax(t)} ${tripPax(t)===1?'Person':'Personen'} an Bord${tripAuto(t).length+tripGuests(t).length<tripPax(t)?' <span class="pending">· Namen fehlen</span>':''}</div>`:''}
         ${pend&&!active?'<div class="pending">Ort und Wetter werden nachgeladen, sobald online</div>':''}
       </a>`;}).join(''):'<p class="empty">Keine Fahrten für diese Auswahl.</p>';
+    $('#res').querySelectorAll('button[data-del]').forEach(bt=>bt.onclick=async e=>{
+      e.preventDefault();e.stopPropagation();
+      const t=await getTrip(bt.dataset.del);if(!t||t.status!=='done')return;
+      const what=`Fahrt vom ${fmtDate(t.start.t)}, ${fmtTime(t.start.t)} Uhr\n${t.placeStart||'…'} → ${t.placeEnd||'…'} (${fmtKm(t.distance||0)})`;
+      if(!confirm(`Diese Fahrt endgültig löschen (auch in OneDrive)?\n\n${what}`))return;
+      Object.assign(t,{deleted:true,points:[],notes:{},note:'',updatedAt:Date.now()});await putTrip(t);syncSoon();
+      toast('Fahrt gelöscht');renderList();});
   };
   $('#fBoat').onchange=e=>{F.boat=e.target.value;draw();};
   $('#fSk').onchange=e=>{F.skipper=e.target.value;draw();};$('#fHl').onchange=e=>{F.helm=e.target.value;draw();};$('#fPe').onchange=e=>{F.person=e.target.value;draw();};
@@ -735,6 +743,8 @@ function buildMap(t,focusKey){
   L.tileLayer('https://tile.openstreetmap.org/{z}/{x}/{y}.png',{maxZoom:19,attribution:'© OpenStreetMap',crossOrigin:true}).addTo(map);
   const sea=L.tileLayer('https://tiles.openseamap.org/seamark/{z}/{x}/{y}.png',{maxZoom:18,attribution:'© OpenSeaMap'});
   L.control.layers(null,{'Seezeichen (OpenSeaMap)':sea}).addTo(map);
+  if(S.seamarks!==false)sea.addTo(map);
+  map.on('overlayadd overlayremove',e=>{if(e.layer===sea){S.seamarks=e.type==='overlayadd';saveS();}});
   map.createPane('hl').style.zIndex=650;
   const ll=t.points.map(p=>[p.lat,p.lon]);
   if(ll.length>1){
@@ -1316,6 +1326,10 @@ async function renderSettings(){
     <label>GPS-Positionen ungenauer als … m verwerfen</label><input type="number" id="sAcc" min="5" value="${S.maxAcc}">
     <div class="check"><input type="checkbox" id="sWake" ${S.wake?'checked':''}><span>Display während der Fahrt anlassen (empfohlen)</span></div>
   </section>
+  <section class="panel"><h3>Karte</h3>
+    <div class="check"><input type="checkbox" id="sSea" ${S.seamarks!==false?'checked':''}><span>Seezeichen (OpenSeaMap) in der Karte anzeigen</span></div>
+    <p class="hint">Betonnung, Leuchtfeuer, Häfen und weitere Seezeichen über der Karte. Lässt sich auch direkt in der Karte über das Ebenen-Symbol ein- und ausschalten.</p>
+  </section>
   <section class="panel"><h3>OneDrive – automatische Synchronisation</h3>
     <div class="check"><input type="checkbox" id="sOdEn" ${S.odEnabled?'checked':''}><span>OneDrive-Synchronisation verwenden</span></div>
     ${S.odEnabled?`
@@ -1370,6 +1384,7 @@ async function renderSettings(){
     S.fuelTypes.push(v);saveS();listChange('fuelTypes',v,false).then(renderSettings);toast(`„${v}“ hinzugefügt`);};
   view.querySelectorAll('.chip button[data-f]').forEach(b=>b.onclick=()=>{S.fuelTypes=S.fuelTypes.filter(f=>f!==b.dataset.f);saveS();listChange('fuelTypes',b.dataset.f,true).then(renderSettings);});
   $('#sWake').onchange=e=>{S.wake=e.target.checked;saveS();};
+  $('#sSea').onchange=e=>{S.seamarks=e.target.checked;saveS();toast(S.seamarks?'Seezeichen werden angezeigt':'Seezeichen ausgeblendet');};
   if($('#sCid'))$('#sCid').onchange=e=>{S.odClientId=e.target.value.trim();saveS();};
   $('#sOdEn').onchange=e=>{S.odEnabled=e.target.checked;saveS();updateStatus();renderSettings();if(S.odEnabled)syncNow(true);};
   if($('#odCon'))$('#odCon').onclick=()=>{S.odClientId=($('#sCid')?.value||'').trim();saveS();if(rec&&!confirm('Während der Aufzeichnung kurz zur Microsoft-Anmeldung wechseln? Die Fahrt läuft danach weiter.'))return;odLogin(false);};
@@ -1430,7 +1445,8 @@ function renderHelp(){
     <li>Menü → <b>Verbrauch</b>: Strecke seit dem letzten Tanken, Kosten, Liter je Kilometer und je Stunde.</li></ul>`)}
   ${sec('5. Fahrten, Karte und Kommentare',`<ul>
     <li>Menü → <b>Fahrten</b>: alle Fahrten mit Filtern (Boot, Skipper, Steuermann, Person an Bord, Zeitraum) und Summen.</li>
-    <li>In einer Fahrt: Karte mit Strecke. Hineinzoomen und auf einen Punkt tippen zeigt Uhrzeit und Geschwindigkeit und erlaubt einen Kommentar.</li>
+    <li>In der Übersicht löschst du eine Fahrt über den Papierkorb rechts oben auf der Karte (mit Sicherheitsabfrage).</li>
+    <li>In einer Fahrt: Karte mit Strecke und Seezeichen (abschaltbar unter Einstellungen → Karte). Hineinzoomen und auf einen Punkt tippen zeigt Uhrzeit und Geschwindigkeit und erlaubt einen Kommentar.</li>
     <li>Menü → <b>Kommentare</b>: alle Kommentare als Tabelle, auch als Excel-Datei (CSV).</li>
     <li>In einer beendeten Fahrt: <b>„Logbucheintrag als PDF exportieren“</b> erstellt ein PDF mit allen Angaben, Streckenskizze und Unterschriftenzeile für den Skipper. Es wird auf dem Gerät gespeichert (Teilen-Menü → „In Dateien sichern“) und – wenn eingeschaltet – in OneDrive unter <i>Apps › Bordbuch › pdf</i> abgelegt.</li></ul>`)}
   ${sec('6. Notfall (S.O.S)',`<ul>
@@ -1456,7 +1472,7 @@ function renderPrivacy(){
   const rows=[
     ['GitHub Pages (GitHub Inc., USA)','Beim Öffnen der App mit Internet und bei der Suche nach Updates.','IP-Adresse, Browserkennung, Uhrzeit, abgerufene Datei. Keine Inhalte aus deinem Bordbuch.',L('https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement','Datenschutz GitHub')],
     ['OpenStreetMap – Kartenkacheln (OpenStreetMap Foundation, Großbritannien)','Wenn eine Fahrt mit Karte angezeigt wird. Einmal geladene Ausschnitte bleiben begrenzt auf dem Gerät gespeichert.','IP-Adresse, Browserkennung, welcher Kartenausschnitt geladen wird (damit grob, welches Gebiet du ansiehst).',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')],
-    ['OpenSeaMap – Seezeichen','Nur wenn du in der Karte die Ebene „Seezeichen“ einschaltest.','IP-Adresse, Browserkennung, geladener Kartenausschnitt.',L('https://www.openseamap.org','openseamap.org')],
+    ['OpenSeaMap – Seezeichen','Wenn eine Fahrt mit Karte angezeigt wird und die Seezeichen eingeschaltet sind (Standard; abschaltbar unter Einstellungen → Karte). Seezeichen werden nicht dauerhaft auf dem Gerät gespeichert.','IP-Adresse, Browserkennung, geladener Kartenausschnitt.',L('https://www.openseamap.org','openseamap.org')],
     ['Nominatim – Ortsnamen (OpenStreetMap Foundation)','Sobald Internet besteht: einmal für Fahrtbeginn, einmal für Fahrtende und je Tankvorgang.','Die Koordinaten dieser Orte, IP-Adresse, Browserkennung. Keine Namen, keine Strecke.',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')+' · '+L('https://operations.osmfoundation.org/policies/nominatim/','Nutzungsregeln')],
     ['Open-Meteo – Wetter (Open-Meteo.com)','Sobald Internet besteht: je einmal für Fahrtbeginn und Fahrtende.','Koordinaten und Datum von Fahrtbeginn bzw. -ende, IP-Adresse.',L('https://open-meteo.com/en/terms','Nutzungs- und Datenschutzbedingungen')],
     ['Microsoft – Anmeldung und Microsoft Graph/OneDrive (Microsoft Corp., USA)','Nur wenn OneDrive eingeschaltet und verbunden ist: bei der Anmeldung (etwa einmal täglich), beim Öffnen, nach Änderungen und alle 5 Minuten bei geöffneter App.','Dein Microsoft-Konto für die Anmeldung; Fahrten (mit Strecke), Tankvorgänge, Bootsdaten, Namenslisten und PDF-Logbucheinträge werden in deinem eigenen OneDrive im Ordner „Apps › Bordbuch“ gespeichert.',L('https://privacy.microsoft.com/de-de/privacystatement','Datenschutz Microsoft')]

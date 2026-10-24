@@ -22,8 +22,9 @@
    · 7.4 Ersteinrichtung: zuerst OneDrive verbinden und Daten laden, dann Boot/Skipper/Steuermann auswählen
    · 7.5 Hinweis: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen
    · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ · 7.7 Startseite: nur Link „Datenschutz“
-   · 8.0 Segelboot-Modus: Fahrtbeginn/Fahrtende, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll */
-const APP_VERSION='8.0';
+   · 8.0 Segelboot-Modus: Fahrtbeginn/Fahrtende, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll
+   · 9.0 Leuchtring-Logik, Knöpfe Anker/Ankerlicht/Positionslichter, Größen für Tablets */
+const APP_VERSION='9.0';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -278,6 +279,7 @@ async function startTrip(){
     boat:{type:S.boatType,name:S.boatName,kind:S.boatKind||'motor'},
     skipper:P.skipper,helms:[{t:now,name:P.helm}],
     crew:{pax:Math.max(P.pax,autoCrew(P.skipper,[P.helm]).length),guests:P.guests.filter(g=>g&&g!==P.skipper&&g!==P.helm)}};
+  {const init=Object.entries(TGL).filter(([k])=>S.toggles[k]).map(([k,v])=>({t:now,type:v[0],lat:null,lon:null}));if(init.length)trip.events=init;}
   rec={trip,watch:null,wake:null,lastFix:null};
   await putTrip(trip);
   navigator.storage?.persist?.();
@@ -609,15 +611,17 @@ function statusLine(){
 }
 function updateStatus(){const s=$('#stat');if(s)s.textContent=statusLine();}
 /* ================= Motor und Segel (Segelboote) ================= */
-const EV={motorOn:'Motor an',motorOff:'Motor aus',sailUp:'Segel gesetzt',sailDown:'Segel geborgen'};
+const EV={motorOn:'Motor an',motorOff:'Motor aus',sailUp:'Segel gesetzt',sailDown:'Segel geborgen',
+  anchorDown:'Anker geworfen',anchorUp:'Anker gelichtet',anchorLightOn:'Ankerlicht an',anchorLightOff:'Ankerlicht aus',navLightOn:'Positionslichter an',navLightOff:'Positionslichter aus'};
+const EV_ON=new Set(['motorOn','sailUp','anchorDown','anchorLightOn','navLightOn']);
 const tripEvents=t=>(Array.isArray(t.events)?t.events:[]).slice().sort((a,b)=>a.t-b.t);
-const isSailTrip=t=>tripBoat(t).kind==='sail'||tripEvents(t).length>0;
+const isSailTrip=t=>tripBoat(t).kind==='sail'||tripEvents(t).some(e=>/^(motor|sail)/.test(e.type));
 function evState(t,on,off){let st=null,since=null;for(const e of tripEvents(t)){if(e.type===on){st='on';since=e.t;}else if(e.type===off){st='off';since=e.t;}}return {st,since};}
 function evDurations(t){
   const endT=t.status==='done'&&t.end?t.end.t:Date.now();
   const sum=(on,off)=>{let ms=0,s0=null;for(const e of tripEvents(t)){if(e.type===on&&s0==null)s0=e.t;else if(e.type===off&&s0!=null){ms+=e.t-s0;s0=null;}}if(s0!=null)ms+=endT-s0;return ms;};
   const ev=tripEvents(t);
-  return {motorMs:sum('motorOn','motorOff'),sailMs:sum('sailUp','sailDown'),hasMotor:ev.some(e=>e.type.startsWith('motor')),hasSail:ev.some(e=>e.type.startsWith('sail'))};
+  return {motorMs:sum('motorOn','motorOff'),sailMs:sum('sailUp','sailDown'),anchorMs:sum('anchorDown','anchorUp'),hasMotor:ev.some(e=>e.type.startsWith('motor')),hasSail:ev.some(e=>e.type.startsWith('sail')),hasAnchor:ev.some(e=>e.type.startsWith('anchorD')||e.type==='anchorUp')};
 }
 /* Motorlaufzeit: bei erfassten Motor-Ereignissen deren Summe, sonst die ganze Fahrt */
 const motorHours=t=>{const d=evDurations(t);return (d.hasMotor?d.motorMs:(t.end?t.end.t:Date.now())-t.start.t)/36e5;};
@@ -627,10 +631,25 @@ async function logEvent(type){
   t.events=tripEvents(t);t.events.push({t:now,type,lat:p&&now-p.t<180000?p.lat:null,lon:p&&now-p.t<180000?p.lon:null});
   t.updatedAt=now;persist();renderHome();toast(`${EV[type]} – ${fmtTime(now)} Uhr`);
 }
+/* Anker, Ankerlicht, Positionslichter: Ein/Aus-Schalter. Der Zustand gilt auch zwischen den Fahrten;
+   während einer Fahrt wird jede Betätigung protokolliert, beim Start werden eingeschaltete Zustände übernommen. */
+const TGL={anchor:['anchorDown','anchorUp'],anchorLight:['anchorLightOn','anchorLightOff'],navLight:['navLightOn','navLightOff']};
+if(!S.toggles||typeof S.toggles!=='object')S.toggles={anchor:false,anchorLight:false,navLight:false};
+async function toggleState(key){
+  const on=!S.toggles[key];S.toggles[key]=on;saveS();
+  const type=TGL[key][on?0:1],now=Date.now();
+  if(rec){const t=rec.trip,p=t.points[t.points.length-1];t.events=tripEvents(t);
+    t.events.push({t:now,type,lat:p&&now-p.t<180000?p.lat:null,lon:p&&now-p.t<180000?p.lon:null});t.updatedAt=now;persist();}
+  renderHome();toast(`${EV[type]} – ${fmtTime(now)} Uhr`+(rec?'':' (keine Fahrt aktiv, wird beim nächsten Start übernommen)'));
+}
+const ICON_ANCHOR='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.6" r="2.1" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M12 6.7v14.3M8 10.5h8M4.2 13.2c.4 4.3 3.6 7.4 7.8 7.8 4.2-.4 7.4-3.5 7.8-7.8"/><path fill="currentColor" d="M2.6 14.6l1.6-3.4 2.7 2.6zM21.4 14.6l-1.6-3.4-2.7 2.6z"/></svg>';
+const ICON_ANCHOR_LIGHT='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.2a5.6 5.6 0 0 0-3.4 10c.7.6 1.1 1.3 1.1 2.1v.9h4.6v-.9c0-.8.4-1.5 1.1-2.1A5.6 5.6 0 0 0 12 2.2zM9.7 16.3h4.6v1.4H9.7zM10.4 18.4h3.2l-.5 1.1h-2.2z"/><path fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" d="M2.5 7.8h1.6M19.9 7.8h1.6M4.4 2.9l1.2 1.1M19.6 2.9l-1.2 1.1"/><g transform="translate(15.2 14.2) scale(.36)" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="4" r="2.2"/><path d="M12 6.2V21M8 10h8M4.5 13.5c.5 4 3.5 7 7.5 7.5 4-.5 7-3.5 7.5-7.5"/></g></svg>';
+const ICON_NAV_LIGHT='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#e53935" d="M12 2.2a5.6 5.6 0 0 0-3.4 10c.7.6 1.1 1.3 1.1 2.1v.9H12z"/><path fill="#22a35a" d="M12 2.2v13h2.3v-.9c0-.8.4-1.5 1.1-2.1A5.6 5.6 0 0 0 12 2.2z"/><path fill="#f6dc9a" d="M9.7 16.3h4.6v1.4H9.7zM10.4 18.4h3.2l-.5 1.1h-2.2z"/><path fill="none" stroke="#e53935" stroke-width="1.3" stroke-linecap="round" d="M2.5 7.8h1.6M4.4 2.9l1.2 1.1"/><path fill="none" stroke="#22a35a" stroke-width="1.3" stroke-linecap="round" d="M19.9 7.8h1.6M19.6 2.9l-1.2 1.1"/></svg>';
+function tglBtn(id,icon,label,on){return `<div class="sideItem"><button class="ssb tgl warm ${on?'lit':''}" id="${id}" aria-pressed="${on}" aria-label="${label}"><span class="face">${icon}</span></button><small>${label}</small></div>`;}
 const ICON_ENGINE='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h6v2h-2v1.5h3.2l1.8 2H18V9h2.5v7H18v-1.5h-1.5L14 17.5H8.2L6.5 16H5v-2.5H3.5V16H2V9.5h1.5V12H5V9.6L6.6 8.5H9V7H7z"/></svg>';
 const ICON_SAIL_UP='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.2 2.5v12.2H4.6zM12.6 4.6l6.6 10.1h-6.6z"/><path fill="currentColor" d="M11.2 2.2h1.4v13.6h-1.4z"/><path fill="currentColor" d="M2.5 16.4h19l-3 4H5.5z"/></svg>';
 const ICON_SAIL_DOWN='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.2 2.2h1.4v13.6h-1.4z"/><path fill="currentColor" d="M5.5 13.6h6v1.2h-6z"/><path fill="currentColor" d="M2.5 16.4h19l-3 4H5.5z"/></svg>';
-function miniBtn(id,icon,label,cls,dis){return `<div class="sideItem"><button class="ssb mini ${cls}" id="${id}" ${dis?'disabled':''} aria-label="${label}"><span class="face">${icon}</span></button><small class="${cls}">${label}</small></div>`;}
+function miniBtn(id,icon,label,cls,dis,lit){return `<div class="sideItem"><button class="ssb mini ${cls} ${lit?'lit':''}" id="${id}" ${dis?'disabled':''} aria-label="${label}"><span class="face">${icon}</span></button><small class="${cls}">${label}</small></div>`;}
 function renderHome(){
   setTitle('Bordbuch',false);const r=!!rec;
   const sail=r?isSailTrip(rec.trip):S.boatKind==='sail';
@@ -639,25 +658,30 @@ function renderHome(){
   view.innerHTML=`<div class="home">
   <div class="status" id="stat">${esc(statusLine())}</div>
   <div class="bigbtns ${r?'recording':''} ${sail?'sailmode':''}">
-    <button class="ssb start" id="bMS" ${r?'disabled':''} aria-label="Start – ${subS}"><span class="face"><span class="main">Start</span><span class="sub">${subS}</span></span></button>
-    <button class="ssb stop" id="bMG" ${r?'':'disabled'} aria-label="Stop – ${subE}"><span class="face"><span class="main">Stop</span><span class="sub">${subE}</span></span></button>
+    <button class="ssb start ${r?'lit':''}" id="bMS" ${r?'disabled':''} aria-label="Start – ${subS}"><span class="face"><span class="main">Start</span><span class="sub">${subS}</span></span></button>
+    <button class="ssb stop ${r?'':'lit'}" id="bMG" ${r?'':'disabled'} aria-label="Stop – ${subE}"><span class="face"><span class="main">Stop</span><span class="sub">${subE}</span></span></button>
   <div class="side sideL">
-  ${sail?miniBtn('bMotOn',ICON_ENGINE,'Motor an','evOn',!r||mot.st==='on'):''}
+  ${sail?miniBtn('bMotOn',ICON_ENGINE,'Motor an','evOn',r&&mot.st==='on',mot.st==='on'):''}
+  ${sail?miniBtn('bSailUp',ICON_SAIL_UP,'Segel gesetzt','evOn',r&&sl.st==='on',sl.st==='on'):''}
   <div class="sosWrap"><button class="sos" id="bSos" aria-label="Notfall – S.O.S."><span>S.O.S.</span></button><small>Notfall</small></div>
-  ${sail?miniBtn('bSailUp',ICON_SAIL_UP,'Segel gesetzt','evOn',!r||sl.st==='on'):''}
   </div>
   <div class="side sideR">
-  ${sail?miniBtn('bMotOff',ICON_ENGINE,'Motor aus','evOff',!r||mot.st!=='on'&&mot.st!==null):''}
+  ${sail?miniBtn('bMotOff',ICON_ENGINE,'Motor aus','evOff',mot.st!=='on',mot.st!=='on'):''}
+  ${sail?miniBtn('bSailDown',ICON_SAIL_DOWN,'Segel geborgen','evOff',sl.st!=='on',sl.st!=='on'):''}
   <div class="fuelWrap"><button class="ssb fuel" id="bFuel" aria-label="Tanken erfassen"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.5 2h7A1.5 1.5 0 0 1 14 3.5V20h1v2H3v-2h1V3.5A1.5 1.5 0 0 1 5.5 2zM6.2 4.3v5.2h5.6V4.3z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M14 11.5h1.3c.8 0 1.4.6 1.4 1.4v4.4a1.6 1.6 0 0 0 3.2 0V8.6L17.6 6.2"/><path fill="currentColor" d="M18.4 4.6l2.6 2.6-1.1 1.1-2.6-2.6z"/></svg></span></button><small>Tanken</small></div>
-  ${sail?miniBtn('bSailDown',ICON_SAIL_DOWN,'Segel geborgen','evOff',!r||sl.st!=='on'&&sl.st!==null):''}
   </div>
+  </div>
+  <div class="toggles">
+    ${tglBtn('bAnchor',ICON_ANCHOR,'Anker',S.toggles.anchor)}
+    ${tglBtn('bAnchorLight',ICON_ANCHOR_LIGHT,'Ankerlicht',S.toggles.anchorLight)}
+    ${tglBtn('bNavLight',ICON_NAV_LIGHT,'Positionslichter',S.toggles.navLight)}
   </div>
   ${crewBarHtml()}
 
   ${r?`<section class="live">
     <div class="head"><span class="rec">Aufzeichnung läuft</span><span id="lvPtsTxt">0 Wegpunkte</span></div>
     <div class="meta">Fahrtbeginn: <span id="lvStart"></span>
-${sail&&r?`<br>Motor: ${mot.st==='on'?'an seit '+fmtTime(mot.since)+' Uhr':mot.st==='off'?'aus seit '+fmtTime(mot.since)+' Uhr':'–'} · Segel: ${sl.st==='on'?'gesetzt seit '+fmtTime(sl.since)+' Uhr':sl.st==='off'?'geborgen seit '+fmtTime(sl.since)+' Uhr':'–'}`:''}
+${sail&&r?`<br>Motor: ${mot.st==='on'?'an seit '+fmtTime(mot.since)+' Uhr':mot.st==='off'?'aus seit '+fmtTime(mot.since)+' Uhr':'aus'} · Segel: ${sl.st==='on'?'gesetzt seit '+fmtTime(sl.since)+' Uhr':sl.st==='off'?'geborgen seit '+fmtTime(sl.since)+' Uhr':'geborgen'}`:''}
 <br>Skipper: ${esc(rec?.trip.skipper||'–')} · Steuermann: ${esc(rec?curHelm(rec.trip):'–')}${rec&&(rec.trip.crew?.pax||1)>1?`<br>Sicherheitsunterweisung: ${esc(briefingText(rec.trip))}`:''}</div>
     <div class="grid">
       <div><small>Dauer</small><b id="lvDur">–</b></div>
@@ -671,6 +695,7 @@ ${sail&&r?`<br>Motor: ${mot.st==='on'?'an seit '+fmtTime(mot.since)+' Uhr':mot.s
   <div class="ver"><span>Version ${APP_VERSION}</span><span class="verNote"><a href="#/datenschutz">Datenschutz</a></span></div></div>`;
   $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;$('#bFuel').onclick=()=>openFuelDlg(null);$('#bSos').onclick=openSos;bindCrewBar();
   [['bMotOn','motorOn'],['bMotOff','motorOff'],['bSailUp','sailUp'],['bSailDown','sailDown']].forEach(([id,ty])=>{const el=$('#'+id);if(el)el.onclick=()=>logEvent(ty);});
+  [['bAnchor','anchor'],['bAnchorLight','anchorLight'],['bNavLight','navLight']].forEach(([id,k])=>{const el=$('#'+id);if(el)el.onclick=()=>toggleState(k);});
   if(r){$('#bNote').onclick=async()=>{
     const t=rec.trip;const p=t.points[t.points.length-1];
     if(!p){toast('Noch keine GPS-Position vorhanden');return;}
@@ -762,9 +787,9 @@ async function renderTrip(id,focusKey){
     <div><small>Strecke</small><b>${fmtKm(dist)}</b></div>
     <div><small>Durchschnittsgeschwindigkeit</small><b>${secs>0?kmh(dist/secs):'–'}</b></div>
     <div><small>Höchstgeschwindigkeit</small><b>${kmh(t.maxSpd)}</b></div>
-    ${(()=>{const d=evDurations(t);return d.hasMotor||d.hasSail?`<div><small>Unter Motor</small><b>${d.hasMotor?fmtDur(d.motorMs):'–'}</b></div><div><small>Unter Segel</small><b>${d.hasSail?fmtDur(d.sailMs):'–'}</b></div>`:'';})()}
+    ${(()=>{const d=evDurations(t);return (d.hasMotor||d.hasSail?`<div><small>Unter Motor</small><b>${d.hasMotor?fmtDur(d.motorMs):'–'}</b></div><div><small>Unter Segel</small><b>${d.hasSail?fmtDur(d.sailMs):'–'}</b></div>`:'')+(d.hasAnchor?`<div><small>Vor Anker</small><b>${fmtDur(d.anchorMs)}</b></div>`:'');})()}
   </div>
-  ${tripEvents(t).length?`<h3>Motor und Segel</h3><ul class="crewList">${tripEvents(t).map(e=>`<li><span><span class="${e.type==='motorOn'||e.type==='sailUp'?'evOn':'evOff'}">${EV[e.type]}</span></span><small>${fmtTime(e.t)} Uhr${e.lat!=null?' · '+fmtCoord(e.lat,e.lon):''}</small></li>`).join('')}</ul>`:''}
+  ${tripEvents(t).length?`<h3>Manöver und Lichter</h3><ul class="crewList">${tripEvents(t).map(e=>`<li><span><span class="${EV_ON.has(e.type)?'evOn':'evOff'}">${EV[e.type]}</span></span><small>${fmtTime(e.t)} Uhr${e.lat!=null?' · '+fmtCoord(e.lat,e.lon):''}</small></li>`).join('')}</ul>`:''}
   <div class="wx"><div><small>Wetter bei Fahrtbeginn</small><span id="wxS"></span></div><div><small>Wetter bei Fahrtende</small><span id="wxE"></span></div></div>
   <h3>Besatzung</h3><div id="crewBox"></div>
   <h3>Kommentar zur ganzen Fahrt</h3>
@@ -1149,8 +1174,9 @@ async function exportLogPdf(t){
   doc.kv('Dauer',fmtDur(t.end.t-t.start.t));
   doc.kv('Strecke',fmtKm(t.distance||0));
   doc.kv('Geschwindigkeit',`Durchschnitt ${secs>0?kmh((t.distance||0)/secs):'–'} · Höchstwert ${kmh(t.maxSpd)}`);
-  {const ev=tripEvents(t);if(ev.length){const d=evDurations(t);doc.h('Motor und Segel');
-    doc.kv('Unter Motor',d.hasMotor?fmtDur(d.motorMs):'nicht erfasst');doc.kv('Unter Segel',d.hasSail?fmtDur(d.sailMs):'nicht erfasst');
+  {const ev=tripEvents(t);if(ev.length){const d=evDurations(t);doc.h('Manöver und Lichter');
+    if(d.hasMotor||d.hasSail){doc.kv('Unter Motor',d.hasMotor?fmtDur(d.motorMs):'nicht erfasst');doc.kv('Unter Segel',d.hasSail?fmtDur(d.sailMs):'nicht erfasst');}
+    if(d.hasAnchor)doc.kv('Vor Anker',fmtDur(d.anchorMs));
     ev.forEach(e=>doc.kv(`${fmtTime(e.t)} Uhr`,`${EV[e.type]}${e.lat!=null?' · '+coordTxt(e.lat,e.lon):''}`));}}
   doc.h('Wetter');
   doc.kv('Bei Fahrtbeginn',wxPdf(t.weatherStart));
@@ -1619,6 +1645,8 @@ function renderHelp(){
     <li><b>Stop</b> drücken, wenn der Motor aus ist: Die Fahrt wird beendet.</li>
     <li><b>Wichtig:</b> App während der Fahrt im Vordergrund lassen (am besten mit Ladekabel). Im Hintergrund oder bei gesperrtem Display pausiert das GPS.</li>
     <li><b>Segelboot:</b> Start und Stop heißen „Fahrtbeginn“ und „Fahrtende“. Links und rechts gibt es zusätzlich „Motor an“/„Motor aus“ und „Segel gesetzt“/„Segel geborgen“ – jede Betätigung wird mit Uhrzeit und Position gespeichert. Die Fahrt zeigt danach die Zeit unter Motor und unter Segel; der Verbrauch je Stunde bezieht sich dann auf die Motorlaufzeit.</li>
+    <li><b>Anker, Ankerlicht, Positionslichter</b> (kleine Knöpfe unter Start/Stop): ein- und ausschalten per Antippen; ein eingeschalteter Knopf hat einen leuchtenden Ring. Während einer Fahrt wird jede Betätigung mit Uhrzeit protokolliert; was beim Start eingeschaltet ist, wird übernommen.</li>
+    <li>Leuchtende Ringe zeigen den aktuellen Zustand: Vor der Fahrt leuchtet Stop rot, während der Fahrt Start grün. Beim Segelboot ebenso Motor an/aus und Segel gesetzt/geborgen.</li>
     <li>Den Steuermann kannst du während der Fahrt jederzeit wechseln. Mit „Ereignis notieren“ hältst du Schleusen, Manöver oder Technisches fest.</li>
     <li>Ortsnamen und Wetter für Beginn und Ende lädt die App automatisch, sobald Internet da ist.</li></ul>`)}
   ${sec('3. Personen an Bord',`<ul>

@@ -1,6 +1,6 @@
 // Bordbuch Service Worker – macht die App offline-fähig.
 // Die Cache-Version bei jeder neuen App-Version anpassen (wie APP_VERSION in app.js).
-const SHELL='bordbuch-shell-v7.5', TILES='bordbuch-tiles-v2';
+const SHELL='bordbuch-shell-v7.6', TILES='bordbuch-tiles-v2';
 const TILE_MAX=1500;      // höchstens so viele Kartenkacheln speichern (ca. 20–40 MB)
 const TILE_MAX_AGE=90*864e5; // ältere Kacheln werden verworfen und neu geladen
 const LOCAL=['./','./index.html','./app.js','./manifest.webmanifest','./icon-192.png','./icon-512.png',

@@ -20,8 +20,9 @@
    · 7.2 Fehlerkorrektur OneDrive-Download (Statusprüfung), Prüfung aller heruntergeladenen und importierten Datensätze
    · 7.3 Bootsdaten (inkl. Bootsmodell und Bootsart) werden feldweise über OneDrive abgeglichen
    · 7.4 Ersteinrichtung: zuerst OneDrive verbinden und Daten laden, dann Boot/Skipper/Steuermann auswählen
-   · 7.5 Hinweis: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen */
-const APP_VERSION='7.5';
+   · 7.5 Hinweis: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen
+   · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ */
+const APP_VERSION='7.6';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -647,6 +648,7 @@ async function renderList(){
   setTitle('Fahrten',true);
   if(F.boat==null)F.boat=S.boatName||'*';
   const trips=await liveTrips();
+  const withPdf=new Set((await allPdfs()).map(x=>x.tripId));
   if(!trips.length){view.innerHTML='<p class="empty">Noch keine Fahrten aufgezeichnet.<br>Starte mit „Start“ auf der Startseite.</p>';return;}
   const boats=[...new Set([S.boatName,...trips.map(t=>tripBoat(t).name)].filter(Boolean))].sort((a,b)=>a.localeCompare(b,'de'));
   if(F.boat!=='*'&&!boats.includes(F.boat))boats.push(F.boat);
@@ -682,7 +684,7 @@ async function renderList(){
       return `<a class="card" href="#/fahrt/${encodeURIComponent(t.id)}">${active?'':`<button class="cardDel" data-del="${esc(t.id)}" aria-label="Fahrt löschen" title="Fahrt löschen">🗑</button>`}
         <div class="c1"><span>${fmtDate(t.start.t)}${F.boat==='*'?`<span class="boatTag">${esc(tripBoat(t).name)}</span>`:''}</span><span>${fmtTime(t.start.t)} – ${active?'<span class="rec">läuft</span>':fmtTime(t.end.t)}</span></div>
         <div class="c2">${esc(t.placeStart||'…')} → ${esc(active?'unterwegs':(t.placeEnd||'…'))}</div>
-        <div class="c3">${fmtKm(dist)} · ${fmtDur(dur)}${t.weatherStart?' · '+wxTxt(t.weatherStart,true):''}${n?` · 📝 ${n}`:''}</div>
+        <div class="c3">${fmtKm(dist)} · ${fmtDur(dur)}${t.weatherStart?' · '+wxTxt(t.weatherStart,true):''}${n?` · 📝 ${n}`:''}${withPdf.has(t.id)?' · <span class="pdfMark" title="PDF-Logbucheintrag erstellt">📄 PDF</span>':''}</div>
         ${t.skipper?`<div class="c3">Skipper ${esc(t.skipper)} · ${tripPax(t)} ${tripPax(t)===1?'Person':'Personen'} an Bord${tripAuto(t).length+tripGuests(t).length<tripPax(t)?' <span class="pending">· Namen fehlen</span>':''}</div>`:''}
         ${pend&&!active?'<div class="pending">Ort und Wetter werden nachgeladen, sobald online</div>':''}
       </a>`;}).join(''):'<p class="empty">Keine Fahrten für diese Auswahl.</p>';
@@ -1075,8 +1077,22 @@ class Pdf{
 }
 const coordTxt=(lat,lon)=>lat==null?'Position unbekannt':fmtCoord(lat,lon).replace(/′/g,"'");
 const wxPdf=w=>w?`${w.desc}, ${num(w.temp)} °C, Wind aus ${w.dir} ${windTxt(w.wind)}${w.gust!=null?`, Böen ${windTxt(w.gust)}`:''}`:'nicht verfügbar';
+/* Ort für die Unterschrift: Stadt/Gemeinde am aktuellen Standort, sonst am Fahrtende (nur grob, ohne Straße) */
+async function signTown(t){
+  const town=async(lat,lon)=>{
+    // auf ca. 1 km gerundet – für die Gemeinde genügt das, genauer wird nichts übertragen
+    const r=await fetch(`https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${(+lat).toFixed(2)}&lon=${(+lon).toFixed(2)}&zoom=10&addressdetails=1&accept-language=de`,{credentials:'omit'});
+    if(!r.ok)throw new Error('Ort '+r.status);const j=await r.json();const a=j.address||{};
+    return str(a.city||a.town||a.village||a.municipality||a.county||'',80);};
+  if(navigator.onLine){
+    try{const p=await getPos(6000);const x=await town(p.coords.latitude,p.coords.longitude);if(x)return x;}catch(e){}
+    try{if(t.end?.lat!=null){const x=await town(t.end.lat,t.end.lon);if(x)return x;}}catch(e){}
+  }
+  const pe=t.placeEnd||'';return pe.includes(',')?pe.split(',').pop().trim():pe; // ohne Internet: gespeicherter Ortsname
+}
 async function exportLogPdf(t){
   if(t.status!=='done'){toast('Die Fahrt läuft noch');return;}
+  const signTownTxt=await busyVal('PDF wird erstellt …',()=>signTown(t));
   const now=Date.now(),boat=tripBoat(t),bi=await boatInfo(boat.name);
   const kind=kindLabel(boat.kind||bi.kind);
   const doc=new Pdf(),M=doc.M,W=doc.W;
@@ -1133,9 +1149,10 @@ async function exportLogPdf(t){
   doc.txt(M,doc.y,`Logbucheintrag erstellt am ${fmtDate(now)} um ${fmtTime(now)} Uhr.`,9,false,'0.35 0.35 0.35');
   doc.y-=44;
   const half=(W-2*M-30)/2;
-  doc.txt(M,doc.y+5,stamp,11);
+  const dateOnly=fmtDateS(now).replace(/\.(\d\d)$/,'.20$1');
+  doc.txt(M,doc.y+5,signTownTxt?`${dateOnly}, ${signTownTxt}`:`${dateOnly},`,11);
   doc.line(M,doc.y,M+half,doc.y,.8);doc.line(M+half+30,doc.y,W-M,doc.y,.8);
-  doc.txt(M,doc.y-12,'Datum, Uhrzeit',8.5,false,'0.4 0.4 0.4');
+  doc.txt(M,doc.y-12,'Datum, Ort',8.5,false,'0.4 0.4 0.4');
   doc.txt(M+half+30,doc.y-12,`Unterschrift Skipper${t.skipper?` (${t.skipper})`:''}`,8.5,false,'0.4 0.4 0.4');
   const bytes=doc.build({title:`Logbucheintrag ${boat.name||''} ${fmtDateS(t.start.t)}`,author:t.skipper||'',footer:`Bordbuch ${APP_VERSION} · ${boat.name||''} · Fahrt vom ${fmtDateS(t.start.t)} · erstellt ${stamp}`});
   const d=new Date(t.start.t),pd=x=>String(x).padStart(2,'0');
@@ -1595,7 +1612,7 @@ function renderPrivacy(){
     ['GitHub Pages (GitHub Inc., USA)','Beim Öffnen der App mit Internet und bei der Suche nach Updates.','IP-Adresse, Browserkennung, Uhrzeit, abgerufene Datei. Keine Inhalte aus deinem Bordbuch.',L('https://docs.github.com/de/site-policy/privacy-policies/github-general-privacy-statement','Datenschutz GitHub')],
     ['OpenStreetMap – Kartenkacheln (OpenStreetMap Foundation, Großbritannien)','Wenn eine Fahrt mit Karte angezeigt wird. Einmal geladene Ausschnitte bleiben begrenzt auf dem Gerät gespeichert.','IP-Adresse, Browserkennung, welcher Kartenausschnitt geladen wird (damit grob, welches Gebiet du ansiehst).',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')],
     ['OpenSeaMap – Seezeichen','Wenn eine Fahrt mit Karte angezeigt wird und die Seezeichen eingeschaltet sind (Standard; abschaltbar unter Einstellungen → Karte). Seezeichen werden nicht dauerhaft auf dem Gerät gespeichert.','IP-Adresse, Browserkennung, geladener Kartenausschnitt.',L('https://www.openseamap.org','openseamap.org')],
-    ['Nominatim – Ortsnamen (OpenStreetMap Foundation)','Sobald Internet besteht: einmal für Fahrtbeginn, einmal für Fahrtende und je Tankvorgang.','Die Koordinaten dieser Orte, IP-Adresse, Browserkennung. Keine Namen, keine Strecke.',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')+' · '+L('https://operations.osmfoundation.org/policies/nominatim/','Nutzungsregeln')],
+    ['Nominatim – Ortsnamen (OpenStreetMap Foundation)','Sobald Internet besteht: einmal für Fahrtbeginn, einmal für Fahrtende und je Tankvorgang. Beim PDF-Export einmal für die Gemeinde in der Unterschriftenzeile (Koordinaten auf etwa 1 km gerundet).','Die Koordinaten dieser Orte, IP-Adresse, Browserkennung. Keine Namen, keine Strecke.',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')+' · '+L('https://operations.osmfoundation.org/policies/nominatim/','Nutzungsregeln')],
     ['Open-Meteo – Wetter (Open-Meteo.com)','Sobald Internet besteht: je einmal für Fahrtbeginn und Fahrtende.','Koordinaten und Datum von Fahrtbeginn bzw. -ende, IP-Adresse.',L('https://open-meteo.com/en/terms','Nutzungs- und Datenschutzbedingungen')],
     ['Microsoft – Anmeldung und Microsoft Graph/OneDrive (Microsoft Corp., USA)','Nur wenn OneDrive eingeschaltet und verbunden ist: bei der Anmeldung (etwa einmal täglich), beim Öffnen, nach Änderungen und alle 5 Minuten bei geöffneter App.','Dein Microsoft-Konto für die Anmeldung; Fahrten (mit Strecke), Tankvorgänge, Bootsdaten, Namenslisten und PDF-Logbucheinträge werden in deinem eigenen OneDrive im Ordner „Apps › Bordbuch“ gespeichert.',L('https://privacy.microsoft.com/de-de/privacystatement','Datenschutz Microsoft')]
   ];
@@ -1641,6 +1658,7 @@ async function openSetup(again){
   }
   return setupStart();
 }
+async function busyVal(text,fn){let v;await busy(text,async()=>{v=await fn();});return v;}
 function busy(text,fn){
   const d=document.createElement('dialog');d.className='gdlg';
   d.innerHTML=`<div style="display:flex;gap:14px;align-items:center;padding:6px 2px"><div class="spin"></div><p style="margin:0">${esc(text)}</p></div>`;

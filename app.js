@@ -21,8 +21,9 @@
    · 7.3 Bootsdaten (inkl. Bootsmodell und Bootsart) werden feldweise über OneDrive abgeglichen
    · 7.4 Ersteinrichtung: zuerst OneDrive verbinden und Daten laden, dann Boot/Skipper/Steuermann auswählen
    · 7.5 Hinweis: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen
-   · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ · 7.7 Startseite: nur Link „Datenschutz“ */
-const APP_VERSION='7.7';
+   · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ · 7.7 Startseite: nur Link „Datenschutz“
+   · 8.0 Segelboot-Modus: Fahrtbeginn/Fahrtende, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll */
+const APP_VERSION='8.0';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -316,10 +317,11 @@ function onPos(p){
 let stopping=false;
 async function stopTrip(){
   if(!rec||stopping)return;
-  if(!confirm('Motor ausgeschaltet – Fahrt jetzt beenden?'))return;
+  if(!confirm((isSailTrip(rec.trip)?'Fahrtende':'Motor ausgeschaltet')+' – Fahrt jetzt beenden?'))return;
   stopping=true;$('#bMG')&&($('#bMG').disabled=true);
   const t=rec.trip,now=Date.now();
-  try{const p=await getPos(10000);onPos(p);}catch(e){}
+  {const lp=t.points[t.points.length-1]; // aktuelle Position nur abwarten, wenn die letzte älter als 30 s ist
+   if(!lp||now-lp.t>30000){try{const p=await getPos(5000);onPos(p);}catch(e){}}}
   navigator.geolocation.clearWatch(rec.watch);
   const last=t.points[t.points.length-1];
   t.end={t:now,lat:last?.lat??t.start.lat,lon:last?.lon??t.start.lon,acc:last?.acc??null};
@@ -341,7 +343,7 @@ function updateLive(){
   $('#lvSpd').textContent=last&&Date.now()-last.t<90000?kmh(last.spd):'–';
   const f=rec.lastFix;
   $('#lvGps').textContent=!f?'suche …':(Date.now()-f.t>60000?'kein Signal':`±${Math.round(f.acc)} m`);
-  $('#lvPts').textContent=t.points.length;
+  $('#lvPtsTxt').textContent=t.points.length+(t.points.length===1?' Wegpunkt':' Wegpunkte');
   $('#lvStart').textContent=`${fmtTime(t.start.t)} · ${t.placeStart||fmtCoord(t.start.lat,t.start.lon)}`;
 }
 setInterval(updateLive,1000);
@@ -606,21 +608,56 @@ function statusLine(){
   return on+od;
 }
 function updateStatus(){const s=$('#stat');if(s)s.textContent=statusLine();}
+/* ================= Motor und Segel (Segelboote) ================= */
+const EV={motorOn:'Motor an',motorOff:'Motor aus',sailUp:'Segel gesetzt',sailDown:'Segel geborgen'};
+const tripEvents=t=>(Array.isArray(t.events)?t.events:[]).slice().sort((a,b)=>a.t-b.t);
+const isSailTrip=t=>tripBoat(t).kind==='sail'||tripEvents(t).length>0;
+function evState(t,on,off){let st=null,since=null;for(const e of tripEvents(t)){if(e.type===on){st='on';since=e.t;}else if(e.type===off){st='off';since=e.t;}}return {st,since};}
+function evDurations(t){
+  const endT=t.status==='done'&&t.end?t.end.t:Date.now();
+  const sum=(on,off)=>{let ms=0,s0=null;for(const e of tripEvents(t)){if(e.type===on&&s0==null)s0=e.t;else if(e.type===off&&s0!=null){ms+=e.t-s0;s0=null;}}if(s0!=null)ms+=endT-s0;return ms;};
+  const ev=tripEvents(t);
+  return {motorMs:sum('motorOn','motorOff'),sailMs:sum('sailUp','sailDown'),hasMotor:ev.some(e=>e.type.startsWith('motor')),hasSail:ev.some(e=>e.type.startsWith('sail'))};
+}
+/* Motorlaufzeit: bei erfassten Motor-Ereignissen deren Summe, sonst die ganze Fahrt */
+const motorHours=t=>{const d=evDurations(t);return (d.hasMotor?d.motorMs:(t.end?t.end.t:Date.now())-t.start.t)/36e5;};
+async function logEvent(type){
+  if(!rec){toast('Bitte zuerst „Start“ drücken');return;}
+  const t=rec.trip,now=Date.now(),p=t.points[t.points.length-1];
+  t.events=tripEvents(t);t.events.push({t:now,type,lat:p&&now-p.t<180000?p.lat:null,lon:p&&now-p.t<180000?p.lon:null});
+  t.updatedAt=now;persist();renderHome();toast(`${EV[type]} – ${fmtTime(now)} Uhr`);
+}
+const ICON_ENGINE='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h6v2h-2v1.5h3.2l1.8 2H18V9h2.5v7H18v-1.5h-1.5L14 17.5H8.2L6.5 16H5v-2.5H3.5V16H2V9.5h1.5V12H5V9.6L6.6 8.5H9V7H7z"/></svg>';
+const ICON_SAIL_UP='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.2 2.5v12.2H4.6zM12.6 4.6l6.6 10.1h-6.6z"/><path fill="currentColor" d="M11.2 2.2h1.4v13.6h-1.4z"/><path fill="currentColor" d="M2.5 16.4h19l-3 4H5.5z"/></svg>';
+const ICON_SAIL_DOWN='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M11.2 2.2h1.4v13.6h-1.4z"/><path fill="currentColor" d="M5.5 13.6h6v1.2h-6z"/><path fill="currentColor" d="M2.5 16.4h19l-3 4H5.5z"/></svg>';
+function miniBtn(id,icon,label,cls,dis){return `<div class="sideItem"><button class="ssb mini ${cls}" id="${id}" ${dis?'disabled':''} aria-label="${label}"><span class="face">${icon}</span></button><small class="${cls}">${label}</small></div>`;}
 function renderHome(){
   setTitle('Bordbuch',false);const r=!!rec;
+  const sail=r?isSailTrip(rec.trip):S.boatKind==='sail';
+  const subS=sail?'Fahrtbeginn':'Motor gestartet',subE=sail?'Fahrtende':'Motor ausgeschaltet';
+  const mot=r?evState(rec.trip,'motorOn','motorOff'):{st:null},sl=r?evState(rec.trip,'sailUp','sailDown'):{st:null};
   view.innerHTML=`<div class="home">
   <div class="status" id="stat">${esc(statusLine())}</div>
-  <div class="bigbtns ${r?'recording':''}">
-    <button class="ssb start" id="bMS" ${r?'disabled':''} aria-label="Start – Motor gestartet"><span class="face"><span class="main">Start</span><span class="sub">Motor gestartet</span></span></button>
-    <button class="ssb stop" id="bMG" ${r?'':'disabled'} aria-label="Stop – Motor ausgeschaltet"><span class="face"><span class="main">Stop</span><span class="sub">Motor ausgeschaltet</span></span></button>
-  <div class="sosWrap"><button class="sos" id="bSos" aria-label="Notfall – SOS"><span>S.O.S</span></button><small>Notfall</small></div>
+  <div class="bigbtns ${r?'recording':''} ${sail?'sailmode':''}">
+    <button class="ssb start" id="bMS" ${r?'disabled':''} aria-label="Start – ${subS}"><span class="face"><span class="main">Start</span><span class="sub">${subS}</span></span></button>
+    <button class="ssb stop" id="bMG" ${r?'':'disabled'} aria-label="Stop – ${subE}"><span class="face"><span class="main">Stop</span><span class="sub">${subE}</span></span></button>
+  <div class="side sideL">
+  ${sail?miniBtn('bMotOn',ICON_ENGINE,'Motor an','evOn',!r||mot.st==='on'):''}
+  <div class="sosWrap"><button class="sos" id="bSos" aria-label="Notfall – S.O.S."><span>S.O.S.</span></button><small>Notfall</small></div>
+  ${sail?miniBtn('bSailUp',ICON_SAIL_UP,'Segel gesetzt','evOn',!r||sl.st==='on'):''}
+  </div>
+  <div class="side sideR">
+  ${sail?miniBtn('bMotOff',ICON_ENGINE,'Motor aus','evOff',!r||mot.st!=='on'&&mot.st!==null):''}
   <div class="fuelWrap"><button class="ssb fuel" id="bFuel" aria-label="Tanken erfassen"><span class="face"><svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" fill-rule="evenodd" d="M5.5 2h7A1.5 1.5 0 0 1 14 3.5V20h1v2H3v-2h1V3.5A1.5 1.5 0 0 1 5.5 2zM6.2 4.3v5.2h5.6V4.3z"/><path fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round" d="M14 11.5h1.3c.8 0 1.4.6 1.4 1.4v4.4a1.6 1.6 0 0 0 3.2 0V8.6L17.6 6.2"/><path fill="currentColor" d="M18.4 4.6l2.6 2.6-1.1 1.1-2.6-2.6z"/></svg></span></button><small>Tanken</small></div>
+  ${sail?miniBtn('bSailDown',ICON_SAIL_DOWN,'Segel geborgen','evOff',!r||sl.st!=='on'&&sl.st!==null):''}
+  </div>
   </div>
   ${crewBarHtml()}
 
   ${r?`<section class="live">
-    <div class="head"><span class="rec">Aufzeichnung läuft</span><span><span id="lvPts">0</span> Wegpunkte</span></div>
+    <div class="head"><span class="rec">Aufzeichnung läuft</span><span id="lvPtsTxt">0 Wegpunkte</span></div>
     <div class="meta">Fahrtbeginn: <span id="lvStart"></span>
+${sail&&r?`<br>Motor: ${mot.st==='on'?'an seit '+fmtTime(mot.since)+' Uhr':mot.st==='off'?'aus seit '+fmtTime(mot.since)+' Uhr':'–'} · Segel: ${sl.st==='on'?'gesetzt seit '+fmtTime(sl.since)+' Uhr':sl.st==='off'?'geborgen seit '+fmtTime(sl.since)+' Uhr':'–'}`:''}
 <br>Skipper: ${esc(rec?.trip.skipper||'–')} · Steuermann: ${esc(rec?curHelm(rec.trip):'–')}${rec&&(rec.trip.crew?.pax||1)>1?`<br>Sicherheitsunterweisung: ${esc(briefingText(rec.trip))}`:''}</div>
     <div class="grid">
       <div><small>Dauer</small><b id="lvDur">–</b></div>
@@ -633,6 +670,7 @@ function renderHome(){
   </section>`:''}
   <div class="ver"><span>Version ${APP_VERSION}</span><span class="verNote"><a href="#/datenschutz">Datenschutz</a></span></div></div>`;
   $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;$('#bFuel').onclick=()=>openFuelDlg(null);$('#bSos').onclick=openSos;bindCrewBar();
+  [['bMotOn','motorOn'],['bMotOff','motorOff'],['bSailUp','sailUp'],['bSailDown','sailDown']].forEach(([id,ty])=>{const el=$('#'+id);if(el)el.onclick=()=>logEvent(ty);});
   if(r){$('#bNote').onclick=async()=>{
     const t=rec.trip;const p=t.points[t.points.length-1];
     if(!p){toast('Noch keine GPS-Position vorhanden');return;}
@@ -724,7 +762,9 @@ async function renderTrip(id,focusKey){
     <div><small>Strecke</small><b>${fmtKm(dist)}</b></div>
     <div><small>Durchschnittsgeschwindigkeit</small><b>${secs>0?kmh(dist/secs):'–'}</b></div>
     <div><small>Höchstgeschwindigkeit</small><b>${kmh(t.maxSpd)}</b></div>
+    ${(()=>{const d=evDurations(t);return d.hasMotor||d.hasSail?`<div><small>Unter Motor</small><b>${d.hasMotor?fmtDur(d.motorMs):'–'}</b></div><div><small>Unter Segel</small><b>${d.hasSail?fmtDur(d.sailMs):'–'}</b></div>`:'';})()}
   </div>
+  ${tripEvents(t).length?`<h3>Motor und Segel</h3><ul class="crewList">${tripEvents(t).map(e=>`<li><span><span class="${e.type==='motorOn'||e.type==='sailUp'?'evOn':'evOff'}">${EV[e.type]}</span></span><small>${fmtTime(e.t)} Uhr${e.lat!=null?' · '+fmtCoord(e.lat,e.lon):''}</small></li>`).join('')}</ul>`:''}
   <div class="wx"><div><small>Wetter bei Fahrtbeginn</small><span id="wxS"></span></div><div><small>Wetter bei Fahrtende</small><span id="wxE"></span></div></div>
   <h3>Besatzung</h3><div id="crewBox"></div>
   <h3>Kommentar zur ganzen Fahrt</h3>
@@ -928,7 +968,7 @@ async function openFuelDlg(id){
 /* Verbrauch: je Boot und Kraftstoffart von Volltanken zu Volltanken */
 function analyzeFuel(fuels,trips){
   const done=trips.filter(t=>t.status==='done');
-  const span=(boat,a,b)=>{let km=0,ms=0;for(const t of done){if(tripBoat(t).name!==boat)continue;if(t.start.t>a&&t.start.t<=b){km+=t.distance||0;ms+=t.end.t-t.start.t;}}return {km,h:ms/36e5};};
+  const span=(boat,a,b)=>{let km=0,ms=0;for(const t of done){if(tripBoat(t).name!==boat)continue;if(t.start.t>a&&t.start.t<=b){km+=t.distance||0;ms+=motorHours(t)*36e5;}}return {km,h:ms/36e5};};
   const groups={};
   fuels.forEach(f=>{(groups[f.boat.name+'\u0000'+f.fuelType]=groups[f.boat.name+'\u0000'+f.fuelType]||[]).push(f);});
   const rows=[];
@@ -1109,6 +1149,9 @@ async function exportLogPdf(t){
   doc.kv('Dauer',fmtDur(t.end.t-t.start.t));
   doc.kv('Strecke',fmtKm(t.distance||0));
   doc.kv('Geschwindigkeit',`Durchschnitt ${secs>0?kmh((t.distance||0)/secs):'–'} · Höchstwert ${kmh(t.maxSpd)}`);
+  {const ev=tripEvents(t);if(ev.length){const d=evDurations(t);doc.h('Motor und Segel');
+    doc.kv('Unter Motor',d.hasMotor?fmtDur(d.motorMs):'nicht erfasst');doc.kv('Unter Segel',d.hasSail?fmtDur(d.sailMs):'nicht erfasst');
+    ev.forEach(e=>doc.kv(`${fmtTime(e.t)} Uhr`,`${EV[e.type]}${e.lat!=null?' · '+coordTxt(e.lat,e.lon):''}`));}}
   doc.h('Wetter');
   doc.kv('Bei Fahrtbeginn',wxPdf(t.weatherStart));
   doc.kv('Bei Fahrtende',wxPdf(t.weatherEnd));
@@ -1331,6 +1374,9 @@ function validateTrip(t,id){
   if(t.helms!=null)out.helms=helms;
   if(crew)out.crew=crew;
   if(isObj(t.briefing)&&isNum(t.briefing.t))out.briefing={done:t.briefing.done===true,t:t.briefing.t};
+  if(t.events!=null){if(!Array.isArray(t.events)||t.events.length>2000)return null;out.events=[];
+    for(const e of t.events){if(!isObj(e)||!isNum(e.t)||!(e.type in EV))return null;if(e.lat!=null&&!isLat(e.lat))return null;if(e.lon!=null&&!isLon(e.lon))return null;
+      out.events.push({t:e.t,type:e.type,lat:e.lat??null,lon:e.lon??null});}}
   return out;
 }
 function validateFuel(f,id){
@@ -1572,6 +1618,7 @@ function renderHelp(){
     <li><b>Start</b> drücken, wenn der Motor läuft: Datum, Uhrzeit und Position werden gespeichert, die Strecke wird aufgezeichnet.</li>
     <li><b>Stop</b> drücken, wenn der Motor aus ist: Die Fahrt wird beendet.</li>
     <li><b>Wichtig:</b> App während der Fahrt im Vordergrund lassen (am besten mit Ladekabel). Im Hintergrund oder bei gesperrtem Display pausiert das GPS.</li>
+    <li><b>Segelboot:</b> Start und Stop heißen „Fahrtbeginn“ und „Fahrtende“. Links und rechts gibt es zusätzlich „Motor an“/„Motor aus“ und „Segel gesetzt“/„Segel geborgen“ – jede Betätigung wird mit Uhrzeit und Position gespeichert. Die Fahrt zeigt danach die Zeit unter Motor und unter Segel; der Verbrauch je Stunde bezieht sich dann auf die Motorlaufzeit.</li>
     <li>Den Steuermann kannst du während der Fahrt jederzeit wechseln. Mit „Ereignis notieren“ hältst du Schleusen, Manöver oder Technisches fest.</li>
     <li>Ortsnamen und Wetter für Beginn und Ende lädt die App automatisch, sobald Internet da ist.</li></ul>`)}
   ${sec('3. Personen an Bord',`<ul>
@@ -1588,7 +1635,7 @@ function renderHelp(){
     <li>In einer Fahrt: Karte mit Strecke und Seezeichen (abschaltbar unter Einstellungen → Karte). Hineinzoomen und auf einen Punkt tippen zeigt Uhrzeit und Geschwindigkeit und erlaubt einen Kommentar.</li>
     <li>Menü → <b>Kommentare</b>: alle Kommentare als Tabelle, auch als Excel-Datei (CSV).</li>
     <li>In einer beendeten Fahrt: <b>„Logbucheintrag als PDF exportieren“</b> erstellt ein PDF mit allen Angaben, Streckenskizze und Unterschriftenzeile für den Skipper. Es wird auf dem Gerät gespeichert (Teilen-Menü → „In Dateien sichern“) und – wenn eingeschaltet – in OneDrive unter <i>Apps › Bordbuch › pdf</i> abgelegt.</li></ul>`)}
-  ${sec('6. Notfall (S.O.S)',`<ul>
+  ${sec('6. Notfall (S.O.S.)',`<ul>
     <li>Der rote Knopf zeigt sofort die Seenotleitung MRCC Bremen mit Telefonnummer (antippen zum Anrufen) und UKW-Kanal, dazu alle Bootsdaten, die aktuelle Position zum Vorlesen und die Personen an Bord.</li>
     <li>Damit das vollständig ist: in den Einstellungen unter <b>Boot</b> MMSI, Callsign, Kennzeichen und Maße eintragen.</li></ul>`)}
   ${sec('7. Daten, Sicherung und mehrere Geräte',`<ul>
@@ -1624,7 +1671,7 @@ function renderPrivacy(){
   <h3>1. Was auf deinem Gerät gespeichert wird</h3>
   <p>Fahrten mit GPS-Strecke, Zeiten, Kommentaren und Besatzung (Namen), Tankvorgänge, Bootsdaten, Einstellungen, Namenslisten und erstellte PDF-Logbucheinträge. Die Daten liegen im Speicher dieser App im Browser (IndexedDB bzw. Local Storage) und verlassen das Gerät nur in den unten beschriebenen Fällen. Bei aktivem OneDrive wird zusätzlich ein verschlüsselter Anmeldeschlüssel gespeichert.</p>
   <h3>2. Standort</h3>
-  <p>Den Standort fragt die App nur ab, während eine Fahrt aufgezeichnet wird, beim Erfassen eines Tankvorgangs und solange das Notfallfenster (S.O.S) geöffnet ist. Die Strecke wird nur auf dem Gerät gespeichert (und bei aktivem OneDrive in deinem OneDrive).</p>
+  <p>Den Standort fragt die App nur ab, während eine Fahrt aufgezeichnet wird, beim Erfassen eines Tankvorgangs und solange das Notfallfenster (S.O.S.) geöffnet ist. Die Strecke wird nur auf dem Gerät gespeichert (und bei aktivem OneDrive in deinem OneDrive).</p>
   <h3>3. Welche Dienste wann kontaktiert werden</h3>
   ${rows.map(r=>`<div class="panel privCard"><b>${r[0]}</b><p><span class="hint">Wann:</span> ${r[1]}</p><p><span class="hint">Welche Daten:</span> ${r[2]}</p><p>${r[3]}</p></div>`).join('')}
   <p class="hint">Bei jedem Abruf erfährt der jeweilige Dienst technisch bedingt deine IP-Adresse. Andere Verbindungen lässt die eingebaute Sicherheitsrichtlinie (Content-Security-Policy) gar nicht zu.</p>

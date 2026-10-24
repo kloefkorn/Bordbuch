@@ -57,7 +57,8 @@ Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bord
   - Vor Fahrtbeginn sind Skipper und Steuermann frei wählbar. Kommt eine neue Person dazu, obwohl alle Plätze belegt sind, fragt die App, ob die bisherige Person an Bord bleibt (eine Person mehr) oder ersetzt wird.
   - Während der Fahrt stehen als Steuermann nur noch die Personen an Bord zur Auswahl, sobald alle namentlich erfasst sind. „Weiterer Steuermann …“ erscheint erst wieder, wenn die Personenzahl erhöht wird.
   - Wurde die letzte Fahrt vor weniger als 48 Stunden beendet, sind Skipper, Personenzahl und alle Personen an Bord aus dieser Fahrt vorbelegt. Sonst gilt die Voreinstellung (Skipper und Steuermann aus der Ersteinrichtung, 2 Personen).
-- **S.O.S (roter Knopf links):** öffnet sofort das Notfallfenster: MRCC Bremen mit UKW-Kanal 16 und 70 (DSC) und der Notrufnummer +49 421 53687-0 (antippen ruft direkt an), darunter alle Bootsdaten, die laufend aktualisierte GPS-Position groß und zum Vorlesen ausgeschrieben sowie die Anzahl der Personen an Bord. Funktioniert auch ohne Internet.
+- **Segelboot-Modus** (Bootsart „Segelboot“): Start und Stop heißen „Fahrtbeginn“ und „Fahrtende“. Zusätzlich gibt es links „Motor an“ (grün) und „Segel gesetzt“ (grün), rechts „Motor aus“ (rot) und „Segel geborgen“ (rot). Jede Betätigung wird mit Uhrzeit und Position in der Fahrt gespeichert; der jeweils passende Gegenknopf ist aktiv. Die Fahrt und das PDF zeigen die Zeit unter Motor und unter Segel sowie alle Wechsel. Für den Verbrauch je Stunde zählt bei Segelbooten die Motorlaufzeit. So lässt sich auch ein Ablegen vom Ankerplatz unter Segel korrekt protokollieren.
+- **S.O.S. (roter Knopf links):** öffnet sofort das Notfallfenster: MRCC Bremen mit UKW-Kanal 16 und 70 (DSC) und der Notrufnummer +49 421 53687-0 (antippen ruft direkt an), darunter alle Bootsdaten, die laufend aktualisierte GPS-Position groß und zum Vorlesen ausgeschrieben sowie die Anzahl der Personen an Bord. Funktioniert auch ohne Internet.
 - **Tanken (kleiner Knopf mit Zapfsäule):** öffnet die Eingabe für getankte Liter, Preis je Liter und Kraftstoffart (voreingestellt „Diesel“). Datum, Uhrzeit, Ort und Boot werden automatisch gespeichert; Datum und Uhrzeit lassen sich ändern, wenn du nachträglich einträgst. „Vollgetankt“ bleibt angehakt, wenn der Tank voll ist; bei einer Teilbetankung den Haken entfernen.
 - **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, die zwischen den Tankvorgängen gefahrene Strecke, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard: das eingestellte Boot), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern; mit dem Papierkorb in der Zeile wird er gelöscht. CSV-Export für Excel.
   Berechnung: getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“; Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang ist nur der Ausgangswert.
@@ -143,7 +144,7 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 3.2 | Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst |
 | 3.3 | Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen |
 | 3.4 | „Personen an Bord“ auf der Startseite als größere Schaltfläche im Stil der übrigen Felder |
-| 4.0 | Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S-Notfallfenster |
+| 4.0 | Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S.-Notfallfenster |
 | 4.1 | Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt |
 | 4.2 | Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“) |
 | 4.3 | Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand) |
@@ -163,3 +164,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 7.5 | Hinweis auf Begrüßung, Einstellungen und Datenschutz: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen |
 | 7.6 | Markierung „📄 PDF“ in der Fahrtenübersicht; Unterschriftenzeile im PDF mit Datum und Ort statt Uhrzeit |
 | 7.7 | Startseite: statt des Entwickler-Hinweises nur noch der Link „Datenschutz“ |
+| 8.0 | Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt |

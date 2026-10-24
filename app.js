@@ -23,8 +23,9 @@
    · 7.5 Hinweis: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen
    · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ · 7.7 Startseite: nur Link „Datenschutz“
    · 8.0 Segelboot-Modus: Fahrtbeginn/Fahrtende, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll
-   · 9.0 Leuchtring-Logik, Knöpfe Anker/Ankerlicht/Positionslichter, Größen für Tablets */
-const APP_VERSION='9.0';
+   · 9.0 Leuchtring-Logik, Knöpfe Anker/Ankerlicht/Positionslichter, Größen für Tablets
+   · 9.1 Ankerlicht-Symbol mit Anker in der Glühbirne, Beschriftung und Abstände der unteren Knöpfe */
+const APP_VERSION='9.1';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -643,7 +644,7 @@ async function toggleState(key){
   renderHome();toast(`${EV[type]} – ${fmtTime(now)} Uhr`+(rec?'':' (keine Fahrt aktiv, wird beim nächsten Start übernommen)'));
 }
 const ICON_ANCHOR='<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="4.6" r="2.1" fill="none" stroke="currentColor" stroke-width="1.7"/><path fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" d="M12 6.7v14.3M8 10.5h8M4.2 13.2c.4 4.3 3.6 7.4 7.8 7.8 4.2-.4 7.4-3.5 7.8-7.8"/><path fill="currentColor" d="M2.6 14.6l1.6-3.4 2.7 2.6zM21.4 14.6l-1.6-3.4-2.7 2.6z"/></svg>';
-const ICON_ANCHOR_LIGHT='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.2a5.6 5.6 0 0 0-3.4 10c.7.6 1.1 1.3 1.1 2.1v.9h4.6v-.9c0-.8.4-1.5 1.1-2.1A5.6 5.6 0 0 0 12 2.2zM9.7 16.3h4.6v1.4H9.7zM10.4 18.4h3.2l-.5 1.1h-2.2z"/><path fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" d="M2.5 7.8h1.6M19.9 7.8h1.6M4.4 2.9l1.2 1.1M19.6 2.9l-1.2 1.1"/><g transform="translate(15.2 14.2) scale(.36)" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round"><circle cx="12" cy="4" r="2.2"/><path d="M12 6.2V21M8 10h8M4.5 13.5c.5 4 3.5 7 7.5 7.5 4-.5 7-3.5 7.5-7.5"/></g></svg>';
+const ICON_ANCHOR_LIGHT='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M12 2.2a5.6 5.6 0 0 0-3.4 10c.7.6 1.1 1.3 1.1 2.1v.9h4.6v-.9c0-.8.4-1.5 1.1-2.1A5.6 5.6 0 0 0 12 2.2zM9.7 16.3h4.6v1.4H9.7zM10.4 18.4h3.2l-.5 1.1h-2.2z"/><path fill="none" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" d="M2.5 7.8h1.6M19.9 7.8h1.6M4.4 2.9l1.2 1.1M19.6 2.9l-1.2 1.1"/><g transform="translate(12 8.2) scale(.33) translate(-12 -12)" fill="none" stroke="#5f6670" stroke-width="2.8" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="4.4" r="2.2"/><path d="M12 6.6V21M8 10h8M4.3 13.4c.5 4.1 3.6 7.1 7.7 7.6 4.1-.5 7.2-3.5 7.7-7.6"/></g></svg>';
 const ICON_NAV_LIGHT='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="#e53935" d="M12 2.2a5.6 5.6 0 0 0-3.4 10c.7.6 1.1 1.3 1.1 2.1v.9H12z"/><path fill="#22a35a" d="M12 2.2v13h2.3v-.9c0-.8.4-1.5 1.1-2.1A5.6 5.6 0 0 0 12 2.2z"/><path fill="#f6dc9a" d="M9.7 16.3h4.6v1.4H9.7zM10.4 18.4h3.2l-.5 1.1h-2.2z"/><path fill="none" stroke="#e53935" stroke-width="1.3" stroke-linecap="round" d="M2.5 7.8h1.6M4.4 2.9l1.2 1.1"/><path fill="none" stroke="#22a35a" stroke-width="1.3" stroke-linecap="round" d="M19.9 7.8h1.6M19.6 2.9l-1.2 1.1"/></svg>';
 function tglBtn(id,icon,label,on){return `<div class="sideItem"><button class="ssb tgl warm ${on?'lit':''}" id="${id}" aria-pressed="${on}" aria-label="${label}"><span class="face">${icon}</span></button><small>${label}</small></div>`;}
 const ICON_ENGINE='<svg viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M7 5h6v2h-2v1.5h3.2l1.8 2H18V9h2.5v7H18v-1.5h-1.5L14 17.5H8.2L6.5 16H5v-2.5H3.5V16H2V9.5h1.5V12H5V9.6L6.6 8.5H9V7H7z"/></svg>';

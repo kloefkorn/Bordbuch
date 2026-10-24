@@ -168,3 +168,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 7.7 | Startseite: statt des Entwickler-Hinweises nur noch der Link „Datenschutz“ |
 | 8.0 | Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt |
 | 9.0 | Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad |
+| 9.1 | Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände |

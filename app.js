@@ -21,8 +21,8 @@
    · 7.3 Bootsdaten (inkl. Bootsmodell und Bootsart) werden feldweise über OneDrive abgeglichen
    · 7.4 Ersteinrichtung: zuerst OneDrive verbinden und Daten laden, dann Boot/Skipper/Steuermann auswählen
    · 7.5 Hinweis: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen
-   · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ */
-const APP_VERSION='7.6';
+   · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ · 7.7 Startseite: nur Link „Datenschutz“ */
+const APP_VERSION='7.7';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -631,7 +631,7 @@ function renderHome(){
     <button class="msel noteBtn" id="bNote"><span class="in">📝 Ereignis an aktueller Position notieren</span></button>
     <p class="hint">Lass die App im Vordergrund geöffnet – das Display bleibt dafür an. Wird sie in den Hintergrund geschickt oder das Gerät gesperrt, pausiert der Browser das GPS; die Lücke wird als gerade Linie verbunden.</p>
   </section>`:''}
-  <div class="ver"><span>Version ${APP_VERSION}</span><span class="verNote">Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn. <a href="#/datenschutz">Datenschutz</a></span></div></div>`;
+  <div class="ver"><span>Version ${APP_VERSION}</span><span class="verNote"><a href="#/datenschutz">Datenschutz</a></span></div></div>`;
   $('#bMS').onclick=startTrip;$('#bMG').onclick=stopTrip;$('#bFuel').onclick=()=>openFuelDlg(null);$('#bSos').onclick=openSos;bindCrewBar();
   if(r){$('#bNote').onclick=async()=>{
     const t=rec.trip;const p=t.points[t.points.length-1];

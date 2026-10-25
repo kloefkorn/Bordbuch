@@ -64,12 +64,12 @@ Einfach die Adresse der App (zum Beispiel `https://<benutzername>.github.io/bord
 - **Tanken (kleiner Knopf mit Zapfsäule):** öffnet die Eingabe für getankte Liter, Preis je Liter und Kraftstoffart (voreingestellt „Diesel“). Datum, Uhrzeit, Ort und Boot werden automatisch gespeichert; Datum und Uhrzeit lassen sich ändern, wenn du nachträglich einträgst. „Vollgetankt“ bleibt angehakt, wenn der Tank voll ist; bei einer Teilbetankung den Haken entfernen.
 - **Menü ☰ → Verbrauch:** Kilometer und Fahrzeit seit dem letzten Tanken, getankte Liter, Kosten, Durchschnittspreis, die zwischen den Tankvorgängen gefahrene Strecke, Verbrauch in Litern je Kilometer und je Stunde sowie Kosten je Kilometer. Filter nach Boot (Standard: das eingestellte Boot), Kraftstoffart und Zeitraum. Ein Tipp auf einen Tankvorgang öffnet ihn zum Ändern; mit dem Papierkorb in der Zeile wird er gelöscht. CSV-Export für Excel.
   Berechnung: getankte Liter ÷ gefahrene Kilometer zwischen zwei Tankvorgängen mit „Vollgetankt“; Teilbetankungen dazwischen werden mitgezählt. Der erste Tankvorgang ist nur der Ausgangswert.
-- **Einstellungen → Boot:** zusätzlich MMSI, Callsign, Bootskennzeichen, Länge, Breite, Höhe (je in Metern) und Verdrängung (in Tonnen). Diese Angaben gehören fest zum Bootsnamen, werden – zusammen mit Bootsmodell und Bootsart – Feld für Feld mit OneDrive abgeglichen und im Notfallfenster angezeigt. Ein neu eingerichtetes Gerät übernimmt die vorhandenen Bootsdaten, statt sie zu überschreiben.
-- **Einstellungen → Skipper / Steuermann:** Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert. Die Namenslisten und die Kraftstoffarten werden über OneDrive zwischen deinen Geräten abgeglichen (auch Löschungen). Die Einstellungen zur Aufzeichnung und das aktuell gewählte Boot bleiben bewusst je Gerät.
+- **Menü ☰ → Boot:** Bootsart, Bootsmodell, Bootsname sowie zusätzlich MMSI, Callsign, Bootskennzeichen, Länge, Breite, Höhe (je in Metern) und Verdrängung (in Tonnen). Diese Angaben gehören fest zum Bootsnamen, werden – zusammen mit Bootsmodell und Bootsart – Feld für Feld mit OneDrive abgeglichen und im Notfallfenster angezeigt. Ein neu eingerichtetes Gerät übernimmt die vorhandenen Bootsdaten, statt sie zu überschreiben.
+- **Menü ☰ → Boot → Skipper / Steuermann:** Namen für künftige Fahrten entfernen; vergangene Fahrten bleiben unverändert. Die Namenslisten und die Kraftstoffarten werden über OneDrive zwischen deinen Geräten abgeglichen (auch Löschungen). Die Einstellungen zur Aufzeichnung und das aktuell gewählte Boot bleiben bewusst je Gerät.
 - **Einstellungen → Kraftstoffarten:** weitere Kraftstoffarten hinzufügen (zum Beispiel Super E10) oder selbst angelegte wieder entfernen.
 - **Sicherheitsunterweisung:** Sind beim Start mehr als eine Person an Bord, fragt die App „Sicherheitsunterweisung der Crew durchgeführt?“ (Ja/Nein). Die Antwort wird mit der Fahrt gespeichert und erscheint in der Fahrt und im PDF.
 - **Logbucheintrag als PDF:** In einer beendeten Fahrt erstellt „Logbucheintrag als PDF exportieren“ ein PDF mit Fahrtdaten, Wetter, Besatzung, Sicherheitsunterweisung, Tankvorgängen, Kommentaren, Streckenskizze und einer Unterschriftenzeile für den Skipper mit Datum und Ort (Stadt/Gemeinde am aktuellen Standort, ohne Internet die des Fahrtendes). Das PDF wird auf dem Gerät gespeichert (Teilen-Menü → „In Dateien sichern“) und – wenn OneDrive eingeschaltet ist – in `OneDrive/Apps/Bordbuch/pdf/` abgelegt. Frühere Exporte stehen unter der Fahrt und lassen sich erneut öffnen; in der Fahrtenübersicht ist jede Fahrt mit PDF mit „📄 PDF“ markiert.
-- **Einstellungen → Boot → Bootsart:** Auswahl Motorboot oder Segelboot. Die Bootsart gehört fest zum Bootsnamen und erscheint im Notfallfenster und im PDF.
+- **Menü ☰ → Boot → Bootsart:** Auswahl Motorboot oder Segelboot. Die Bootsart gehört fest zum Bootsnamen und erscheint im Notfallfenster und im PDF.
 - **Einstellungen → Einheiten:** „Kilometer und km/h“ (Standard) oder „Seemeilen (sm) und Knoten (kn)“. Gilt für alle Anzeigen, Verbrauch, Wind und das PDF.
 - **Datenschutz:** Menü ☰ → „Datenschutz“ (auch unter Einstellungen und in der Hilfe) erklärt, welche Dienste wann kontaktiert werden und welche Daten dabei übertragen werden.
 - **Menü ☰ → Kommentare:** alle Kommentare als Tabelle, durchsuchbar, Tipp auf eine Zeile springt zur Stelle in der Karte. CSV-Export für Excel.
@@ -133,6 +133,8 @@ Karten © OpenStreetMap-Mitwirkende, Seezeichen © OpenSeaMap, Ortsnamen über N
 
 ## Versionen
 
+In der App: Einstellungen → „Versionshistorie“ zeigt alle Versionen mit Datum und Änderungen.
+
 Die Versionsnummer steht klein unten links auf der Startseite und in den Einstellungen. Kleine Änderungen erhöhen die Nummer um 0.1, größere die ganze Zahl.
 
 | Version | Änderungen |
@@ -169,3 +171,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 8.0 | Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt |
 | 9.0 | Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad |
 | 9.1 | Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände |
+| 9.2 | Neuer Reiter „Boot“ (Bootsdaten, Skipper, Steuermann) außerhalb der Einstellungen; Versionshistorie in den Einstellungen; Beschriftung der Motor- und Segelknöpfe in einheitlicher Farbe |

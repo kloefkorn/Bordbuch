@@ -24,8 +24,9 @@
    · 7.6 PDF-Markierung in der Fahrtenübersicht, Unterschriftenzeile „Datum, Ort“ · 7.7 Startseite: nur Link „Datenschutz“
    · 8.0 Segelboot-Modus: Fahrtbeginn/Fahrtende, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll
    · 9.0 Leuchtring-Logik, Knöpfe Anker/Ankerlicht/Positionslichter, Größen für Tablets
-   · 9.1 Ankerlicht-Symbol mit Anker in der Glühbirne, Beschriftung und Abstände der unteren Knöpfe */
-const APP_VERSION='9.1';
+   · 9.1 Ankerlicht-Symbol mit Anker in der Glühbirne, Beschriftung und Abstände der unteren Knöpfe
+   · 9.2 Reiter „Boot“, Versionshistorie, einheitliche Beschriftungsfarbe */
+const APP_VERSION='9.2';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -270,7 +271,7 @@ async function askBriefing(trip){
 const briefingText=t=>t.briefing?(t.briefing.done?`Ja (${fmtTime(t.briefing.t)} Uhr)`:'Nein'):((t.crew?.pax||1)>1?'nicht erfasst':'nicht erforderlich (1 Person)');
 async function startTrip(){
   if(rec)return;
-  if(!S.boatName){alert('Bitte zuerst in den Einstellungen einen Bootsnamen eintragen.');return;}
+  if(!S.boatName){alert('Bitte zuerst unter Menü ☰ → Boot einen Bootsnamen eintragen.');return;}
   if(!P.skipper||!P.helm){alert('Bitte zuerst Skipper und Steuermann auswählen.');return;}
   if(!('geolocation' in navigator)){alert('Dieses Gerät/dieser Browser bietet kein GPS.');return;}
   const now=Date.now();
@@ -377,6 +378,8 @@ function route(){
   if(parts[1]==='verbrauch')return renderFuel();
   if(parts[1]==='einstellungen')return renderSettings();
   if(parts[1]==='hilfe')return renderHelp();
+  if(parts[1]==='boot')return renderBoat();
+  if(parts[1]==='versionen')return renderVersions();
   if(parts[1]==='datenschutz')return renderPrivacy();
   renderHome();
 }
@@ -581,7 +584,7 @@ async function openSos(){
     <div class="blk"><h3>Boot</h3><dl>
       ${row('Bootsart',kindLabel(boat.kind||bi.kind||S.boatKind))}${row('Bootsmodell',boat.type)}${row('Bootsname',boat.name)}
       ${BOAT_FIELDS.map(([k,l,,u])=>row(l,bi[k],u)).join('')}
-    </dl>${BOAT_FIELDS.some(([k])=>!bi[k])?'<p class="hint">Fehlende Angaben unter Einstellungen → Boot ergänzen.</p>':''}</div>
+    </dl>${BOAT_FIELDS.some(([k])=>!bi[k])?'<p class="hint">Fehlende Angaben unter Menü ☰ → Boot ergänzen.</p>':''}</div>
     <div class="blk"><h3>Position</h3><div id="sosPos"><p class="say">Position wird ermittelt …</p></div></div>
     <div class="blk"><h3>Personen an Bord</h3><div class="paxBig">${pax} ${pax===1?'Person':'Personen'}</div></div>
     <div class="row" style="margin-top:16px"><button class="btn full" value="close" style="font-size:18px;padding:14px">Schließen</button></div>
@@ -1491,7 +1494,7 @@ async function syncNow(quiet,allowSilentLogin){
     }
     localStorage.setItem('bb_lastsync',Date.now());
     setSync(`synchronisiert ${fmtTime(Date.now())}`+(up||down?` (↑${up} ↓${down})`:'')+(invalid?` · ${invalid} ungültige Datei(en) übersprungen`:''));
-    if(metaChanged&&(location.hash||'').startsWith('#/einstellungen')&&!(document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName)))renderSettings();
+    if(metaChanged&&!(document.activeElement&&/INPUT|SELECT|TEXTAREA/.test(document.activeElement.tagName))){const hh=location.hash||'';if(hh.startsWith('#/einstellungen'))renderSettings();else if(hh.startsWith('#/boot'))renderBoat();}
     if(down){if(await refreshPre().catch(()=>false)&&!rec&&(location.hash||'#/').match(/^#\/?$/))renderHome();refreshView();enrichAll();}
     if(!quiet)toast('Synchronisation abgeschlossen');
   }catch(e){
@@ -1504,18 +1507,18 @@ async function syncNow(quiet,allowSilentLogin){
   }finally{localStorage.setItem('bb_odmap',JSON.stringify(map));syncing=false;}
 }
 
-/* ================= Einstellungen ================= */
-async function renderSettings(){
-  setTitle('Einstellungen',true);
-  const n=(await liveTrips()).length,nf=(await liveFuel()).length,binfo=await boatInfo(S.boatName);const on=!!localStorage.getItem('bb_od_on');
+
+/* ================= Boot (Bootsdaten, Skipper, Steuerleute) ================= */
+async function renderBoat(){
+  setTitle('Boot',true);
+  const binfo=await boatInfo(S.boatName);
   view.innerHTML=`
-  <a class="msel crewBtn helpBtn" href="#/hilfe" style="margin:0 auto 14px;text-decoration:none"><span class="in"><span><small>Neu hier?</small><b>Hilfe und Anleitung</b></span><span class="cbR">öffnen</span></span></a>
   <section class="panel"><h3>Boot</h3>
     <label for="sKind">Bootsart</label><select id="sKind" class="fsel"><option value="motor" ${(binfo.kind||S.boatKind)!=='sail'?'selected':''}>Motorboot</option><option value="sail" ${(binfo.kind||S.boatKind)==='sail'?'selected':''}>Segelboot</option></select>
     <label>Bootsmodell</label><input type="text" id="sBType" value="${esc(binfo.type??S.boatType)}">
     <label>Bootsname</label><input type="text" id="sBName" value="${esc(S.boatName)}">
     ${BOAT_FIELDS.map(([k,l,m,u])=>`<label for="sB_${k}">${l}${u?` (${u})`:''}</label><input type="text" id="sB_${k}" data-bf="${k}" inputmode="${m}" value="${esc(binfo[k]||'')}" autocomplete="off" autocapitalize="characters">`).join('')}
-    <p class="hint">Bootsart, Bootsmodell und Bootsname werden bei jeder neuen Fahrt mitgespeichert. Die weiteren Angaben gehören fest zum Bootsnamen „${esc(S.boatName)}“ und erscheinen im Notfallfenster (SOS).</p>
+    <p class="hint">Bootsart, Bootsmodell und Bootsname werden bei jeder neuen Fahrt mitgespeichert. Die weiteren Angaben gehören fest zum Bootsnamen „${esc(S.boatName)}“ und erscheinen im Notfallfenster (S.O.S.).</p>
   </section>
   <section class="panel"><h3>Skipper</h3>
     <div class="chips">${S.skippers.map(f=>`<span class="chip">${esc(f)}${BUILTIN_PEOPLE.includes(f)?'':`<button data-pk="skippers" data-p="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
@@ -1525,6 +1528,33 @@ async function renderSettings(){
     <div class="chips">${S.helms.map(f=>`<span class="chip">${esc(f)}${BUILTIN_PEOPLE.includes(f)?'':`<button data-pk="helms" data-p="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
     <p class="hint">Weitere Steuerleute kommen über „Weiterer Steuermann …“ auf der Startseite hinzu. Entfernen wirkt nur auf künftige Fahrten. Die Liste wird über OneDrive mit deinen anderen Geräten abgeglichen.</p>
   </section>
+  <p class="hint" style="text-align:center">Boot wechseln oder neu anlegen: Bootsnamen oben ändern. Bekannte Boote stehen auch in der Ersteinrichtung (Hilfe → „Ersteinrichtung erneut öffnen“) zur Auswahl.</p>`;
+  $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();boatPatch(S.boatName,{type:S.boatType}).then(()=>toast('Bootsmodell gespeichert'));};
+  $('#sBName').onchange=async e=>{S.boatName=e.target.value.trim();saveS();const ex=await boatInfo(S.boatName);if(ex.id)applyBoatRec(ex);else if(S.boatName)await boatPatch(S.boatName,{type:S.boatType,kind:S.boatKind},true);renderBoatHeader();renderBoat();};
+  if(binfo.kind&&binfo.kind!==S.boatKind){S.boatKind=binfo.kind;saveS();}
+  $('#sKind').onchange=async e=>{S.boatKind=e.target.value;saveS();await boatPatch(S.boatName,{kind:S.boatKind});toast(kindLabel(S.boatKind)+' gespeichert');};
+  view.querySelectorAll('input[data-bf]').forEach(inp=>inp.onchange=async()=>{await boatPatch(S.boatName,{[inp.dataset.bf]:inp.value.trim()});toast('Bootsdaten gespeichert');});
+  view.querySelectorAll('button[data-pk]').forEach(b=>b.onclick=()=>{const k=b.dataset.pk,n=b.dataset.p;
+    S[k]=S[k].filter(x=>x!==n);saveS();listChange(k,n,true);
+    if(k==='skippers'&&P.skipper===n)P.skipper=defSkipper();if(k==='helms'&&P.helm===n)P.helm=defHelm();saveP();
+    toast(`„${n}“ entfernt`);renderBoat();});
+}
+
+
+/* ================= Versionshistorie ================= */
+const VERSIONS=[["9.2", "25.10.2026", "Neuer Reiter „Boot“ (Bootsdaten, Skipper, Steuermann) außerhalb der Einstellungen; Versionshistorie in den Einstellungen; Beschriftung der Motor- und Segelknöpfe in einheitlicher Farbe"], ["9.1", "25.10.2026", "Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände"], ["9.0", "25.10.2026", "Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad"], ["8.0", "25.10.2026", "Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt"], ["7.7", "24.10.2026", "Startseite: statt des Entwickler-Hinweises nur noch der Link „Datenschutz“"], ["7.6", "24.10.2026", "Markierung „📄 PDF“ in der Fahrtenübersicht; Unterschriftenzeile im PDF mit Datum und Ort statt Uhrzeit"], ["7.5", "24.10.2026", "Hinweis auf Begrüßung, Einstellungen und Datenschutz: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen"], ["7.4", "24.10.2026", "Ersteinrichtung: zuerst Frage nach OneDrive; mit OneDrive erst anmelden und vorhandene Daten laden, dann Boot, Skipper und Steuermann aus Listen wählen"], ["7.3", "24.10.2026", "Bootsdaten inkl. Bootsmodell und Bootsart werden feldweise über OneDrive abgeglichen; ein neues Gerät überschreibt keine vorhandenen Angaben mehr"], ["7.2", "23.10.2026", "Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft"], ["7.1", "23.10.2026", "Fahrten direkt in der Übersicht löschen; Seezeichen standardmäßig an, Einstellung unter „Karte“"], ["7.0", "23.10.2026", "Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation"], ["6.0", "22.10.2026", "Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)"], ["5.2", "21.10.2026", "Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste"], ["5.1", "21.10.2026", "Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld"], ["5.0", "21.10.2026", "Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen"], ["4.7", "20.10.2026", "Fahrtenfilter „Person an Bord“"], ["4.6", "20.10.2026", "Verbrauch: „Gefahren“ zählt nur die Strecke zwischen erfassten Tankvorgängen"], ["4.5", "20.10.2026", "Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen"], ["4.4", "20.10.2026", "OneDrive-Anmeldung wird vor Ablauf automatisch im Hintergrund erneuert"], ["4.3", "19.10.2026", "Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand)"], ["4.2", "19.10.2026", "Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“)"], ["4.1", "19.10.2026", "Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt"], ["4.0", "19.10.2026", "Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S.-Notfallfenster"], ["3.4", "19.10.2026", "„Personen an Bord“ auf der Startseite als größere Schaltfläche im Stil der übrigen Felder"], ["3.3", "19.10.2026", "Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen"], ["3.2", "19.10.2026", "Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst"], ["3.1", "19.10.2026", "Personen an Bord standardmäßig 2"], ["3.0", "19.10.2026", "Besatzung: Skipper, Steuermann (mit Wechseln während der Fahrt), Personen an Bord; Tankknopf neben Start/Stop; Tankvorgang in der Liste löschen"], ["2.0", "19.10.2026", "Tanken und Auswertung „Verbrauch“, Kraftstoffarten, Versionsnummer"], ["1.2", "18.10.2026", "Runde Start/Stop-Knöpfe, Boot in der Kopfzeile, Fahrtenfilter"], ["1.1", "18.10.2026", "Alles ausgeschrieben, metrische Einheiten"], ["1.0", "18.10.2026", "Erstversion: Aufzeichnung, Karte, Kommentare, OneDrive"]];
+function renderVersions(){
+  setTitle('Versionshistorie',true);
+  view.innerHTML=`<p class="hint" style="margin-top:0">Kleine Änderungen erhöhen die Nummer um 0.1, größere die ganze Zahl. Installiert ist Version ${APP_VERSION}.</p>
+  ${VERSIONS.map(([v,d,t])=>`<div class="panel verItem ${v===APP_VERSION?'cur':''}"><div class="verHead"><b>Version ${v}</b><small>${d}${v===APP_VERSION?' · installiert':''}</small></div><p>${esc(t)}</p></div>`).join('')}`;
+}
+
+/* ================= Einstellungen ================= */
+async function renderSettings(){
+  setTitle('Einstellungen',true);
+  const n=(await liveTrips()).length,nf=(await liveFuel()).length;const on=!!localStorage.getItem('bb_od_on');
+  view.innerHTML=`
+  <a class="msel crewBtn helpBtn" href="#/hilfe" style="margin:0 auto 14px;text-decoration:none"><span class="in"><span><small>Neu hier?</small><b>Hilfe und Anleitung</b></span><span class="cbR">öffnen</span></span></a>
   <section class="panel"><h3>Kraftstoffarten</h3>
     <div class="chips">${S.fuelTypes.map(f=>`<span class="chip">${esc(f)}${BUILTIN_FUELS.includes(f)?'':`<button data-f="${esc(f)}" aria-label="${esc(f)} entfernen">×</button>`}</span>`).join('')}</div>
     <div class="row" style="flex-wrap:nowrap"><input type="text" id="sFuelNew" placeholder="Weitere Kraftstoffart, zum Beispiel Super E10"><button class="btn" id="sFuelAdd">Hinzufügen</button></div>
@@ -1572,6 +1602,7 @@ async function renderSettings(){
     <p class="hint">${n} Fahrt(en) und ${nf} Tankvorgang/-vorgänge auf diesem Gerät gespeichert.</p>
     <div class="row"><button class="btn ghost" id="enr">Orte &amp; Wetter jetzt nachladen</button></div>
     <p class="hint">Version ${APP_VERSION}</p>
+    <div class="row"><a class="btn ghost" href="#/versionen" style="text-decoration:none">Versionshistorie</a></div>
     <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn. Die Anmeldung bei Microsoft gilt nur für dich und nur für den Ordner „Apps › Bordbuch“ in deinem eigenen OneDrive.</p>
     <div class="row"><button class="btn ghost" id="updNow">Nach neuer Version suchen</button></div>
     <p class="hint">Lädt die App neu aus dem Internet. Deine Fahrten und Tankvorgänge bleiben dabei erhalten.</p>
@@ -1581,15 +1612,6 @@ async function renderSettings(){
   $('#sUnits').onchange=e=>{S.units=e.target.value;saveS();toast(S.units==='nautical'?'Einheiten: Seemeilen und Knoten':'Einheiten: Kilometer und km/h');};
   const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
   setNum('#sMin','minDist',1);setNum('#sInt','maxInterval',5);setNum('#sAcc','maxAcc',5);
-  $('#sBType').onchange=e=>{S.boatType=e.target.value.trim();saveS();renderBoatHeader();boatPatch(S.boatName,{type:S.boatType}).then(()=>toast('Bootsmodell gespeichert'));};
-  $('#sBName').onchange=async e=>{S.boatName=e.target.value.trim();saveS();const ex=await boatInfo(S.boatName);if(ex.id)applyBoatRec(ex);else if(S.boatName)await boatPatch(S.boatName,{type:S.boatType,kind:S.boatKind},true);renderBoatHeader();renderSettings();};
-  if(binfo.kind&&binfo.kind!==S.boatKind){S.boatKind=binfo.kind;saveS();}
-  $('#sKind').onchange=async e=>{S.boatKind=e.target.value;saveS();await boatPatch(S.boatName,{kind:S.boatKind});toast(kindLabel(S.boatKind)+' gespeichert');};
-  view.querySelectorAll('input[data-bf]').forEach(inp=>inp.onchange=async()=>{await boatPatch(S.boatName,{[inp.dataset.bf]:inp.value.trim()});toast('Bootsdaten gespeichert');});
-  view.querySelectorAll('button[data-pk]').forEach(b=>b.onclick=()=>{const k=b.dataset.pk,n=b.dataset.p;
-    S[k]=S[k].filter(x=>x!==n);saveS();listChange(k,n,true);
-    if(k==='skippers'&&P.skipper===n)P.skipper=defSkipper();if(k==='helms'&&P.helm===n)P.helm=defHelm();saveP();
-    toast(`„${n}“ entfernt`);renderSettings();});
   $('#sFuelAdd').onclick=()=>{const v=$('#sFuelNew').value.trim();if(!v)return;
     if(S.fuelTypes.some(f=>f.toLowerCase()===v.toLowerCase())){toast('Diese Kraftstoffart gibt es schon');return;}
     S.fuelTypes.push(v);saveS();listChange('fuelTypes',v,false).then(renderSettings);toast(`„${v}“ hinzugefügt`);};
@@ -1652,7 +1674,7 @@ function renderHelp(){
     <li>Ortsnamen und Wetter für Beginn und Ende lädt die App automatisch, sobald Internet da ist.</li></ul>`)}
   ${sec('3. Personen an Bord',`<ul>
     <li>Skipper und Steuerleute zählen automatisch als Personen an Bord. Die übrigen Namen trägst du über „Personen an Bord“ ein – sofort oder später unter der jeweiligen Fahrt.</li>
-    <li>Neue Namen fügst du über „Weiterer Skipper …“ bzw. „Weiterer Steuermann …“ hinzu; in den Einstellungen kannst du sie wieder entfernen.</li>
+    <li>Neue Namen fügst du über „Weiterer Skipper …“ bzw. „Weiterer Steuermann …“ hinzu; unter Menü ☰ → <b>Boot</b> kannst du sie wieder entfernen.</li>
     <li>Endete die letzte Fahrt vor weniger als 48 Stunden, wird ihre Besatzung vorgeschlagen.</li></ul>`)}
   ${sec('4. Tanken und Verbrauch',`<ul>
     <li>Zapfsäulen-Knopf: Liter, Preis je Liter und Kraftstoffart eingeben. Ort, Datum und Uhrzeit speichert die App selbst.</li>
@@ -1666,7 +1688,7 @@ function renderHelp(){
     <li>In einer beendeten Fahrt: <b>„Logbucheintrag als PDF exportieren“</b> erstellt ein PDF mit allen Angaben, Streckenskizze und Unterschriftenzeile für den Skipper. Es wird auf dem Gerät gespeichert (Teilen-Menü → „In Dateien sichern“) und – wenn eingeschaltet – in OneDrive unter <i>Apps › Bordbuch › pdf</i> abgelegt.</li></ul>`)}
   ${sec('6. Notfall (S.O.S.)',`<ul>
     <li>Der rote Knopf zeigt sofort die Seenotleitung MRCC Bremen mit Telefonnummer (antippen zum Anrufen) und UKW-Kanal, dazu alle Bootsdaten, die aktuelle Position zum Vorlesen und die Personen an Bord.</li>
-    <li>Damit das vollständig ist: in den Einstellungen unter <b>Boot</b> MMSI, Callsign, Kennzeichen und Maße eintragen.</li></ul>`)}
+    <li>Damit das vollständig ist: unter Menü ☰ → <b>Boot</b> MMSI, Callsign, Kennzeichen und Maße eintragen.</li></ul>`)}
   ${sec('7. Daten, Sicherung und mehrere Geräte',`<ul>
     <li>Alle Daten liegen zunächst <b>nur auf diesem Gerät</b>. Es gibt keinen Server, der deine Daten speichert.</li>
     <li>Die App lädt keinen fremden Programmcode: Kartenbibliothek und App liegen vollständig auf derselben Web-Adresse. Eine eingebaute Sicherheitsrichtlinie erlaubt Verbindungen nur zu den unten genannten Diensten sowie zu Microsoft (Anmeldung und OneDrive).</li>

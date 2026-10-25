@@ -175,3 +175,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 9.3 | Knöpfe auf der Startseite von Anfang an in der kleineren Größe, die auch während der Fahrt gilt |
 | 9.4 | Statusanzeige (Online/OneDrive) unten mittig zwischen Version und Datenschutz; „Ereignis notieren“ während der Fahrt direkt unter „Personen an Bord“ |
 | 9.5 | „Ereignis notieren“ gleich hoch wie „Personen an Bord“, gleiche Abstände; Menüsymbol „Boot“ je nach Bootsart |
+| 9.6 | Fehlerkorrektur: Tankmaske zeigt das Symbol der eingestellten Bootsart |

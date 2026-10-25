@@ -35,7 +35,7 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .status{font-size:13px;color:var(--muted);text-align:center;margin:2px 0 14px}
 .bigbtns{position:relative;display:flex;flex-direction:column;align-items:center;gap:16px;padding:4px 0;width:100%;max-width:600px;margin:0 auto}
 /* Start/Stop-Knopf im Stil moderner Pkw */
-.ssb{--d:min(54vw,25vh,250px);--led:#3b4148;position:relative;width:var(--d);height:var(--d);border:0;padding:0;border-radius:50%;cursor:pointer;
+.ssb{--d:min(38vw,17.5vh,185px);--led:#3b4148;position:relative;width:var(--d);height:var(--d);border:0;padding:0;border-radius:50%;cursor:pointer;
   background:conic-gradient(from 210deg,#f7f9fb,#8e979f 12%,#ffffff 25%,#79828b 40%,#eef1f4 55%,#9aa2ab 70%,#ffffff 85%,#f7f9fb);
   box-shadow:0 14px 28px rgba(0,0,0,.45),0 3px 6px rgba(0,0,0,.3),inset 0 1px 1px #fff;transition:transform .08s,filter .2s,opacity .2s;-webkit-user-select:none;user-select:none}
 .recording .ssb{--d:min(38vw,17.5vh,185px)}
@@ -69,12 +69,12 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .filters input[type=date]::-webkit-datetime-edit{padding:0}
 .filters input[type=date]::-webkit-calendar-picker-indicator{position:absolute;right:0;top:0;width:40px;height:100%;margin:0;padding:0;opacity:0;cursor:pointer}
 .filters .reset{margin-top:8px;background:none;border:0;color:var(--accent);font:inherit;font-size:14px;padding:4px 0;cursor:pointer}
-.bigbtns .ssb.fuel{--d:min(19vw,10vh,88px);--led:#3b4148}
+.bigbtns .ssb.fuel{--d:min(17vw,8.6vh,78px);--led:#3b4148}
 .ssb.fuel:not(:disabled){--led:#f59e0b55}
 .ssb.fuel .face svg{width:52%;height:52%;color:#f28c0f;filter:drop-shadow(0 1px 0 rgba(255,255,255,.85)) drop-shadow(0 -1px 0 rgba(0,0,0,.18))}
 .sosWrap{position:absolute;left:0;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center}
 .sosWrap small{color:var(--muted);font-size:12px;margin-top:6px}
-.sos{--d:min(19vw,10vh,88px);position:relative;width:var(--d);height:var(--d);border-radius:50%;border:0;padding:0;cursor:pointer;
+.sos{--d:min(17vw,8.6vh,78px);position:relative;width:var(--d);height:var(--d);border-radius:50%;border:0;padding:0;cursor:pointer;
   background:radial-gradient(circle at 50% 50%,#2a1214 0 64%,#15090a 66%,#3b3f45 69%,#9aa2ab 74%,#eef1f4 82%,#8e979f 92%,#5b6168 100%);
   box-shadow:0 8px 16px rgba(0,0,0,.45),0 0 22px rgba(255,40,40,.35);-webkit-user-select:none;user-select:none;transition:transform .08s}
 .sos::before{content:"";position:absolute;inset:15%;border-radius:50%;
@@ -174,11 +174,10 @@ main{padding:14px 14px calc(env(safe-area-inset-bottom) + 24px);max-width:820px;
 .pdfMark{color:var(--accent);font-weight:600;white-space:nowrap}
 .side{position:absolute;top:50%;transform:translateY(-50%);display:flex;flex-direction:column;align-items:center;gap:8px;z-index:2}
 .sideL{left:0}.sideR{right:0}
-.sailmode:not(.recording) .ssb.start,.sailmode:not(.recording) .ssb.stop{--d:min(45vw,22vh,230px)}
 .side .sosWrap,.side .fuelWrap{position:static;transform:none}
 .sideItem{display:flex;flex-direction:column;align-items:center}
 .sideItem small{font-size:12px;margin-top:6px;font-weight:400;white-space:nowrap;color:var(--muted)}
-.bigbtns .ssb.mini{--d:min(19vw,10vh,88px)}
+.bigbtns .ssb.mini{--d:min(17vw,8.6vh,78px)}
 .recording .ssb.mini,.recording .ssb.fuel,.recording .sos{--d:min(17vw,8.6vh,78px)}
 .ssb.mini .face svg{width:58%;height:58%;filter:drop-shadow(0 1px 0 rgba(255,255,255,.85))}
 .ssb.mini.evOn .face svg{color:#15934a}.ssb.mini.evOff .face svg{color:#c62828}

@@ -172,3 +172,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 9.0 | Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad |
 | 9.1 | Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände |
 | 9.2 | Neuer Reiter „Boot“ (Bootsdaten, Skipper, Steuermann) außerhalb der Einstellungen; Versionshistorie in den Einstellungen; Beschriftung der Motor- und Segelknöpfe in einheitlicher Farbe |
+| 9.3 | Knöpfe auf der Startseite von Anfang an in der kleineren Größe, die auch während der Fahrt gilt |

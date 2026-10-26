@@ -30,7 +30,7 @@
    · 9.4 Statusanzeige in der Fußzeile, „Ereignis notieren“ unter „Personen an Bord“
    · 9.5 gleiche Höhe und Abstände der Schaltflächen unter Start/Stop, Menüsymbol je Bootsart
    · 9.6 Tankmaske zeigt das Symbol der richtigen Bootsart */
-const APP_VERSION='9.6';
+const APP_VERSION='9.7';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -387,6 +387,8 @@ function route(){
   if(parts[1]==='boot')return renderBoat();
   if(parts[1]==='versionen')return renderVersions();
   if(parts[1]==='datenschutz')return renderPrivacy();
+  if(parts[1]==='impressum')return renderImprint();
+  if(parts[1]==='kontakt')return renderContact();
   renderHome();
 }
 function refreshView(){
@@ -1547,7 +1549,7 @@ async function renderBoat(){
 
 
 /* ================= Versionshistorie ================= */
-const VERSIONS=[["9.6","25.10.2026","Fehlerkorrektur: Die Tankmaske zeigt beim Boot jetzt das Symbol der eingestellten Bootsart (Motorboot oder Segelboot)"],["9.5","25.10.2026","„Ereignis notieren“ gleich hoch wie „Personen an Bord“, gleiche Abstände zwischen Skipper-Zeile, Personen an Bord und Ereignis; Menüsymbol „Boot“ zeigt je nach Bootsart Motor- oder Segelboot"],["9.4","25.10.2026","Statusanzeige (Online/OneDrive) unten mittig zwischen Version und Datenschutz; Startseite rückt nach oben; „Ereignis notieren“ während der Fahrt direkt unter „Personen an Bord“"],["9.3","25.10.2026","Knöpfe auf der Startseite haben von Anfang an die kleinere Größe, die auch während der Fahrt gilt – kein Größenwechsel mehr beim Start"],["9.2", "25.10.2026", "Neuer Reiter „Boot“ (Bootsdaten, Skipper, Steuermann) außerhalb der Einstellungen; Versionshistorie in den Einstellungen; Beschriftung der Motor- und Segelknöpfe in einheitlicher Farbe"], ["9.1", "25.10.2026", "Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände"], ["9.0", "25.10.2026", "Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad"], ["8.0", "25.10.2026", "Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt"], ["7.7", "24.10.2026", "Startseite: statt des Entwickler-Hinweises nur noch der Link „Datenschutz“"], ["7.6", "24.10.2026", "Markierung „📄 PDF“ in der Fahrtenübersicht; Unterschriftenzeile im PDF mit Datum und Ort statt Uhrzeit"], ["7.5", "24.10.2026", "Hinweis auf Begrüßung, Einstellungen und Datenschutz: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen"], ["7.4", "24.10.2026", "Ersteinrichtung: zuerst Frage nach OneDrive; mit OneDrive erst anmelden und vorhandene Daten laden, dann Boot, Skipper und Steuermann aus Listen wählen"], ["7.3", "24.10.2026", "Bootsdaten inkl. Bootsmodell und Bootsart werden feldweise über OneDrive abgeglichen; ein neues Gerät überschreibt keine vorhandenen Angaben mehr"], ["7.2", "23.10.2026", "Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft"], ["7.1", "23.10.2026", "Fahrten direkt in der Übersicht löschen; Seezeichen standardmäßig an, Einstellung unter „Karte“"], ["7.0", "23.10.2026", "Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation"], ["6.0", "22.10.2026", "Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)"], ["5.2", "21.10.2026", "Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste"], ["5.1", "21.10.2026", "Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld"], ["5.0", "21.10.2026", "Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen"], ["4.7", "20.10.2026", "Fahrtenfilter „Person an Bord“"], ["4.6", "20.10.2026", "Verbrauch: „Gefahren“ zählt nur die Strecke zwischen erfassten Tankvorgängen"], ["4.5", "20.10.2026", "Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen"], ["4.4", "20.10.2026", "OneDrive-Anmeldung wird vor Ablauf automatisch im Hintergrund erneuert"], ["4.3", "19.10.2026", "Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand)"], ["4.2", "19.10.2026", "Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“)"], ["4.1", "19.10.2026", "Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt"], ["4.0", "19.10.2026", "Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S.-Notfallfenster"], ["3.4", "19.10.2026", "„Personen an Bord“ auf der Startseite als größere Schaltfläche im Stil der übrigen Felder"], ["3.3", "19.10.2026", "Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen"], ["3.2", "19.10.2026", "Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst"], ["3.1", "19.10.2026", "Personen an Bord standardmäßig 2"], ["3.0", "19.10.2026", "Besatzung: Skipper, Steuermann (mit Wechseln während der Fahrt), Personen an Bord; Tankknopf neben Start/Stop; Tankvorgang in der Liste löschen"], ["2.0", "19.10.2026", "Tanken und Auswertung „Verbrauch“, Kraftstoffarten, Versionsnummer"], ["1.2", "18.10.2026", "Runde Start/Stop-Knöpfe, Boot in der Kopfzeile, Fahrtenfilter"], ["1.1", "18.10.2026", "Alles ausgeschrieben, metrische Einheiten"], ["1.0", "18.10.2026", "Erstversion: Aufzeichnung, Karte, Kommentare, OneDrive"]];
+const VERSIONS=[["9.7","26.10.2026","Impressum und Kontaktformular (Verbesserungsvorschläge, Funktionswünsche, Fehler, sonstige Anliegen) unter Einstellungen; Hinweis auf privates, nicht-kommerzielles Projekt"],["9.6","25.10.2026","Fehlerkorrektur: Die Tankmaske zeigt beim Boot jetzt das Symbol der eingestellten Bootsart (Motorboot oder Segelboot)"],["9.5","25.10.2026","„Ereignis notieren“ gleich hoch wie „Personen an Bord“, gleiche Abstände zwischen Skipper-Zeile, Personen an Bord und Ereignis; Menüsymbol „Boot“ zeigt je nach Bootsart Motor- oder Segelboot"],["9.4","25.10.2026","Statusanzeige (Online/OneDrive) unten mittig zwischen Version und Datenschutz; Startseite rückt nach oben; „Ereignis notieren“ während der Fahrt direkt unter „Personen an Bord“"],["9.3","25.10.2026","Knöpfe auf der Startseite haben von Anfang an die kleinere Größe, die auch während der Fahrt gilt – kein Größenwechsel mehr beim Start"],["9.2", "25.10.2026", "Neuer Reiter „Boot“ (Bootsdaten, Skipper, Steuermann) außerhalb der Einstellungen; Versionshistorie in den Einstellungen; Beschriftung der Motor- und Segelknöpfe in einheitlicher Farbe"], ["9.1", "25.10.2026", "Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände"], ["9.0", "25.10.2026", "Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad"], ["8.0", "25.10.2026", "Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt"], ["7.7", "24.10.2026", "Startseite: statt des Entwickler-Hinweises nur noch der Link „Datenschutz“"], ["7.6", "24.10.2026", "Markierung „📄 PDF“ in der Fahrtenübersicht; Unterschriftenzeile im PDF mit Datum und Ort statt Uhrzeit"], ["7.5", "24.10.2026", "Hinweis auf Begrüßung, Einstellungen und Datenschutz: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen"], ["7.4", "24.10.2026", "Ersteinrichtung: zuerst Frage nach OneDrive; mit OneDrive erst anmelden und vorhandene Daten laden, dann Boot, Skipper und Steuermann aus Listen wählen"], ["7.3", "24.10.2026", "Bootsdaten inkl. Bootsmodell und Bootsart werden feldweise über OneDrive abgeglichen; ein neues Gerät überschreibt keine vorhandenen Angaben mehr"], ["7.2", "23.10.2026", "Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft"], ["7.1", "23.10.2026", "Fahrten direkt in der Übersicht löschen; Seezeichen standardmäßig an, Einstellung unter „Karte“"], ["7.0", "23.10.2026", "Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation"], ["6.0", "22.10.2026", "Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)"], ["5.2", "21.10.2026", "Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste"], ["5.1", "21.10.2026", "Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld"], ["5.0", "21.10.2026", "Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen"], ["4.7", "20.10.2026", "Fahrtenfilter „Person an Bord“"], ["4.6", "20.10.2026", "Verbrauch: „Gefahren“ zählt nur die Strecke zwischen erfassten Tankvorgängen"], ["4.5", "20.10.2026", "Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen"], ["4.4", "20.10.2026", "OneDrive-Anmeldung wird vor Ablauf automatisch im Hintergrund erneuert"], ["4.3", "19.10.2026", "Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand)"], ["4.2", "19.10.2026", "Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“)"], ["4.1", "19.10.2026", "Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt"], ["4.0", "19.10.2026", "Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S.-Notfallfenster"], ["3.4", "19.10.2026", "„Personen an Bord“ auf der Startseite als größere Schaltfläche im Stil der übrigen Felder"], ["3.3", "19.10.2026", "Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen"], ["3.2", "19.10.2026", "Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst"], ["3.1", "19.10.2026", "Personen an Bord standardmäßig 2"], ["3.0", "19.10.2026", "Besatzung: Skipper, Steuermann (mit Wechseln während der Fahrt), Personen an Bord; Tankknopf neben Start/Stop; Tankvorgang in der Liste löschen"], ["2.0", "19.10.2026", "Tanken und Auswertung „Verbrauch“, Kraftstoffarten, Versionsnummer"], ["1.2", "18.10.2026", "Runde Start/Stop-Knöpfe, Boot in der Kopfzeile, Fahrtenfilter"], ["1.1", "18.10.2026", "Alles ausgeschrieben, metrische Einheiten"], ["1.0", "18.10.2026", "Erstversion: Aufzeichnung, Karte, Kommentare, OneDrive"]];
 function renderVersions(){
   setTitle('Versionshistorie',true);
   view.innerHTML=`<p class="hint" style="margin-top:0">Kleine Änderungen erhöhen die Nummer um 0.1, größere die ganze Zahl. Installiert ist Version ${APP_VERSION}.</p>
@@ -1613,6 +1615,11 @@ async function renderSettings(){
     <p class="hint">Lädt die App neu aus dem Internet. Deine Fahrten und Tankvorgänge bleiben dabei erhalten.</p>
     <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap · Synchronisation: Microsoft Graph</p>
     <div class="row"><a class="btn ghost" href="#/datenschutz" style="text-decoration:none">Datenschutzerklärung</a></div>
+  </section>
+  <section class="panel"><h3>Über die App</h3>
+    <p class="hint">Das Bordbuch ist ein <b>privates, nicht-kommerzielles Projekt</b>. Es ist kostenlos, enthält keine Werbung und verfolgt keine geschäftlichen Zwecke.</p>
+    <div class="row"><a class="btn" href="#/kontakt" style="text-decoration:none">Kontakt &amp; Feedback</a><a class="btn ghost" href="#/impressum" style="text-decoration:none">Impressum</a></div>
+    <p class="hint">Verbesserungsvorschläge, Wünsche für neue Funktionen, Fehlermeldungen und alle anderen Anliegen sind willkommen.</p>
   </section>`;
   $('#sUnits').onchange=e=>{S.units=e.target.value;saveS();toast(S.units==='nautical'?'Einheiten: Seemeilen und Knoten':'Einheiten: Kilometer und km/h');};
   const setNum=(id,k,min)=>$(id).onchange=e=>{const v=Math.max(min,+e.target.value||DEF[k]);S[k]=v;saveS();};
@@ -1721,7 +1728,7 @@ function renderPrivacy(){
   ];
   view.innerHTML=`<div class="priv">
   <h2>Datenschutzerklärung</h2>
-  <p>Stand: Version ${APP_VERSION}. Das Bordbuch ist eine Web-App ohne eigenen Server. Es gibt kein Benutzerkonto beim Anbieter, keine Werbung, keine Analyse- oder Tracking-Dienste und keine Cookies der App. <b>Wer dir die App bereitstellt, erhält keine deiner Daten.</b></p>
+  <p>Stand: Version ${APP_VERSION}. Das Bordbuch ist eine Web-App ohne eigenen Server. Es gibt kein Benutzerkonto beim Anbieter, keine Werbung, keine Analyse- oder Tracking-Dienste und keine Cookies der App. <b>Wer dir die App bereitstellt, erhält keine deiner Daten.</b> Das Bordbuch ist ein privates, nicht-kommerzielles Projekt; Anbieter und Kontakt siehe <a href="#/impressum">Impressum</a>.</p>
   <h3>Kein Zugriff für den Entwickler</h3>
   <p>Der Entwickler der App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die Microsoft-Anmeldung erfolgt direkt zwischen deinem Gerät und Microsoft; die Zugangsdaten bleiben verschlüsselt auf deinem Gerät und werden ausschließlich an Microsoft gesendet. Die bei Microsoft hinterlegte App-Registrierung hat nur Rechte, die du bei der Anmeldung selbst erteilst („Delegierte Berechtigung“, nur der Ordner „Apps › Bordbuch“), aber keine eigenen Zugriffsrechte und kein Passwort, mit dem der Entwickler selbst auf Konten zugreifen könnte. Die App enthält keine Funktion, die Daten an den Entwickler schickt; der Programmcode ist öffentlich einsehbar.</p>
   <h3>1. Was auf deinem Gerät gespeichert wird</h3>
@@ -1737,9 +1744,80 @@ function renderPrivacy(){
   <p>Wenn du Namen anderer Personen einträgst, informiere sie bitte darüber. Die Namen bleiben auf deinem Gerät bzw. in deinem OneDrive.</p>
   <h3>6. Löschen und Kontrolle</h3>
   <p>Einzelne Fahrten und Tankvorgänge löschst du in der App. Alle Daten entfernst du, indem du die App vom Home-Bildschirm löschst bzw. die Website-Daten im Browser löschst. OneDrive-Daten liegen in deinem OneDrive unter „Apps › Bordbuch“ und lassen sich dort löschen; den Zugriff der App entziehst du unter account.live.com/consent/Manage. OneDrive kannst du in den Einstellungen jederzeit ausschalten.</p>
-  <h3>7. Rechtsgrundlage</h3>
+  <h3>7. Kontaktaufnahme</h3>
+  <p>Das Kontaktformular sendet nichts selbst: Es öffnet dein eigenes E-Mail-Programm mit einer vorbereiteten Nachricht. Erst wenn du sie dort abschickst, erhält der Anbieter deine E-Mail-Adresse und den Inhalt der Nachricht. Diese Angaben werden nur zur Beantwortung deines Anliegens verwendet und nicht an Dritte weitergegeben.</p>
+  <h3>8. Rechtsgrundlage</h3>
   <p>Die Verarbeitung erfolgt auf deinem eigenen Gerät zu deinen eigenen Zwecken. Die genannten Dienste werden nur kontaktiert, um die jeweilige Funktion (Karte, Ortsname, Wetter, Synchronisation) bereitzustellen.</p>
   </div>`;
+}
+
+/* ================= Impressum & Kontakt ================= */
+const OWNER={name:'Arne Klöfkorn',street:'Schiensbusch 29',city:'42781 Haan',mail:'arne@kloefkorn.de'};
+function renderImprint(){
+  setTitle('Impressum',true);
+  view.innerHTML=`<div class="priv">
+  <h2>Impressum</h2>
+  <div class="panel privCard"><p><b>${esc(OWNER.name)}</b><br>${esc(OWNER.street)}<br>${esc(OWNER.city)}<br>Deutschland</p>
+  <p>E-Mail: <a href="mailto:${OWNER.mail}">${esc(OWNER.mail)}</a></p></div>
+  <h3>Privates, nicht-kommerzielles Projekt</h3>
+  <p>Das Bordbuch ist ein <b>rein privates, nicht-kommerzielles Projekt</b>. Es wird in der Freizeit entwickelt und kostenlos für Freunde, Bekannte und andere Wassersportler bereitgestellt. Es gibt keine Bezahlfunktionen, keine Werbung, keine Partnerprogramme und keine Gewinnerzielungsabsicht.</p>
+  <h3>Haftung</h3>
+  <p>Die App wird ohne Gewähr bereitgestellt. Sie ersetzt weder die vorgeschriebene Ausrüstung noch amtliche Seekarten, Funk (UKW/DSC) oder ein vorgeschriebenes Logbuch. Für die Richtigkeit von Positionen, Ortsnamen, Wetterangaben und Auswertungen wird keine Haftung übernommen. Für die Inhalte verlinkter Seiten sind ausschließlich deren Betreiber verantwortlich.</p>
+  <h3>Kontakt</h3>
+  <p>Für Fragen, Verbesserungsvorschläge, Wünsche für neue Funktionen und alle anderen Anliegen nutze gern das <a href="#/kontakt">Kontaktformular</a>.</p>
+  <p class="hint">Hinweise zum Umgang mit Daten findest du in der <a href="#/datenschutz">Datenschutzerklärung</a>.</p>
+  </div>`;
+}
+const CONTACT_KINDS=['Verbesserungsvorschlag','Wunsch für eine neue Funktion','Fehler melden','Frage zur Bedienung','Sonstiges Anliegen'];
+let contactDraft={kind:CONTACT_KINDS[0],name:'',subject:'',text:'',info:true};
+function contactDevice(){
+  const ua=navigator.userAgent;
+  const dev=/iPad/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)?'iPad':/iPhone/.test(ua)?'iPhone':/Android/.test(ua)?'Android':/Windows/.test(ua)?'Windows':/Mac/.test(ua)?'Mac':'Sonstiges Gerät';
+  const inst=(matchMedia('(display-mode: standalone)').matches||navigator.standalone)?'als App installiert':'im Browser';
+  return `Bordbuch ${APP_VERSION} · ${dev} · ${inst} · Bootsart ${S.boatKind==='sail'?'Segelboot':'Motorboot'} · Einheiten ${S.units==='nautical'?'sm/kn':'km'}`;
+}
+function contactMail(){
+  const d=contactDraft;
+  const subj=`[Bordbuch] ${d.kind}${d.subject.trim()?': '+d.subject.trim():''}`;
+  let body=`Art des Anliegens: ${d.kind}\n\n${d.text.trim()}\n`;
+  if(d.name.trim())body+=`\nViele Grüße\n${d.name.trim()}\n`;
+  if(d.info)body+=`\n---\n${contactDevice()}\n`;
+  return {subj,body};
+}
+function renderContact(){
+  setTitle('Kontakt & Feedback',true);
+  const d=contactDraft;
+  view.innerHTML=`<p class="hint" style="margin-top:0">Das Bordbuch ist ein privates, nicht-kommerzielles Projekt. Über Rückmeldungen freue ich mich sehr: Verbesserungsvorschläge, Wünsche für neue Funktionen, Fehlermeldungen oder alle anderen Anliegen.</p>
+  <section class="panel"><h3>Deine Nachricht</h3>
+    <label for="cKind">Worum geht es?</label>
+    <select id="cKind" class="fsel">${CONTACT_KINDS.map(k=>`<option ${k===d.kind?'selected':''}>${esc(k)}</option>`).join('')}</select>
+    <label for="cSubj">Betreff (freiwillig)</label>
+    <input type="text" id="cSubj" maxlength="120" placeholder="zum Beispiel Anzeige der Segelzeit" value="${esc(d.subject)}">
+    <label for="cText">Nachricht</label>
+    <textarea id="cText" rows="8" placeholder="Beschreibe deinen Vorschlag oder dein Anliegen. Bei Fehlern hilft: Was hast du gemacht, was ist passiert, was hättest du erwartet?">${esc(d.text)}</textarea>
+    <label for="cName">Dein Name (freiwillig)</label>
+    <input type="text" id="cName" maxlength="80" autocomplete="name" value="${esc(d.name)}">
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="cInfo" ${d.info?'checked':''} style="margin-top:3px"><span>App-Version und Gerätetyp anhängen (hilft bei Fehlern)<br><small class="hint" id="cInfoTx">${esc(contactDevice())}</small></span></label>
+    <div class="row" style="margin-top:12px"><button class="btn" id="cSend">E-Mail vorbereiten</button><button class="btn ghost" id="cCopy">Text kopieren</button></div>
+    <p class="hint">„E-Mail vorbereiten“ öffnet dein E-Mail-Programm mit der fertigen Nachricht an ${esc(OWNER.mail)}. Abgeschickt wird erst, wenn du dort auf Senden tippst. Die App selbst überträgt nichts. Falls sich kein E-Mail-Programm öffnet, kopiere den Text und schicke ihn an <a href="mailto:${OWNER.mail}">${esc(OWNER.mail)}</a>.</p>
+  </section>
+  <p class="hint"><a href="#/impressum">Impressum</a> · <a href="#/datenschutz">Datenschutz</a></p>`;
+  const sync=()=>{d.kind=$('#cKind').value;d.subject=$('#cSubj').value;d.text=$('#cText').value;d.name=$('#cName').value;d.info=$('#cInfo').checked;};
+  ['#cKind','#cSubj','#cText','#cName','#cInfo'].forEach(id=>$(id).addEventListener('input',sync));
+  $('#cInfo').onchange=sync;$('#cKind').onchange=sync;
+  $('#cSend').onclick=()=>{sync();
+    if(!d.text.trim()){toast('Bitte schreib zuerst eine Nachricht');$('#cText').focus();return;}
+    const {subj,body}=contactMail();
+    let url=`mailto:${OWNER.mail}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+    if(url.length>1900)toast('Lange Nachricht – falls sie unvollständig ankommt, nutze „Text kopieren“');
+    const a=document.createElement('a');a.href=url;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
+  };
+  $('#cCopy').onclick=async()=>{sync();
+    if(!d.text.trim()){toast('Bitte schreib zuerst eine Nachricht');return;}
+    const {subj,body}=contactMail();const all=`An: ${OWNER.mail}\nBetreff: ${subj}\n\n${body}`;
+    try{await navigator.clipboard.writeText(all);toast('Text kopiert – in eine E-Mail an '+OWNER.mail+' einfügen');}
+    catch(e){toast('Kopieren nicht möglich – bitte Text markieren und kopieren');}
+  };
 }
 
 /* ================= Ersteinrichtung ================= */

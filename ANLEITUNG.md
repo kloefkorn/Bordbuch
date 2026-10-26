@@ -128,7 +128,7 @@ Wer automatischen Abgleich zwischen iPhone, iPad und Mac möchte, nimmt am einfa
 Wer die App bereitstellt, hat keinen Zugriff auf das OneDrive oder die Aufzeichnungen der Nutzer: Es gibt keinen Server, die Microsoft-Anmeldung läuft direkt zwischen Gerät und Microsoft, die App-Registrierung hat nur vom Nutzer selbst erteilte („delegierte“) Rechte auf den Ordner „Apps › Bordbuch“ und kein Passwort für eigenen Zugriff. Voraussetzung dafür ist, dass der Programmcode so bleibt – deshalb gilt: GitHub-Konto mit Zwei-Faktor-Anmeldung schützen und in der Azure-Registrierung keine Anwendungsberechtigungen und keine geheimen Schlüssel („Client Secrets“) anlegen.
 
 ## Impressum, Kontakt und Feedback
-Das Bordbuch ist ein privates, nicht-kommerzielles Projekt von Arne Klöfkorn. Unter Einstellungen → „Über die App“ stehen das **Impressum** und das **Kontaktformular** für Verbesserungsvorschläge, Funktionswünsche, Fehlermeldungen und sonstige Anliegen. Das Formular öffnet das eigene E-Mail-Programm mit einer vorbereiteten Nachricht an arne@kloefkorn.de; die App selbst überträgt nichts.
+Das Bordbuch ist ein privates, nicht-kommerzielles Projekt von Arne Klöfkorn. Unter Einstellungen → „Über die App“ stehen das **Impressum** und das **Kontaktformular** für Verbesserungsvorschläge, Funktionswünsche, Fehlermeldungen und sonstige Anliegen. „Nachricht senden“ überträgt die Nachricht verschlüsselt an das Skript `bordbuch-feedback.php` auf www.kloefkorn.de/bordbuch/, das sie per E-Mail an arne@kloefkorn.de weiterleitet (Zugangsdaten nur auf dem Webspace). Ohne Internet öffnet „E-Mail vorbereiten“ das eigene E-Mail-Programm. Die Sicherheitsrichtlinie der App erlaubt dafür zusätzlich nur https://www.kloefkorn.de.
 
 ## Datenquellen
 
@@ -180,3 +180,4 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 9.5 | „Ereignis notieren“ gleich hoch wie „Personen an Bord“, gleiche Abstände; Menüsymbol „Boot“ je nach Bootsart |
 | 9.6 | Fehlerkorrektur: Tankmaske zeigt das Symbol der eingestellten Bootsart |
 | 9.7 | Impressum und Kontaktformular unter Einstellungen; Hinweis auf privates, nicht-kommerzielles Projekt |
+| 9.8 | Kontaktformular sendet direkt (über bordbuch-feedback.php auf dem Ionos-Webspace); E-Mail-Weg als Ausweichmöglichkeit |

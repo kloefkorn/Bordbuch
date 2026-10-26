@@ -30,7 +30,7 @@
    · 9.4 Statusanzeige in der Fußzeile, „Ereignis notieren“ unter „Personen an Bord“
    · 9.5 gleiche Höhe und Abstände der Schaltflächen unter Start/Stop, Menüsymbol je Bootsart
    · 9.6 Tankmaske zeigt das Symbol der richtigen Bootsart */
-const APP_VERSION='9.7';
+const APP_VERSION='9.8';
 /* ================= Helfer ================= */
 const $=(s,r=document)=>r.querySelector(s);
 const view=$('#view');
@@ -1549,7 +1549,7 @@ async function renderBoat(){
 
 
 /* ================= Versionshistorie ================= */
-const VERSIONS=[["9.7","26.10.2026","Impressum und Kontaktformular (Verbesserungsvorschläge, Funktionswünsche, Fehler, sonstige Anliegen) unter Einstellungen; Hinweis auf privates, nicht-kommerzielles Projekt"],["9.6","25.10.2026","Fehlerkorrektur: Die Tankmaske zeigt beim Boot jetzt das Symbol der eingestellten Bootsart (Motorboot oder Segelboot)"],["9.5","25.10.2026","„Ereignis notieren“ gleich hoch wie „Personen an Bord“, gleiche Abstände zwischen Skipper-Zeile, Personen an Bord und Ereignis; Menüsymbol „Boot“ zeigt je nach Bootsart Motor- oder Segelboot"],["9.4","25.10.2026","Statusanzeige (Online/OneDrive) unten mittig zwischen Version und Datenschutz; Startseite rückt nach oben; „Ereignis notieren“ während der Fahrt direkt unter „Personen an Bord“"],["9.3","25.10.2026","Knöpfe auf der Startseite haben von Anfang an die kleinere Größe, die auch während der Fahrt gilt – kein Größenwechsel mehr beim Start"],["9.2", "25.10.2026", "Neuer Reiter „Boot“ (Bootsdaten, Skipper, Steuermann) außerhalb der Einstellungen; Versionshistorie in den Einstellungen; Beschriftung der Motor- und Segelknöpfe in einheitlicher Farbe"], ["9.1", "25.10.2026", "Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände"], ["9.0", "25.10.2026", "Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad"], ["8.0", "25.10.2026", "Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt"], ["7.7", "24.10.2026", "Startseite: statt des Entwickler-Hinweises nur noch der Link „Datenschutz“"], ["7.6", "24.10.2026", "Markierung „📄 PDF“ in der Fahrtenübersicht; Unterschriftenzeile im PDF mit Datum und Ort statt Uhrzeit"], ["7.5", "24.10.2026", "Hinweis auf Begrüßung, Einstellungen und Datenschutz: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen"], ["7.4", "24.10.2026", "Ersteinrichtung: zuerst Frage nach OneDrive; mit OneDrive erst anmelden und vorhandene Daten laden, dann Boot, Skipper und Steuermann aus Listen wählen"], ["7.3", "24.10.2026", "Bootsdaten inkl. Bootsmodell und Bootsart werden feldweise über OneDrive abgeglichen; ein neues Gerät überschreibt keine vorhandenen Angaben mehr"], ["7.2", "23.10.2026", "Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft"], ["7.1", "23.10.2026", "Fahrten direkt in der Übersicht löschen; Seezeichen standardmäßig an, Einstellung unter „Karte“"], ["7.0", "23.10.2026", "Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation"], ["6.0", "22.10.2026", "Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)"], ["5.2", "21.10.2026", "Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste"], ["5.1", "21.10.2026", "Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld"], ["5.0", "21.10.2026", "Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen"], ["4.7", "20.10.2026", "Fahrtenfilter „Person an Bord“"], ["4.6", "20.10.2026", "Verbrauch: „Gefahren“ zählt nur die Strecke zwischen erfassten Tankvorgängen"], ["4.5", "20.10.2026", "Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen"], ["4.4", "20.10.2026", "OneDrive-Anmeldung wird vor Ablauf automatisch im Hintergrund erneuert"], ["4.3", "19.10.2026", "Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand)"], ["4.2", "19.10.2026", "Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“)"], ["4.1", "19.10.2026", "Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt"], ["4.0", "19.10.2026", "Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S.-Notfallfenster"], ["3.4", "19.10.2026", "„Personen an Bord“ auf der Startseite als größere Schaltfläche im Stil der übrigen Felder"], ["3.3", "19.10.2026", "Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen"], ["3.2", "19.10.2026", "Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst"], ["3.1", "19.10.2026", "Personen an Bord standardmäßig 2"], ["3.0", "19.10.2026", "Besatzung: Skipper, Steuermann (mit Wechseln während der Fahrt), Personen an Bord; Tankknopf neben Start/Stop; Tankvorgang in der Liste löschen"], ["2.0", "19.10.2026", "Tanken und Auswertung „Verbrauch“, Kraftstoffarten, Versionsnummer"], ["1.2", "18.10.2026", "Runde Start/Stop-Knöpfe, Boot in der Kopfzeile, Fahrtenfilter"], ["1.1", "18.10.2026", "Alles ausgeschrieben, metrische Einheiten"], ["1.0", "18.10.2026", "Erstversion: Aufzeichnung, Karte, Kommentare, OneDrive"]];
+const VERSIONS=[["9.8","27.10.2026","Kontaktformular sendet Nachrichten direkt an den Entwickler (optional mit Antwortadresse); „E-Mail vorbereiten“ und „Text kopieren“ bleiben als Ausweg ohne Internet; Datenschutzerklärung ergänzt"],["9.7","26.10.2026","Impressum und Kontaktformular (Verbesserungsvorschläge, Funktionswünsche, Fehler, sonstige Anliegen) unter Einstellungen; Hinweis auf privates, nicht-kommerzielles Projekt"],["9.6","25.10.2026","Fehlerkorrektur: Die Tankmaske zeigt beim Boot jetzt das Symbol der eingestellten Bootsart (Motorboot oder Segelboot)"],["9.5","25.10.2026","„Ereignis notieren“ gleich hoch wie „Personen an Bord“, gleiche Abstände zwischen Skipper-Zeile, Personen an Bord und Ereignis; Menüsymbol „Boot“ zeigt je nach Bootsart Motor- oder Segelboot"],["9.4","25.10.2026","Statusanzeige (Online/OneDrive) unten mittig zwischen Version und Datenschutz; Startseite rückt nach oben; „Ereignis notieren“ während der Fahrt direkt unter „Personen an Bord“"],["9.3","25.10.2026","Knöpfe auf der Startseite haben von Anfang an die kleinere Größe, die auch während der Fahrt gilt – kein Größenwechsel mehr beim Start"],["9.2", "25.10.2026", "Neuer Reiter „Boot“ (Bootsdaten, Skipper, Steuermann) außerhalb der Einstellungen; Versionshistorie in den Einstellungen; Beschriftung der Motor- und Segelknöpfe in einheitlicher Farbe"], ["9.1", "25.10.2026", "Ankerlicht-Symbol mit grauem Anker in der Glühbirne; Beschriftung der unteren Knöpfe wie bei Tanken/S.O.S.; gleichmäßige Abstände"], ["9.0", "25.10.2026", "Leuchtring-Logik für alle Knöpfe, neue Knöpfe Anker/Ankerlicht/Positionslichter, getauschte Positionen beim Segelboot, keine Überlappung auf dem iPad"], ["8.0", "25.10.2026", "Segelboot-Modus: „Fahrtbeginn“/„Fahrtende“, Knöpfe Motor an/aus und Segel gesetzt/geborgen mit Protokoll, Zeiten unter Motor/Segel; S.O.S.-Beschriftung; schnelleres Beenden der Fahrt"], ["7.7", "24.10.2026", "Startseite: statt des Entwickler-Hinweises nur noch der Link „Datenschutz“"], ["7.6", "24.10.2026", "Markierung „📄 PDF“ in der Fahrtenübersicht; Unterschriftenzeile im PDF mit Datum und Ort statt Uhrzeit"], ["7.5", "24.10.2026", "Hinweis auf Begrüßung, Einstellungen und Datenschutz: kein Zugriff des Entwicklers auf OneDrive und Aufzeichnungen"], ["7.4", "24.10.2026", "Ersteinrichtung: zuerst Frage nach OneDrive; mit OneDrive erst anmelden und vorhandene Daten laden, dann Boot, Skipper und Steuermann aus Listen wählen"], ["7.3", "24.10.2026", "Bootsdaten inkl. Bootsmodell und Bootsart werden feldweise über OneDrive abgeglichen; ein neues Gerät überschreibt keine vorhandenen Angaben mehr"], ["7.2", "23.10.2026", "Fehlerkorrektur: Statusprüfung beim OneDrive-Download; alle aus OneDrive geladenen und aus Sicherungen importierten Datensätze werden vor dem Speichern geprüft"], ["7.1", "23.10.2026", "Fahrten direkt in der Übersicht löschen; Seezeichen standardmäßig an, Einstellung unter „Karte“"], ["7.0", "23.10.2026", "Einheiten km/sm wählbar, Bootsart als Auswahlliste, Datenschutzerklärung, Anmeldedaten verschlüsselt statt im localStorage, Token nur an Microsoft Graph, Kartenspeicher begrenzt, vollständige Offline-Installation"], ["6.0", "22.10.2026", "Bootsart Motorboot/Segelboot, „Bootsmodell“ statt „Bootsbezeichnung“, Mindestabstand 25 m, Abfrage Sicherheitsunterweisung, Logbucheintrag als PDF (mit OneDrive)"], ["5.2", "21.10.2026", "Sicherheit: Kartenbibliothek im eigenen Repository, Programmcode in app.js, Sicherheitsrichtlinie (CSP) erlaubt nur die nötigen Dienste"], ["5.1", "21.10.2026", "Microsoft-Client-ID eingebaut (keine Eingabe mehr nötig); Ersteinrichtung: „Skipper ist auch Steuermann“ vor dem Steuermann-Feld"], ["5.0", "21.10.2026", "Für alle nutzbar: keine fest hinterlegten Namen und Boote, Ersteinrichtung beim ersten Start, OneDrive abschaltbar, Hilfe in den Einstellungen"], ["4.7", "20.10.2026", "Fahrtenfilter „Person an Bord“"], ["4.6", "20.10.2026", "Verbrauch: „Gefahren“ zählt nur die Strecke zwischen erfassten Tankvorgängen"], ["4.5", "20.10.2026", "Skipper-, Steuermann- und Kraftstofflisten werden geräteübergreifend abgeglichen"], ["4.4", "20.10.2026", "OneDrive-Anmeldung wird vor Ablauf automatisch im Hintergrund erneuert"], ["4.3", "19.10.2026", "Anzeige „Aufzeichnung läuft“ im Stil der Knöpfe (Instrumentenanzeigen mit Chromrand)"], ["4.2", "19.10.2026", "Vor Fahrtbeginn Skipper und Steuermann wieder frei wählbar (mit Frage „bleibt an Bord / ersetzen“)"], ["4.1", "19.10.2026", "Steuermann-Auswahl auf die Personen an Bord begrenzt; Besatzung der letzten Fahrt (bis 48 Stunden) vorbelegt"], ["4.0", "19.10.2026", "Bootsdaten (MMSI, Callsign, Kennzeichen, Maße, Verdrängung) und S.O.S.-Notfallfenster"], ["3.4", "19.10.2026", "„Personen an Bord“ auf der Startseite als größere Schaltfläche im Stil der übrigen Felder"], ["3.3", "19.10.2026", "Updates kommen zuverlässig an (App lädt online immer die neueste Version); Knopf „Nach neuer Version suchen“ in den Einstellungen"], ["3.2", "19.10.2026", "Datumsfelder „Von“/„Bis“ im Filter an die übrigen Felder angepasst"], ["3.1", "19.10.2026", "Personen an Bord standardmäßig 2"], ["3.0", "19.10.2026", "Besatzung: Skipper, Steuermann (mit Wechseln während der Fahrt), Personen an Bord; Tankknopf neben Start/Stop; Tankvorgang in der Liste löschen"], ["2.0", "19.10.2026", "Tanken und Auswertung „Verbrauch“, Kraftstoffarten, Versionsnummer"], ["1.2", "18.10.2026", "Runde Start/Stop-Knöpfe, Boot in der Kopfzeile, Fahrtenfilter"], ["1.1", "18.10.2026", "Alles ausgeschrieben, metrische Einheiten"], ["1.0", "18.10.2026", "Erstversion: Aufzeichnung, Karte, Kommentare, OneDrive"]];
 function renderVersions(){
   setTitle('Versionshistorie',true);
   view.innerHTML=`<p class="hint" style="margin-top:0">Kleine Änderungen erhöhen die Nummer um 0.1, größere die ganze Zahl. Installiert ist Version ${APP_VERSION}.</p>
@@ -1597,7 +1597,7 @@ async function renderSettings(){
       <p class="hint">Umleitungs-URI für eine eigene Registrierung (Plattform „Single-Page-Anwendung“):<br><code>${esc(redirectUri())}</code></p>
     </div></details>
     <p class="hint">Microsoft lässt Web-Apps nur 24 Stunden ohne neue Anmeldung zu. Die App erneuert die Anmeldung deshalb beim Öffnen automatisch im Hintergrund (kurzer Seitenwechsel). Damit das ohne Eingabe klappt, bei der Microsoft-Anmeldung „Angemeldet bleiben?“ mit „Ja“ beantworten.</p>
-    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn. Microsoft gibt den Zugang ausschließlich an diese App auf deinem Gerät heraus; es gibt keinen Server, über den der Entwickler mitlesen könnte.</p>
+    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn, außer Nachrichten, die du selbst über das Kontaktformular abschickst. Microsoft gibt den Zugang ausschließlich an diese App auf deinem Gerät heraus; es gibt keinen Server, über den der Entwickler mitlesen könnte.</p>
     <p class="hint">Die Fahrten liegen in deinem OneDrive unter <i>Apps › Bordbuch › trips</i>. Jedes Gerät mit derselben Client-ID und demselben Microsoft-Konto sieht dieselben Fahrten.</p>
   `:`<p class="hint">Ausgeschaltet: Alle Daten bleiben nur auf diesem Gerät. Sichern kannst du sie unten mit „Sicherung exportieren“. Einschalten lohnt sich, wenn du die App auf mehreren Geräten nutzen möchtest – die Einrichtung ist in der Hilfe beschrieben.</p>`}
   </section>
@@ -1610,7 +1610,7 @@ async function renderSettings(){
     <div class="row"><button class="btn ghost" id="enr">Orte &amp; Wetter jetzt nachladen</button></div>
     <p class="hint">Version ${APP_VERSION}</p>
     <div class="row"><a class="btn ghost" href="#/versionen" style="text-decoration:none">Versionshistorie</a></div>
-    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn. Die Anmeldung bei Microsoft gilt nur für dich und nur für den Ordner „Apps › Bordbuch“ in deinem eigenen OneDrive.</p>
+    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn, außer Nachrichten, die du selbst über das Kontaktformular abschickst. Die Anmeldung bei Microsoft gilt nur für dich und nur für den Ordner „Apps › Bordbuch“ in deinem eigenen OneDrive.</p>
     <div class="row"><button class="btn ghost" id="updNow">Nach neuer Version suchen</button></div>
     <p class="hint">Lädt die App neu aus dem Internet. Deine Fahrten und Tankvorgänge bleiben dabei erhalten.</p>
     <p class="hint">Ortsnamen: © OpenStreetMap/Nominatim · Wetter: Open-Meteo · Karte: OpenStreetMap, OpenSeaMap · Synchronisation: Microsoft Graph</p>
@@ -1724,13 +1724,14 @@ function renderPrivacy(){
     ['OpenSeaMap – Seezeichen','Wenn eine Fahrt mit Karte angezeigt wird und die Seezeichen eingeschaltet sind (Standard; abschaltbar unter Einstellungen → Karte). Seezeichen werden nicht dauerhaft auf dem Gerät gespeichert.','IP-Adresse, Browserkennung, geladener Kartenausschnitt.',L('https://www.openseamap.org','openseamap.org')],
     ['Nominatim – Ortsnamen (OpenStreetMap Foundation)','Sobald Internet besteht: einmal für Fahrtbeginn, einmal für Fahrtende und je Tankvorgang. Beim PDF-Export einmal für die Gemeinde in der Unterschriftenzeile (Koordinaten auf etwa 1 km gerundet).','Die Koordinaten dieser Orte, IP-Adresse, Browserkennung. Keine Namen, keine Strecke.',L('https://osmfoundation.org/wiki/Privacy_Policy','Datenschutz OSMF')+' · '+L('https://operations.osmfoundation.org/policies/nominatim/','Nutzungsregeln')],
     ['Open-Meteo – Wetter (Open-Meteo.com)','Sobald Internet besteht: je einmal für Fahrtbeginn und Fahrtende.','Koordinaten und Datum von Fahrtbeginn bzw. -ende, IP-Adresse.',L('https://open-meteo.com/en/terms','Nutzungs- und Datenschutzbedingungen')],
+    ['Kontaktformular – Webspace des Anbieters (IONOS SE, Deutschland)','Nur wenn du im Kontaktformular auf „Nachricht senden“ tippst.','Inhalt der Nachricht, freiwillige Angaben (Name, E-Mail-Adresse), auf Wunsch App-Version und Gerätetyp, IP-Adresse. Keine Fahrten, keine Positionen.',L('https://www.ionos.de/terms-gtc/datenschutzerklaerung/','Datenschutz IONOS')],
     ['Microsoft – Anmeldung und Microsoft Graph/OneDrive (Microsoft Corp., USA)','Nur wenn OneDrive eingeschaltet und verbunden ist: bei der Anmeldung (etwa einmal täglich), beim Öffnen, nach Änderungen und alle 5 Minuten bei geöffneter App.','Dein Microsoft-Konto für die Anmeldung; Fahrten (mit Strecke), Tankvorgänge, Bootsdaten, Namenslisten und PDF-Logbucheinträge werden in deinem eigenen OneDrive im Ordner „Apps › Bordbuch“ gespeichert.',L('https://privacy.microsoft.com/de-de/privacystatement','Datenschutz Microsoft')]
   ];
   view.innerHTML=`<div class="priv">
   <h2>Datenschutzerklärung</h2>
-  <p>Stand: Version ${APP_VERSION}. Das Bordbuch ist eine Web-App ohne eigenen Server. Es gibt kein Benutzerkonto beim Anbieter, keine Werbung, keine Analyse- oder Tracking-Dienste und keine Cookies der App. <b>Wer dir die App bereitstellt, erhält keine deiner Daten.</b> Das Bordbuch ist ein privates, nicht-kommerzielles Projekt; Anbieter und Kontakt siehe <a href="#/impressum">Impressum</a>.</p>
+  <p>Stand: Version ${APP_VERSION}. Das Bordbuch ist eine Web-App ohne eigenen Server. Es gibt kein Benutzerkonto beim Anbieter, keine Werbung, keine Analyse- oder Tracking-Dienste und keine Cookies der App. <b>Wer dir die App bereitstellt, erhält keine deiner Aufzeichnungen.</b> Das Bordbuch ist ein privates, nicht-kommerzielles Projekt; Anbieter und Kontakt siehe <a href="#/impressum">Impressum</a>.</p>
   <h3>Kein Zugriff für den Entwickler</h3>
-  <p>Der Entwickler der App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die Microsoft-Anmeldung erfolgt direkt zwischen deinem Gerät und Microsoft; die Zugangsdaten bleiben verschlüsselt auf deinem Gerät und werden ausschließlich an Microsoft gesendet. Die bei Microsoft hinterlegte App-Registrierung hat nur Rechte, die du bei der Anmeldung selbst erteilst („Delegierte Berechtigung“, nur der Ordner „Apps › Bordbuch“), aber keine eigenen Zugriffsrechte und kein Passwort, mit dem der Entwickler selbst auf Konten zugreifen könnte. Die App enthält keine Funktion, die Daten an den Entwickler schickt; der Programmcode ist öffentlich einsehbar.</p>
+  <p>Der Entwickler der App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die Microsoft-Anmeldung erfolgt direkt zwischen deinem Gerät und Microsoft; die Zugangsdaten bleiben verschlüsselt auf deinem Gerät und werden ausschließlich an Microsoft gesendet. Die bei Microsoft hinterlegte App-Registrierung hat nur Rechte, die du bei der Anmeldung selbst erteilst („Delegierte Berechtigung“, nur der Ordner „Apps › Bordbuch“), aber keine eigenen Zugriffsrechte und kein Passwort, mit dem der Entwickler selbst auf Konten zugreifen könnte. Die App schickt keine Aufzeichnungen an den Entwickler; an ihn geht nur, was du selbst über das Kontaktformular abschickst (siehe Punkt 7); der Programmcode ist öffentlich einsehbar.</p>
   <h3>1. Was auf deinem Gerät gespeichert wird</h3>
   <p>Fahrten mit GPS-Strecke, Zeiten, Kommentaren und Besatzung (Namen), Tankvorgänge, Bootsdaten, Einstellungen, Namenslisten und erstellte PDF-Logbucheinträge. Die Daten liegen im Speicher dieser App im Browser (IndexedDB bzw. Local Storage) und verlassen das Gerät nur in den unten beschriebenen Fällen. Bei aktivem OneDrive wird zusätzlich ein verschlüsselter Anmeldeschlüssel gespeichert.</p>
   <h3>2. Standort</h3>
@@ -1744,8 +1745,8 @@ function renderPrivacy(){
   <p>Wenn du Namen anderer Personen einträgst, informiere sie bitte darüber. Die Namen bleiben auf deinem Gerät bzw. in deinem OneDrive.</p>
   <h3>6. Löschen und Kontrolle</h3>
   <p>Einzelne Fahrten und Tankvorgänge löschst du in der App. Alle Daten entfernst du, indem du die App vom Home-Bildschirm löschst bzw. die Website-Daten im Browser löschst. OneDrive-Daten liegen in deinem OneDrive unter „Apps › Bordbuch“ und lassen sich dort löschen; den Zugriff der App entziehst du unter account.live.com/consent/Manage. OneDrive kannst du in den Einstellungen jederzeit ausschalten.</p>
-  <h3>7. Kontaktaufnahme</h3>
-  <p>Das Kontaktformular sendet nichts selbst: Es öffnet dein eigenes E-Mail-Programm mit einer vorbereiteten Nachricht. Erst wenn du sie dort abschickst, erhält der Anbieter deine E-Mail-Adresse und den Inhalt der Nachricht. Diese Angaben werden nur zur Beantwortung deines Anliegens verwendet und nicht an Dritte weitergegeben.</p>
+  <h3>7. Kontaktformular</h3>
+  <p>Nur wenn du im Kontaktformular auf „Nachricht senden“ tippst, wird deine Nachricht verschlüsselt an ein Skript auf dem Webspace des Anbieters bei IONOS SE (Deutschland) übertragen und von dort per E-Mail an den Anbieter weitergeleitet. Übertragen werden: Art des Anliegens, Betreff, Nachricht, optional dein Name und deine E-Mail-Adresse für eine Antwort sowie – wenn das Häkchen gesetzt ist – App-Version, Gerätetyp, Bootsart und Einheiten. Fahrten, Positionen und Namenslisten werden nicht übertragen. Zum Schutz vor Missbrauch speichert das Skript bis zu 24 Stunden lang eine nicht umkehrbare Prüfsumme deiner IP-Adresse mit dem Zeitpunkt; IONOS protokolliert als Hoster technisch bedingt Zugriffe. Die Nachricht wird nur zur Bearbeitung deines Anliegens verwendet und nicht an Dritte weitergegeben. Alternativ kannst du die Nachricht über dein eigenes E-Mail-Programm schicken („E-Mail vorbereiten“).</p>
   <h3>8. Rechtsgrundlage</h3>
   <p>Die Verarbeitung erfolgt auf deinem eigenen Gerät zu deinen eigenen Zwecken. Die genannten Dienste werden nur kontaktiert, um die jeweilige Funktion (Karte, Ortsname, Wetter, Synchronisation) bereitzustellen.</p>
   </div>`;
@@ -1769,7 +1770,8 @@ function renderImprint(){
   </div>`;
 }
 const CONTACT_KINDS=['Verbesserungsvorschlag','Wunsch für eine neue Funktion','Fehler melden','Frage zur Bedienung','Sonstiges Anliegen'];
-let contactDraft={kind:CONTACT_KINDS[0],name:'',subject:'',text:'',info:true};
+const FEEDBACK_URL='https://www.kloefkorn.de/bordbuch/bordbuch-feedback.php';
+let contactDraft={kind:CONTACT_KINDS[0],name:'',email:'',subject:'',text:'',info:true};
 function contactDevice(){
   const ua=navigator.userAgent;
   const dev=/iPad/.test(ua)||(/Macintosh/.test(ua)&&navigator.maxTouchPoints>1)?'iPad':/iPhone/.test(ua)?'iPhone':/Android/.test(ua)?'Android':/Windows/.test(ua)?'Windows':/Mac/.test(ua)?'Mac':'Sonstiges Gerät';
@@ -1784,9 +1786,10 @@ function contactMail(){
   if(d.info)body+=`\n---\n${contactDevice()}\n`;
   return {subj,body};
 }
+const validMail=v=>/^[^\s@<>()",;]+@[^\s@<>()",;]+\.[^\s@<>()",;]{2,}$/.test(v);
 function renderContact(){
   setTitle('Kontakt & Feedback',true);
-  const d=contactDraft;
+  const d=contactDraft;const opened=Date.now();
   view.innerHTML=`<p class="hint" style="margin-top:0">Das Bordbuch ist ein privates, nicht-kommerzielles Projekt. Über Rückmeldungen freue ich mich sehr: Verbesserungsvorschläge, Wünsche für neue Funktionen, Fehlermeldungen oder alle anderen Anliegen.</p>
   <section class="panel"><h3>Deine Nachricht</h3>
     <label for="cKind">Worum geht es?</label>
@@ -1794,32 +1797,67 @@ function renderContact(){
     <label for="cSubj">Betreff (freiwillig)</label>
     <input type="text" id="cSubj" maxlength="120" placeholder="zum Beispiel Anzeige der Segelzeit" value="${esc(d.subject)}">
     <label for="cText">Nachricht</label>
-    <textarea id="cText" rows="8" placeholder="Beschreibe deinen Vorschlag oder dein Anliegen. Bei Fehlern hilft: Was hast du gemacht, was ist passiert, was hättest du erwartet?">${esc(d.text)}</textarea>
+    <textarea id="cText" rows="8" maxlength="8000" placeholder="Beschreibe deinen Vorschlag oder dein Anliegen. Bei Fehlern hilft: Was hast du gemacht, was ist passiert, was hättest du erwartet?">${esc(d.text)}</textarea>
     <label for="cName">Dein Name (freiwillig)</label>
     <input type="text" id="cName" maxlength="80" autocomplete="name" value="${esc(d.name)}">
-    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="cInfo" ${d.info?'checked':''} style="margin-top:3px"><span>App-Version und Gerätetyp anhängen (hilft bei Fehlern)<br><small class="hint" id="cInfoTx">${esc(contactDevice())}</small></span></label>
-    <div class="row" style="margin-top:12px"><button class="btn" id="cSend">E-Mail vorbereiten</button><button class="btn ghost" id="cCopy">Text kopieren</button></div>
-    <p class="hint">„E-Mail vorbereiten“ öffnet dein E-Mail-Programm mit der fertigen Nachricht an ${esc(OWNER.mail)}. Abgeschickt wird erst, wenn du dort auf Senden tippst. Die App selbst überträgt nichts. Falls sich kein E-Mail-Programm öffnet, kopiere den Text und schicke ihn an <a href="mailto:${OWNER.mail}">${esc(OWNER.mail)}</a>.</p>
+    <label for="cMail">Deine E-Mail-Adresse für eine Antwort (freiwillig)</label>
+    <input type="text" id="cMail" maxlength="120" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" value="${esc(d.email)}">
+    <div style="position:absolute;left:-9999px;width:1px;height:1px;overflow:hidden" aria-hidden="true"><label for="cWeb">Nicht ausfüllen</label><input type="text" id="cWeb" tabindex="-1" autocomplete="off"></div>
+    <label style="display:flex;gap:8px;align-items:flex-start;margin-top:10px"><input type="checkbox" id="cInfo" ${d.info?'checked':''} style="margin-top:3px"><span>App-Version und Gerätetyp anhängen (hilft bei Fehlern)<br><small class="hint">${esc(contactDevice())}</small></span></label>
+    <div class="row" style="margin-top:12px"><button class="btn" id="cSend">Nachricht senden</button></div>
+    <p class="hint" id="cStat" role="status" aria-live="polite" style="font-weight:600"></p>
+    <p class="hint">Die Nachricht geht verschlüsselt direkt an mich. Fahrten, Positionen und Namenslisten werden nicht mitgeschickt. Ohne Antwortadresse kann ich nicht zurückschreiben. Details in der <a href="#/datenschutz">Datenschutzerklärung</a>.</p>
+  </section>
+  <section class="panel"><h3>Ohne Internet oder lieber per E-Mail</h3>
+    <div class="row"><button class="btn ghost" id="cMailBtn">E-Mail vorbereiten</button><button class="btn ghost" id="cCopy">Text kopieren</button></div>
+    <p class="hint">„E-Mail vorbereiten“ öffnet dein E-Mail-Programm mit der fertigen Nachricht an ${esc(OWNER.mail)}; abgeschickt wird erst, wenn du dort auf Senden tippst. Das geht auch an Bord ohne Netz – die Mail geht dann raus, sobald wieder Verbindung besteht.</p>
   </section>
   <p class="hint"><a href="#/impressum">Impressum</a> · <a href="#/datenschutz">Datenschutz</a></p>`;
-  const sync=()=>{d.kind=$('#cKind').value;d.subject=$('#cSubj').value;d.text=$('#cText').value;d.name=$('#cName').value;d.info=$('#cInfo').checked;};
-  ['#cKind','#cSubj','#cText','#cName','#cInfo'].forEach(id=>$(id).addEventListener('input',sync));
-  $('#cInfo').onchange=sync;$('#cKind').onchange=sync;
-  $('#cSend').onclick=()=>{sync();
-    if(!d.text.trim()){toast('Bitte schreib zuerst eine Nachricht');$('#cText').focus();return;}
+  const stat=$('#cStat');const setStat=(t,ok)=>{stat.textContent=t;stat.style.color=ok===true?'var(--go,#1f8a4c)':ok===false?'var(--stop,#c0392b)':'';};
+  const sync=()=>{d.kind=$('#cKind').value;d.subject=$('#cSubj').value;d.text=$('#cText').value;d.name=$('#cName').value;d.email=$('#cMail').value.trim();d.info=$('#cInfo').checked;};
+  ['#cKind','#cSubj','#cText','#cName','#cMail','#cInfo'].forEach(id=>{$(id).addEventListener('input',sync);$(id).addEventListener('change',sync);});
+  const check=()=>{sync();
+    if(!d.text.trim()){toast('Bitte schreib zuerst eine Nachricht');$('#cText').focus();return false;}
+    if(d.email&&!validMail(d.email)){toast('Die E-Mail-Adresse sieht nicht richtig aus');$('#cMail').focus();return false;}
+    return true;};
+  $('#cSend').onclick=async()=>{
+    if(!check())return;
+    if(!navigator.onLine){setStat('Kein Internet. Nutze „E-Mail vorbereiten“ – die Mail geht dann raus, sobald wieder Verbindung besteht.',false);return;}
+    const btn=$('#cSend');btn.disabled=true;btn.textContent='Wird gesendet …';setStat('');
+    const wait=3200-(Date.now()-opened);if(wait>0)await new Promise(r=>setTimeout(r,wait));
+    const body={art:d.kind,betreff:d.subject.trim(),text:d.text.trim(),name:d.name.trim(),email:d.email,website:$('#cWeb').value,dauer_ms:Date.now()-opened,geraet:d.info?contactDevice():''};
+    try{
+      const ctl=new AbortController();const to=setTimeout(()=>ctl.abort(),20000);
+      const r=await fetch(FEEDBACK_URL,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body),signal:ctl.signal,credentials:'omit',referrerPolicy:'no-referrer'});
+      clearTimeout(to);
+      let j=null;try{j=await r.json();}catch(e){}
+      if(r.ok&&j&&j.ok===true){
+        contactDraft={kind:CONTACT_KINDS[0],name:d.name,email:d.email,subject:'',text:'',info:d.info};
+        $('#cText').value='';$('#cSubj').value='';
+        setStat(d.email?'✓ Danke! Deine Nachricht ist angekommen. Eine Antwort geht an '+d.email+'.':'✓ Danke! Deine Nachricht ist angekommen.',true);
+        toast('Nachricht gesendet – danke!');
+      }else{
+        const msg=j&&typeof j.fehler==='string'?j.fehler.slice(0,200):`Fehler ${r.status}`;
+        setStat(`Senden nicht möglich: ${msg}. Du kannst stattdessen „E-Mail vorbereiten“ nutzen.`,false);
+      }
+    }catch(e){
+      setStat('Der Server war nicht erreichbar. Bitte später erneut versuchen oder „E-Mail vorbereiten“ nutzen.',false);
+    }finally{btn.disabled=false;btn.textContent='Nachricht senden';}
+  };
+  $('#cMailBtn').onclick=()=>{
+    if(!check())return;
     const {subj,body}=contactMail();
-    let url=`mailto:${OWNER.mail}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
+    const url=`mailto:${OWNER.mail}?subject=${encodeURIComponent(subj)}&body=${encodeURIComponent(body)}`;
     if(url.length>1900)toast('Lange Nachricht – falls sie unvollständig ankommt, nutze „Text kopieren“');
     const a=document.createElement('a');a.href=url;a.rel='noopener';document.body.appendChild(a);a.click();a.remove();
   };
-  $('#cCopy').onclick=async()=>{sync();
-    if(!d.text.trim()){toast('Bitte schreib zuerst eine Nachricht');return;}
+  $('#cCopy').onclick=async()=>{
+    if(!check())return;
     const {subj,body}=contactMail();const all=`An: ${OWNER.mail}\nBetreff: ${subj}\n\n${body}`;
     try{await navigator.clipboard.writeText(all);toast('Text kopiert – in eine E-Mail an '+OWNER.mail+' einfügen');}
     catch(e){toast('Kopieren nicht möglich – bitte Text markieren und kopieren');}
   };
 }
-
 /* ================= Ersteinrichtung ================= */
 function needsSetup(){return !S.boatName||!S.skippers.length||!S.helms.length;}
 /* Ablauf beim allerersten Start:
@@ -1852,7 +1890,7 @@ async function setupStart(msg){
     <p>Möchtest du deine Daten mit <b>OneDrive</b> synchronisieren?</p>
     <p class="hint">Empfohlen, wenn du das Bordbuch auch auf einem anderen Gerät nutzt oder nutzen möchtest: Boot, Skipper, Steuerleute und Fahrten werden dann von dort übernommen. Du meldest dich mit deinem eigenen Microsoft-Konto an; die Daten liegen nur in deinem OneDrive.</p>
     <p class="hint">Ohne OneDrive bleiben alle Daten nur auf diesem Gerät. Einschalten lässt es sich später jederzeit in den Einstellungen.</p>
-    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn.</p>
+    <p class="hint" style="font-size:11.5px">🔒 Der Entwickler dieser App hat keinen Zugriff auf dein OneDrive und deine Aufzeichnungen. Die App sendet keine Daten an ihn, außer Nachrichten, die du selbst über das Kontaktformular abschickst.</p>
     <div class="row" style="flex-direction:column;align-items:stretch">
       <button value="od" class="btn">Mit OneDrive verbinden</button>
       <button value="local" class="btn ghost">Ohne OneDrive starten</button></div>`,

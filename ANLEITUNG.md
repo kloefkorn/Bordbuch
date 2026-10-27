@@ -180,4 +180,5 @@ Die Versionsnummer steht klein unten links auf der Startseite und in den Einstel
 | 9.5 | „Ereignis notieren“ gleich hoch wie „Personen an Bord“, gleiche Abstände; Menüsymbol „Boot“ je nach Bootsart |
 | 9.6 | Fehlerkorrektur: Tankmaske zeigt das Symbol der eingestellten Bootsart |
 | 9.7 | Impressum und Kontaktformular unter Einstellungen; Hinweis auf privates, nicht-kommerzielles Projekt |
+| 9.9 | Hinweis auf den Umzug nach www.kloefkorn.de/bordbuch/ |
 | 9.8 | Kontaktformular sendet direkt (über bordbuch-feedback.php auf dem Ionos-Webspace); E-Mail-Weg als Ausweichmöglichkeit |
